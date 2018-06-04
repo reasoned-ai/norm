@@ -4,7 +4,7 @@ When human defines a concept, we mostly compose it with other concepts. For exam
 
 ``` norm
 JayWalk{p: Person, r: Road} :-
-    WalkCross(p, r) and (not On(p, ?z)) and ZebraCross(z)
+    WalkCross(p, r) & !On(p, ?z) & ZebraCross(z)
 ``` 
 
 Norm is such a *Probabilistic Logical Programming* language that compiles to neural network
