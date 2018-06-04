@@ -1,4 +1,4 @@
-# Norm :- "*N*eural *O*bject *R*elational *M*odels"
+# Norm = "*N*eural *O*bject *R*elational *M*odels"
 
 When human defines a concept, we mostly compose it with other concepts. For example, 
 
