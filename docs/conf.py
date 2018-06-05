@@ -40,7 +40,8 @@ extensions = [
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.viewcode'
+    'sphinx.ext.viewcode',
+    'sphinx.ext.mathjax'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -58,7 +59,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = "Norm's documentation"
+project = "Norm"
 copyright = '@mozi.net'
 author = u'Xu Miao'
 
