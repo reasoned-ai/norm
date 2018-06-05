@@ -1,5 +1,10 @@
 # Norm = "*N*eural *O*bject *R*elational *M*odels"
 
+
+![alt text](docs/_static/norm200.png "Norm Logo")
+
+
+
 When human defines a concept, we mostly compose it with other concepts. For example, 
 
 ``` norm

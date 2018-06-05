@@ -42,17 +42,17 @@ Logical Operators
 +------------+------------+-----------------------+
 | Operator   | Keywords   | Description           |
 +============+============+=======================+
-| &          | and        | Conjunction           |
+| &          | And        | Conjunction           |
 +------------+------------+-----------------------+
-| \|         | or         | Disjunction           |
+| \|         | Or         | Disjunction           |
 +------------+------------+-----------------------+
-| !          | not        | Negation              |
+| !          | Not        | Negation              |
 +------------+------------+-----------------------+
-| ^          | xor        | Exclusive disjunction |
+| ^          | Xor        | Exclusive disjunction |
 +------------+------------+-----------------------+
-| =>         | imp        | Implication           |
+| =>         | Imp        | Implication           |
 +------------+------------+-----------------------+
-| <=>        | eqv        | Bi-Implication        |
+| <=>        | Eqv        | Bi-Implication        |
 +------------+------------+-----------------------+
 
 
@@ -204,7 +204,7 @@ Norm also supports two containers: Dict and List
 
 Higher order Functions
 -----------------------------
-Norm supports higher order functions like Map, Reduce, and Zip
+Norm supports higher order functions like Map, Reduce, Zip and Cross
 
 
 Object
@@ -228,21 +228,21 @@ Object contains several common attributes:
 
 List of objects
 -----------------------------
-List supports a few aggregation functions.
+List supports a few aggregation function.
 
 
 +--------------+-------------------------------------------------+
 | Function     | Description                                     |
 +==============+=================================================+
-| max          | Maximum probable object                         |
+| Max          | Maximum probable object                         |
 +--------------+-------------------------------------------------+
-| min          | Minimum probable object                         |
+| Min          | Minimum probable object                         |
 +--------------+-------------------------------------------------+
-| ave          | Averaged object by the probability              |
+| Ave          | Averaged object by the probability              |
 +--------------+-------------------------------------------------+
-| count        | Total number of all objects                     |
+| Count        | Total number of all objects                     |
 +--------------+-------------------------------------------------+
-| groupby      | Group objects by a column or the tensor         |
+| Group        | Group objects by a column or the tensor         |
 +--------------+-------------------------------------------------+
-| unique       | Unique objects by columns                       |
+| Unique       | Unique objects by columns                       |
 +--------------+-------------------------------------------------+
