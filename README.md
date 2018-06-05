@@ -1,7 +1,7 @@
 # Norm = "*N*eural *O*bject *R*elational *M*odels"
 
 
-![alt text](docs/_static/norm200.png "Norm Logo")
+![alt text](docs/_static/norm-logo.png "Norm Logo")
 
 
 
