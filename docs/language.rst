@@ -96,8 +96,8 @@ the field name like in the first example. It can be overloaded as in the second 
         <=> Software(xboxone.name, xboxone.manufacturer, xboxone.release_date, xboxone.platform)
 
     xboxone.AsType(type: Type)
-    xboxone.AsType |:- (type == Software) & return Software(xboxone.name, Company('fake'),
-        xboxone.release_date, None)
+    xboxone.AsType |:- (type == Software) & Software(xboxone.name, Company('fake'),
+                                                     xboxone.release_date, None)
 
 
 Built-in Types
