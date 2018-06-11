@@ -1,16 +1,16 @@
 Logical Programming
 ====================================
 
-Logical programming language has been out since very early years. For example,
-Prolog is very popular in AI field since 70s. The latest large scale application is in IBM Watson where Prolog
-is used to match expert curated patterns from natural language. Many other languages, like Lisp, Datalog, Erlang,
+Logical programming languages have been out since very early years. For example,
+Prolog is very popular in AI field since the 70s. The latest large-scale application is in IBM Watson where Prolog
+is used to match expert-curated patterns from natural language. Many other languages, like Lisp, Datalog, Erlang,
 Curry, and Mercury have been deeply influenced by Prolog.
 
 As a formal language, LP is the closest one to human language. In fact, it has been widely used to construct
 semantic theory. For example, Categorial Grammar (CG) considers a linguistic constituent as a
-logical function and the semantic meaning of the entire sentence is composed by those functions through combination
+logical function and the semantic meaning of the entire sentence is composed of those functions through combination
 rules. Moreover, the declarative paradigm of LP emphasizes the conciseness and preciseness of the communication
-instead of the optimality of controlling the execution flows on computers.
+instead of the optimality of controlling the execution flow on computers.
 
 Norm borrows the same design principles and focuses on bridging human intelligence and machine intelligence.
 This chapter introduces the basic syntax and usage.
@@ -18,7 +18,7 @@ This chapter introduces the basic syntax and usage.
 
 Function & Type
 -----------------------------
-From the typological point of view, function and type refers the same concept that declares a relation among objects.
+From the *typological* point of view, function and type refers the same concept that declares a relation among objects.
 It evaluates to *True* if the relation exists, *False* otherwise. The implementation of a relation is defined by
 **composition**. The following example shows how to compose a Norm function from other functions.
 
@@ -133,7 +133,7 @@ Higher Order Functions
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Higher order functions allow Norm to go beyond *propositional logic* and *first order logic*, and fully support
-$\lambda$ calculus.
+:math:`\lambda`-calculus.
 
 .. code-block:: prolog
 
