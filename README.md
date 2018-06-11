@@ -29,7 +29,7 @@ Norm is focusing on delivering the following features:
 
 - **Compositional**:
     Human language is fundamentally compositional that can model complicated problems. Norm follows
-    the \\(\lambda\\)-**calculus** to support not only propositional logic, but higher order logic.
+    the **Lambda-calculus** to support not only propositional logic, but higher order logic.
     Each logical function in Norm is a neural network module, so any composed function compiles to a
     neural network too.
 - **Conversational**:
