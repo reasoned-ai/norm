@@ -60,7 +60,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = "Norm"
-copyright = '@mozi.net'
+copyright = '@openreason.net'
 author = u'Xu Miao'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -217,8 +217,11 @@ html_show_copyright = False
 htmlhelp_basename = 'normdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
+latex_engine = 'xelatex'
 
 latex_elements = {
+#'inputenc': '\\usepackage[utf8x]{inputenc}',
+#'utf8extra': '',
 # The paper size ('letterpaper' or 'a4paper').
 #'papersize': 'letterpaper',
 
@@ -226,7 +229,7 @@ latex_elements = {
 #'pointsize': '10pt',
 
 # Additional stuff for the LaTeX preamble.
-#'preamble': '',
+# 'preamble': '',
 
 # Latex figure (float) alignment
 #'figure_align': 'htbp',

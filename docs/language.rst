@@ -308,6 +308,8 @@ A query is represented by `?<limit><var><constraints>`. Norm supports some basic
 | ~          | like               | fuzzy match                 |
 +------------+--------------------+-----------------------------+
 
+`?` represents a query of **one** or **some**. `*` represents a query of **any** or **all**.
+
 
 Probabilistic Query
 ^^^^^^^^^^^^^^^^^^^^^
