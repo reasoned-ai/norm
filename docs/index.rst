@@ -61,6 +61,7 @@ Contents
     interaction
     neuralnet
     application
+    grammar
 
 
 Indices and tables

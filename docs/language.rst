@@ -29,7 +29,7 @@ It evaluates to *True* if the relation exists, *False* otherwise. The implementa
 
     Acquire(company: Company, company_acquired: Company)
     Develop(company: Company, technology: Technology)
-    StockPriceUp(company: Company) :- { Acquire(company, ?(comp2)) & Develop(comp2, 'AI') }
+    StockPriceUp(company: Company) = { Acquire(company, ?(comp2)) & Develop(comp2, 'AI') }
 
 
 In this example, `StockPriceUp` is a function name, and `company` is a variable of type `Company`. `?(comp2)` represents
@@ -77,7 +77,7 @@ a product with a high probability. However, the other way around produces a low 
 
 .. code-block:: prolog
 
-    Sell(vendor: Vendor, product: Product)  # define the relationship that vendor sells a product
+    Sell(vendor: Vendor, product: Product)  // define the relationship that vendor sells a product
     office2003 = MicrosoftSoftware('office2003', DateTime(year=2003), Platform('windows'))
     Sell(dell, office2003)
     > 1.0, Dell Sells Office2003
@@ -96,7 +96,7 @@ the field name like in the first example. It can be overloaded as in the second 
         <=> Software(xboxone.name, xboxone.manufacturer, xboxone.release_date, xboxone.platform)
 
     xboxone.AsType(type: Type)
-    xboxone.AsType |:- (type == Software) & Software(xboxone.name, Company('fake'),
+    xboxone.AsType |= (type == Software) & Software(xboxone.name, Company('fake'),
                                                      xboxone.release_date, None)
 
 
@@ -141,29 +141,19 @@ Higher order functions allow Norm to go beyond *propositional logic* and *first 
     Perform(person: Person, action: Type)
 
     p = Person('Michael Jordan')
-    Perform(p, ?(f in actions)) & f(p)
+    Perform(p, (action in actions)?f) & f(p)
     > 1.0, WritePaper
       0.1, PlayBasketball
 
 
-Norm also supports several built-in higher order functions:
-
-+-----------------------------------------------+----------------------------------------------------------------------------+
-| Higher order function                         | Description                                                                |
-+===============================================+============================================================================+
-| Map(list: List, func: Type): List             | Apply func on all elements in the list and return a list of new objects    |
-+-----------------------------------------------+----------------------------------------------------------------------------+
-| Filter(list: List, func: Type): List          | Apply func on all elements in the list and return a list of old objects    |
-+-----------------------------------------------+----------------------------------------------------------------------------+
-| Reduce(list: List, func: Type, init: Type)    | Apply func sequentially on all elements and return an object               |
-+-----------------------------------------------+----------------------------------------------------------------------------+
+Several common higher functions like Map, Filter and Reduce are handled by Vectorization:
 
 .. code-block:: prolog
 
-    Map(feedbacks, Positive) <=> Positive(feedbacks)
-    Filter(feedbacks, Positive) <=> Feedback*(feedback) & Positive(feedback)
+    Map(feedbacks, Positive) <=> Positive(feedbacks)*
+    Filter(feedbacks, Positive) <=> Positive(feedback)
     PositiveCount(feedback: Feedback, count: Integer): Integer
-    Reduce(feedbacks, PositiveCount, {0}) <=> (Feedback*(feedback) & Positive(feedback)).Count()
+    Reduce(feedbacks, PositiveCount, {0}) <=> Positive(feedbacks).Count()
 
 
 Logical Coordinators
@@ -193,18 +183,18 @@ training and testing errors, we would like to add more logic to test more hypoth
 
 .. code-block:: prolog
 
-    StockPriceUp |:- { Acquire(company, ?(comp2)) & Develop(comp2, 'Blockchain') }
+    StockPriceUp |= { Acquire(company, ?(comp2)) & Develop(comp2, 'Blockchain') }
 
 
 Anonymous Functions
 ^^^^^^^^^^^^^^^^^^^^
 
-`() :- {}` allows an anonymous function to be declared and used in the local scope, i.e., they can not be shared.
+`() = {}` allows an anonymous function to be declared and used in the local scope, i.e., they can not be shared.
 
 .. code-block:: prolog
 
-    (x: Company, y: Company) :- { Develop(y, ?tech) & Develop(x, tech) }
-    { 1.0 } # a function returns the constant 1.0
+    (x: Company, y: Company) = { Develop(y, ?tech) & Develop(x, tech) }
+    { 1.0 } // a function returns the constant 1.0
 
 Implementation Block
 ^^^^^^^^^^^^^^^^^^^^^
@@ -218,23 +208,23 @@ However, it allows generic Python implementation by a style comment, `%python`.
 
 .. code-block:: prolog
 
-    (x: Company, y: Company) :- {%python
+    (x: Company, y: Company) = {%python
         techs = norm.demo.Develop(y)
         for tech in techs:
             if norm.demo.Develop(x, tech):
                 return (1.0, x, y)
         return (0.0, x, y)
-    }
+    %}
 
 A neural network function computes tensors from other tensors which can be implemented by Keras or PyTorch, `%keras` or
 `%pytorch`.
 
 .. code-block:: prolog
 
-    (x: Tensor, y: Tensor) :- {%keras
+    (x: Tensor, y: Tensor) = {%keras
         from keras.layers import LSTM
         y = LSTM(x)
-    }
+    %}
 
 
 Query

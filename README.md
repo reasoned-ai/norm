@@ -14,7 +14,7 @@ logical programming experience.
 
 ``` norm
 JayWalk{p: Person, r: Road} :-
-    WalkCross(p, r) & !On(p, ?z) & ZebraCross(z)
+    WalkAccross(p, r) & !On(p, ?z) & ZebraCross(z)
 ``` 
 
 Jay walk is an new concept that we need to detect for Autonomous Driving Vehicle. Supervised deep learning approach
@@ -40,3 +40,5 @@ Norm is focusing on delivering the following features:
     Deterministic logical program is well-known to be brittle and difficult to scale, so Norm adopts the probabilistic
     methodology with the state of the art technology like DNNs to maintain the robustness and the generalizability.
     
+
+
