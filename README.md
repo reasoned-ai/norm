@@ -1,11 +1,8 @@
-# Norm = "Neural Object Relational Models"
+# Norm = {Neural Object Relational Models}
 
 
 ![alt text](docs/_static/norm-logo.png "Norm Logo")
 
-
-Reasonable AI
-=======================================
 
 When human defines a concept, we compose it with other concepts. When the concept is not accurate, human critic and
 modify the logic of the composition. However, that is not what the state of the arts AI technology, deep learning
