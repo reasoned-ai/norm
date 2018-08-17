@@ -5,50 +5,48 @@ Neural Object Relational Models (Norm)
     :align: center
 
 
-Overview
+Reasonable AI
 =======================================
 
-When human defines a concept, we mostly compose it with other concepts. Norm is such a
-*Probabilistic Logical Programming* language that compiles to neural network
-frameworks like Keras and PyTorch and enables high-level human-like reasoning.
-*Deep Neural Networks* allows accurate and fast optimization with implicit contexts, while *Logical Programming*
-allows abstract modeling by human understandable language. Norm marries them together to provide a powerful neural
-logical programming experience.
+When human defines a concept, we compose it with other concepts. When the concept is not accurate, human critic and
+modify the logic of the composition. However, that is not what the state of the arts AI technology, deep learning
+practices. Deep neural networks considers the concept as a set of numerical
+parameters to be optimized with respect to a set of data and an objective function. This black-box approach is
+difficult for regular human experts to interpret and modify. It requires an experienced neural network architect to
+fine-tune the parameters constantly.
 
-For example:
+
+For example, **JayWalk** is a new concept that we need to detect for *Autonomous Driving Vehicles*. The standard procedure
+is to collect a set of positive and negative images, then train a model to classify this concept. The challenge is that
+it is difficult to collect positive examples for a complicated concept due to the long tail distribution and the
+trained model will be less accurate if the data is not enough. However, if we compose the concept based on other
+well-trained concepts, the chance to obtain a high quality model will be increased significantly.
 
 .. image:: _static/jaywalk.png
-    :scale: 10%
+    :scale: 70%
     :align: center
 
 .. code-block:: prolog
 
-    JayWalk{p: Person, r: Road} :-
-        WalkAcross(p, r) & !(On(p, ?z) & ZebraCross(z))
-
-Jaywalk is a new concept that we need to detect for Autonomous Driving Vehicle. Supervised deep learning approach
-requires significant labeling efforts to build a high-quality dataset which can be expensive. Existing transfer learning
-approach allows us to use intermediate layers of a network built for other concepts to fit JayWalk. However,
-this does not work well if other concepts do not share common aspects or the new concept involves complicated relations
-with others. With Norm, one can compose a new concept intuitively even without knowing how neural networks
-work under the hood.
+    JayWalk(p: Person, r: Road) =
+        WalkAcross(p, r) & On(p, z) & Part(r, ?z) & !ZebraCross(z)
 
 
-Norm is focusing on delivering the following features:
+If some concepts contain errors that accumulate due to the complex compositions, Norm can alleviate this
+*brittleness* effectively by adapting the parameters over a small set of examples. The entire logic program is compiled
+to a neural network and the power of transfer learning is leveraged.
 
-- **Compositional**:
-    Human language is fundamentally compositional that can model complicated problems. Norm follows
-    the :math:`\lambda`-**calculus** to support not only propositional logic but higher order logic.
-    Each logical function in Norm is a neural network module, so any composed function compiles to a
-    neural network as well.
-- **Conversational**:
-    Every theory fails on certain conditions. Human corrects the failure through reasoning. Because Norm is a human
-    understandable language, we can see the explanation, critic the logic, propose new theories, query data to verify
-    and eventually prevent the same failure in the future.
-- **Statistical**:
-    The deterministic logical program is well-known to be brittle and difficult to scale, so Norm adopts the machine
-    learning methodology like Deep Neural Networks to maintain the robustness and the generalizability.
 
+Representing the AI model in terms of logic forms facilitates the white-box machine learning approach. Domain experts
+can understand the logical explanation of the model and can argue with the model by looking into the counter-examples.
+Particularly, domain experts can append the **differential logic** to the program and test them out. These explanatory
+and explorative debugging capabilities turn the AI model development into an interactive and collaborative process
+that fits into most of research agenda in many fields.
+
+
+In the end, logic program is the closest formal language to human language. Having a natural language parser will enable
+many more people to benefit the AI development who do not know how to write in a formal language. It will open a door to
+the Artificial General Intelligence that is capable of human-like reasoning.
 
 
 Contents

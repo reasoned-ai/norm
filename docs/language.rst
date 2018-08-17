@@ -1,8 +1,8 @@
-Logical Programming
+Logic Programming
 ====================================
 
-Logical programming languages have been out since very early years. For example,
-Prolog is very popular in AI field since the 70s. The latest large-scale application is in IBM Watson where Prolog
+Logic programming languages have been out there since very early years. For example,
+Prolog is popular in AI field since the 70s. The latest large-scale application is in IBM Watson where Prolog
 is used to match expert-curated patterns from natural language. Many other languages, like Lisp, Datalog, Erlang,
 Curry, and Mercury have been deeply influenced by Prolog.
 
@@ -27,8 +27,8 @@ It evaluates to *True* if the relation exists, *False* otherwise. The implementa
 
     namespace norm.demo
 
-    Acquire(company: Company, company_acquired: Company)
-    Develop(company: Company, technology: Technology)
+    Acquire(company: Company, company_acquired: Company) = {}
+    Develop(company: Company, technology: Technology) = {}
     StockPriceUp(company: Company) = { Acquire(company, ?(comp2)) & Develop(comp2, 'AI') }
 
 
