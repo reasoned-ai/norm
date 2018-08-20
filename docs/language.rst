@@ -2,7 +2,7 @@ Logic Programming
 ====================================
 
 Logic programming languages have been out there since very early years. For example,
-Prolog is popular in AI field since the 70s. The latest large-scale application is in IBM Watson where Prolog
+Prolog is popular in AI field since the 70s. The latest application is in IBM Watson where Prolog
 is used to match expert-curated patterns from natural language. Many other languages, like Lisp, Datalog, Erlang,
 Curry, and Mercury have been deeply influenced by Prolog.
 
@@ -16,41 +16,66 @@ Norm borrows the same design principles and focuses on bridging human intelligen
 This chapter introduces the basic syntax and usage.
 
 
-Function & Type
+Relation
 -----------------------------
-From the *typological* point of view, function and type refers the same concept that declares a relation among objects.
-It evaluates to *True* if the relation exists, *False* otherwise. The implementation of a relation is defined by
-**composition**. The following example shows how to compose a Norm function from other functions.
+In Norm, **Type** is equivalent to a **Relation** that declares a relationship among the objects as the arguments. It
+evaluates to 1.0 if the relationship exists and is recorded in the world. 0.0 if the relationship does not exists and
+is recorded. Otherwise, it evaluates to a probability between $(0.0, 1.0)$ to indicate how likely the relationship
+exists in the world.
 
+Any **Relation** can be declared and implemented by composing from other **Relations**. For example, `StockPriceUp` is
+a single arity relation of the object referred by the variable `company`. We have a theory that the `company`'s stock
+price will go up if it acquired any company which is developing AI technology.
+
+.. code-block:: prolog
+    // Acquire(company: Company, company_acquired: Company)
+    // Develop(company: Company, technology: Technology)
+    StockPriceUp(company: Company) = { Acquire(company, ?comp2) & Develop(comp2, Technology('AI')) };
+
+Of course, the accuracy of the theory will be tested against the **World** database. It depends on how accurate
+``Acquire`` and ``Develop`` are and how many cases the above theory matches the collected data. Assuming the
+**single open world**, the test will sample a certain amount of example companies and exam the fitness. If the test
+comes with low accuracy, we can either adapt the parameters or append new theories.
+
+
+Appending Logic
+^^^^^^^^^^^^^^^^^^
+Appending a new theory to the old theory continuously speeds up model development process. For example, if
+``Acquire`` means differently for ``microsoft``, we can add the logic to the original **Relation**. If the condition
+of ``company == microsoft & Blah`` has little conflict with existing logic, this helps improve the accuracy of the theory.
+If conflicts grow, training the model parameters mostly help resolve them. Sometimes, some logic will be disabled and
+removed if the training results suggest so. **Automatic versioning** of Norm prevents the declarations to bing erased
+accidentally.
 
 .. code-block:: prolog
 
-    namespace norm.demo
-
-    Acquire(company: Company, company_acquired: Company) = {}
-    Develop(company: Company, technology: Technology) = {}
-    StockPriceUp(company: Company) = { Acquire(company, ?(comp2)) & Develop(comp2, 'AI') }
+    Acquire |= { company == microsoft & Blah };
 
 
-In this example, `StockPriceUp` is a function name, and `company` is a variable of type `Company`. `?(comp2)` represents
-a **existential quantifier** or **skolemization**.
 
-Norm allows two convenient function declarations.
-
-
+Override Relation
+^^^^^^^^^^^^^^^^^^^^^
+Any relation can be overridden for a particular object of the first argument.
 .. code-block:: prolog
 
-    microsoft.Acquire(company_acquired: Company) => Acquire(microsoft, company_acquired: Company)
-    Develop(company: Company): Technology => Develop(company: Company, _: Technology)
+    microsoft.Acquire(company_acquired: Company) = { Blah };
+    /*
+     Acquire(company: Company, company_acquired: Company) |= {
+        company == microsoft & Blah;
+     }
+    */
+
+
+
+    Develop(company: Company): Technology <=> Develop(company: Company, _: Technology)
 
 
 The first example shows that functions can be attached to a particular object. This allows function **overloading**,
 i.e., an implementation for the case of microsoft being the acquirer could be different than other companies.
 
-The second example defines a function outputs a *Technology* object to an implicit variable `_`. This restricts the
-function to only produce results for the last parameter, i.e., ``Develop(?company, 'AI')`` raises error. Conventional
-functional programming only takes this form of function declarations. It is useful for functions to extract features
-like neural network functions or patterns like regex functions.
+The second example defines a function that outputs a *Technology* object to an implicit variable `_`. This restricts the
+function to only produce results for the last parameter, i.e., ``Develop(?company, Technology('AI'))`` will raise an error.
+It is useful for functions to extract features like neural network functions or patterns like regex functions.
 
 
 Inheritance
