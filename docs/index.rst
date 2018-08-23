@@ -28,8 +28,7 @@ well-trained concepts, the chance to obtain a high quality model will be increas
 
 .. code-block:: prolog
 
-    JayWalk(p: Person, r: Road) =
-        WalkAcross(p, r) & On(p, z) & Part(r, ?z) & !ZebraCross(z)
+    JayWalk(p: Person, r: Road) = WalkAcross(p, r) & On(p, z) & Part(r, ?z) & !ZebraCross(z);
 
 
 If some concepts contain errors that accumulate due to the complex compositions, Norm can alleviate this
@@ -55,9 +54,10 @@ Contents
 .. toctree::
     :maxdepth: 2
 
-    language
-    interaction
+    declaration
     neuralnet
+    inference
+    interaction
     application
     grammar
 
