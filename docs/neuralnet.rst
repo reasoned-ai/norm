@@ -13,24 +13,46 @@ i.e., **compositional** and **contextual**.
 
 Relation expression
 ----------------------------
+
 Any relation can be grounded as one neural network like the following example.
 
 .. image:: _static/NN-Norm.png
     :scale: 80%
     :align: center
 
-In this example, circle represents a free or unobserved variable, and dark circle represents a constant or observed
-variable. We simply considers ``AND`` as a Multi Layer Perceptron (MLP) that projects a concatenated vector into a
-lower dimensional vector with a probability as binary entropy. The tensor out of the MLP is a hidden layer mostly.
-
-Training
-----------
-
-This shows how to train a function
+In this example, light circle represents a free or unobserved variable and dark circle represents a constant or observed
+variable. We simply consider ``AND`` as a Multi-Layer Perceptron (MLP) that projects a concatenated vector into a
+lower dimensional vector space that is mapped to a probability with a binary entropy loss. The tensor output of the MLP
+is taken from a hidden layer.
 
 
 Sampling
 ----------------
+
+Assuming an open but single world, all observations are considered as positives. To be able to build a model, one has to
+sample the negatives. The entire Norm space is essentially considered as one generative model to sample negative data.
+
+
+Random Sampling
+^^^^^^^^^^^^^^^^
+
+.. code-block:: prolog
+
+    StockPriceUp(company: Company) = Acquire(company, ?comp2) & Develop(comp2, Technology('AI'));
+
+
+Max-margin Sampling
+^^^^^^^^^^^^^^^^^^^^
+
+
+GAN
+^^^^
+
+
+
+Training
+----------
+
 
 
 Weak/distant supervision
