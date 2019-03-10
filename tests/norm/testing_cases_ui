@@ -1,0 +1,17 @@
+Template(model: Model, user: User) |=
+   model.isa(DetectObject)
+
+ & Choose(choices=Stream(org==user.org).name.all)?stream_names
+
+ & Stream(name in stream_names.all).any?datasets
+
+ & Choose(choices=datasets.location.unique.all).right(stream_names)?locations
+
+ & datasets(location in locations, frame?)?frames
+
+ & model(frame=frames?, object?).any?objects
+
+ & objects.foreach(frame).uncertainty.ave.ascend.frame[:5].all?confident_frames
+
+ & Tabular(confident_frames).below(stream_names, locations)?table;
+

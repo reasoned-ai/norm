@@ -1,0 +1,86 @@
+// Declare lambdas
+test(a:String, b:Integer);
+
+// Export lambdas
+export test@3 norm.test;
+
+// Import lambdas
+import norm.test.test@4 as tt;
+
+// Adding some data
+test := ('sfs', 4)
+      | ('fff', 1)
+      ;
+test('aa', 6);
+// A new empty/default data
+test();
+
+// Add another attribute
+test &= (t:Datetime, p:Person);
+
+// Rename an attribute
+test.rename('a', 'b');
+
+// Retype attributes and add another attribute
+test.astype('t', String);
+
+// Add another attribute implicitly with values
+import python.datetime.datetime.utcnow;
+test &= utcnow()?t2; // automatically adding t2 as a Datetime type (inferred by the now output type)
+
+// Query the data
+test;
+test?;
+test('aa', 6)?;
+test(a?);
+test(a?, b?);
+test(a='sfs', b?);
+test(a~'s'?, b>3);
+
+// Define the probability distribution
+test &= gaussian(mu=2, gamma=0.1, b)?prob;
+test &= view(p, time<t, page?);
+
+// Sort on an attribute
+test.t.desc;
+
+// Group by an attribute and take the mean
+tt = test.foreach(t) & tt.a.mean?a_mean & tt.a.max?a_max & tt.b.mean?b_mean;
+
+// Extract a pattern on an attribute
+test &= extract(a, r'sf')?sf;
+
+// Extract a pattern on multiple attributes
+test &= extract(a, r'sf{\W+}{[0-9]+}')?(v1, v2);
+
+// Access a nested attribute
+test &= extract(p.name, r'^tom')?is_tom;
+
+// Slicing with one object
+test[1];
+
+// Slicing with multiple object
+test[3:7];
+test[:9];
+test[2:];
+test[:-2];
+
+// Row-wise expansion with vectorized inputs
+// match(s:String, p:Pattern)
+// the following will cross product test with [r's', r'sf', r'aa']
+patterns = [r's', r'sf', r'aa'];
+
+// Higher order relation GroupLambda and column-wise expansion
+// Iterate on patterns with OR and project to variable 'pa'
+  matches = match.foreach(p=patterns)
+& cols = 'pattern_{}'.format(patterns)
+& matches(test.a).any?pa;
+
+// Iterate on patterns with AND and project to variables  ('pattern_s', 'pattern_sf', 'pattern_aa')
+matches(test.a).all?{cols.all};
+
+
+// Inheritance
+animal(name: String, speak: String, num_of_legs: Integer);
+duck(name: String) = speak='guagua' & num_of_legs=2 & animal(name, speak, numOfLegs);
+frog(name: String) = speak='rubit' & num_of_legs=4 & animal(name, speak, numOfLegs);
