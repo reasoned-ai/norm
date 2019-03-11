@@ -24,7 +24,7 @@ class Revision(Model, ParametrizedMixin):
 
     PARQUET_EXT = 'parq'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True)
     query = Column(Text, default='')
     position = Column(Integer)
     description = Column(Text, default='')

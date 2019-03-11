@@ -165,7 +165,7 @@ class Lambda(Model, ParametrizedMixin):
     VAR_TOMBSTONE_T = 'bool'
 
     # identifiers
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True)
     namespace = Column(String(512), default='')
     name = Column(String(256), nullable=False)
     # data type

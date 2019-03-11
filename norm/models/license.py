@@ -11,7 +11,7 @@ class License(Model):
     """License for sharing Lambdas"""
     __tablename__ = 'licenses'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True)
     name = Column(String(256), nullable=False)
 
 
