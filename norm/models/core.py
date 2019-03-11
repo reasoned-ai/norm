@@ -1,48 +1,11 @@
 """A collection of ORM sqlalchemy models for CoreLambda"""
 from pandas import DataFrame
-from sqlalchemy import exists
 
-from norm.config import session
+from norm.models import Register
 from norm.models.norm import Lambda, Variable, Status, retrieve_type
 
 import logging
-import traceback
 logger = logging.getLogger(__name__)
-
-
-class RegisterCores(object):
-    types = []
-
-    def __init__(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
-
-    def __call__(self, cls):
-        self.types.append((cls, self.args, self.kwargs))
-        return cls
-
-    @classmethod
-    def register(cls):
-        for clz, args, kwargs in cls.types:
-            instance = clz(*args, **kwargs)
-            in_store = session.query(exists().where(clz.name == instance.name)).scalar()
-            if not in_store:
-                logger.info('Registering class {}'.format(instance.name))
-                session.add(instance)
-        try:
-            session.commit()
-        except:
-            logger.error('Type registration failed')
-            logger.debug(traceback.print_exc())
-
-    @classmethod
-    def retrieve(cls, clz, *args, **kwargs):
-        instance = clz(*args, **kwargs)
-        stored_inst = session.query(clz).filter(clz.name == instance.name).scalar()
-        if stored_inst is None:
-            stored_inst = instance
-            session.add(instance)
-        return stored_inst
 
 
 class CoreLambda(Lambda):
@@ -68,7 +31,7 @@ def native_type(name):
     return retrieve_type('norm.native', name)
 
 
-@RegisterCores()
+@Register()
 class ReadFileLambda(CoreLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_core_read_file'
@@ -142,7 +105,7 @@ class ReadFileLambda(CoreLambda):
         return lam
 
 
-@RegisterCores()
+@Register()
 class StringFormatterLambda(CoreLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_core_string_formatter'
@@ -182,7 +145,7 @@ class StringFormatterLambda(CoreLambda):
         return lam
 
 
-@RegisterCores()
+@Register()
 class ExtractPatternLambda(CoreLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_core_extract_pattern'

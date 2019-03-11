@@ -1,47 +1,9 @@
 """A collection of ORM sqlalchemy models for NativeLambda"""
-from norm.config import session
+from norm.models import Register
 from norm.models.norm import Lambda, Variable, Status, retrieve_type
 
-from sqlalchemy import exists
-
 import logging
-import traceback
 logger = logging.getLogger(__name__)
-
-
-class RegisterNatives(object):
-    types = []
-
-    def __init__(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
-
-    def __call__(self, cls):
-        self.types.append((cls, self.args, self.kwargs))
-        return cls
-
-    @classmethod
-    def register(cls):
-        for clz, args, kwargs in cls.types:
-            instance = clz(*args, **kwargs)
-            in_store = session.query(exists().where(clz.name == instance.name)).scalar()
-            if not in_store:
-                logger.info('Registering class {}'.format(instance.name))
-                session.add(instance)
-        try:
-            session.commit()
-        except:
-            logger.error('Type registration failed')
-            logger.debug(traceback.print_exc())
-
-    @classmethod
-    def retrieve(cls, clz, *args, **kwargs):
-        instance = clz(*args, **kwargs)
-        stored_inst = session.query(clz).filter(clz.name == instance.name).scalar()
-        if stored_inst is None:
-            stored_inst = instance
-            session.add(instance)
-        return stored_inst
 
 
 class NativeLambda(Lambda):
@@ -63,7 +25,7 @@ class NativeLambda(Lambda):
         return None
 
 
-@RegisterNatives()
+@Register()
 class TypeLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_type'
@@ -75,7 +37,7 @@ class TypeLambda(NativeLambda):
                          variables=[])
 
 
-@RegisterNatives()
+@Register()
 class AnyLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_any'
@@ -104,7 +66,7 @@ class ListLambda(NativeLambda):
                          variables=[variable])
 
 
-@RegisterNatives()
+@Register()
 class BooleanLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_boolean'
@@ -117,7 +79,7 @@ class BooleanLambda(NativeLambda):
                          dtype='bool')
 
 
-@RegisterNatives()
+@Register()
 class FloatLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_float'
@@ -130,7 +92,7 @@ class FloatLambda(NativeLambda):
                          dtype='float')
 
 
-@RegisterNatives()
+@Register()
 class IntegerLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_integer'
@@ -143,7 +105,7 @@ class IntegerLambda(NativeLambda):
                          dtype='int')
 
 
-@RegisterNatives()
+@Register()
 class StringLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_string'
@@ -155,7 +117,7 @@ class StringLambda(NativeLambda):
                          variables=[])
 
 
-@RegisterNatives()
+@Register()
 class PatternLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_pattern'
@@ -167,7 +129,7 @@ class PatternLambda(NativeLambda):
                          variables=[])
 
 
-@RegisterNatives()
+@Register()
 class UUIDLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_uuid'
@@ -179,7 +141,7 @@ class UUIDLambda(NativeLambda):
                          variables=[])
 
 
-@RegisterNatives()
+@Register()
 class URLLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_url'
@@ -191,7 +153,7 @@ class URLLambda(NativeLambda):
                          variables=[])
 
 
-@RegisterNatives()
+@Register()
 class DatetimeLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_datetime'
@@ -204,7 +166,7 @@ class DatetimeLambda(NativeLambda):
                          dtype='datetime64[ns]')
 
 
-@RegisterNatives(dtype='float32', shape=[300])
+@Register(dtype='float32', shape=[300])
 class TensorLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_tensor'
