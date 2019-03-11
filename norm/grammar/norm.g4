@@ -49,7 +49,7 @@ argumentDeclarations: argumentDeclaration ((WS|NS)? COMMA (WS|NS)? argumentDecla
 
 typeDeclaration: typeName (LBR argumentDeclarations RBR)? ((WS|NS)? COLON (WS|NS)? typeName)?;
 
-version: '@' INTEGER?;
+version: UUID | '$latest' | '$best';
 
 typeName
     : VARNAME version?
@@ -208,7 +208,7 @@ FLOAT:      [+-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
 STRING:     '"' ( ~["\r\n\t] )*? '"' | '\'' ( ~['\r\n\t] )*? '\'' ;
 
 PATTERN:   'r' STRING;
-UUID:      '$' STRING;
+UUID:      '$' [0-9a-fA-F-]*;
 URL:       'u' STRING;
 DATETIME:  't' STRING;
 

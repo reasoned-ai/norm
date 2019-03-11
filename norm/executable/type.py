@@ -13,7 +13,7 @@ class TypeName(NormExecutable):
         :param name: name of the type
         :type name: str
         :param version: version of the type
-        :type version: int
+        :type version: str
         """
         super().__init__()
         self.namespace = None
@@ -26,7 +26,7 @@ class TypeName(NormExecutable):
     def __str__(self):
         s = self.namespace + '.' if self.namespace else ''
         s += self.name
-        s += '@' + str(self.version) if self.version is not None else ''
+        s += self.version if self.version is not None else '$latest'
         return s
 
     def compile(self, context):
@@ -90,7 +90,7 @@ class ListType(NormExecutable):
 
         q = context.session.query(ListLambda, Variable).join(ListLambda.variables)\
                            .filter(Variable.type_id == lam.id)
-        llam = q.scalar()
+        llam = q.first()
         if llam is None:
             # create a new ListLambda
             llam = ListLambda(lam)

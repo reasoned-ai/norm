@@ -1,6 +1,6 @@
 """A collection of ORM sqlalchemy models for Lambda"""
 import norm.config as config
-from norm.models.mixins import lazy_property, ParametrizedMixin, new_version, ARRAY
+from norm.models.mixins import lazy_property, ParametrizedMixin, ARRAY
 from norm.models.license import License
 from norm.models.user import User
 from norm.models import Model
@@ -91,11 +91,8 @@ class Level(enum.IntEnum):
     ADAPTABLE = 2
 
 
-def default_version(context):
-    params = context.get_current_parameters()
-    namespace = params['namespace']
-    name = params['name']
-    return new_version(namespace, name)
+def default_version():
+    return '$' + str(uuid.uuid4())
 
 
 def _check_draft_status(func):
@@ -149,6 +146,8 @@ class Lambda(Model, ParametrizedMixin):
     """Lambda model is a function"""
     __tablename__ = 'lambdas'
     category = Column(String(128))
+
+    VERSION_TRUNCATE = 5
 
     VAR_OUTPUT = 'output'
     VAR_LABEL = 'label'
@@ -210,7 +209,7 @@ class Lambda(Model, ParametrizedMixin):
         self.id = None  # type: int
         self.namespace = namespace  # type: str
         self.name = name  # type: str
-        self.version = None  # type: int
+        self.version = default_version()  # type: str
         self.description = description   # type: str
         self.params = params  # type: str
         self.owner = user  # type: User
@@ -292,10 +291,10 @@ class Lambda(Model, ParametrizedMixin):
 
     @property
     def signature(self):
-        if self.namespace:
-            return '@'.join((self.namespace + '.' + self.name, str(self.version)))
+        if self.namespace is not None and self.namespace.strip() != '':
+            return self.namespace + '.' + self.name + self.version[:self.VERSION_TRUNCATE]
         else:
-            return '@'.join((self.name, str(self.version)))
+            return self.name + self.version[:self.VERSION_TRUNCATE]
 
     def clone(self):
         """
@@ -727,12 +726,16 @@ def retrieve_type(namespaces, name, version=None, status=None, session=None):
     Retrieving a Lambda
     :type namespaces: str, List[str] or None
     :type name: str
-    :type version: int or None
+    :type version: str or None
     :type status: Status or None
     :type session: sqlalchemy.orm.Session
     :return: the Lambda or None
     """
-    #  find the latest versions
+    if version == '$lastest':
+        version = None
+    elif version == '$best':
+        raise NotImplementedError('Select the version for the best is not implemented yet')
+
     queries = [Lambda.name == name]
     if status is not None and isinstance(status, Status):
         queries.append(Lambda.status == status)
@@ -741,23 +744,17 @@ def retrieve_type(namespaces, name, version=None, status=None, session=None):
             queries.append(Lambda.namespace == namespaces)
         else:
             queries.append(Lambda.namespace.in_(namespaces))
-    if version is not None and isinstance(version, int):
-        queries.append(Lambda.version <= version)
+    if version is not None:
+        queries.append(Lambda.version.startswith(version))
 
     if session is None:
         import norm.config
         session = norm.config.session
+
     lam = session.query(Lambda) \
                  .filter(*queries) \
-                 .order_by(desc(Lambda.version)) \
+                 .order_by(desc(Lambda.created_on)) \
                  .first()
-    if lam is None:
-        return None
-
-    if version is not None and lam.version < version:
-        msg = 'The specified version {} does not exist for {}.{}'.format(version, lam.namespace, lam.name)
-        raise RuntimeError(msg)
-
     return lam
 
 

@@ -1,43 +1,9 @@
-import norm.config as config
-from norm.models import Model
 from sqlalchemy import Column, Integer, String, Text, exists, and_, TypeDecorator
 
 import json
 import logging
 import traceback
 logger = logging.getLogger(__name__)
-
-
-class Version(Model):
-    """
-    Version lambdas
-    """
-
-    __tablename__ = 'versions'
-
-    id = Column(Integer, primary_key=True)
-    namespace = Column(String(512), default='')
-    name = Column(String(256), nullable=False)
-    max_ver = Column(Integer, default=0)
-
-
-def new_version(namespace, name):
-    """
-    Make a new version for a namespaced name
-    :type namespace: str
-    :type name: str
-    :return: the version
-    :rtype: Column
-    """
-
-    ver = config.session.query(Version).filter(Version.namespace == namespace,
-                                               Version.name == name).scalar()
-    if ver is None:
-        ver = Version(namespace=namespace, name=name, max_ver=1)
-        config.session.add(ver)
-    else:
-        ver.max_ver += 1
-    return ver.max_ver
 
 
 def lazy_property(f):

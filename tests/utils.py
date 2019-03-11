@@ -1,5 +1,5 @@
 import unittest
-from norm.config import session
+from norm import session
 
 __all__ = ['user_tester', 'NormTestCase']
 

@@ -37,7 +37,7 @@ class TypeImplementation(NormExecutable):
         session = context.session
         from norm.engine import ImplType
         lam = None
-        if self.op == ImplType.ASS:
+        if self.op == ImplType.DEF:
             lam = self.type_.lam
             if lam is None:
                 #  Create a new Lambda
@@ -45,13 +45,11 @@ class TypeImplementation(NormExecutable):
                 session.add(lam)
             # TODO
             lam.conjunction()
-        elif self.op == ImplType.ORAS:
+        elif self.op == ImplType.OR_DEF:
             pass
-        elif self.op == ImplType.ANDAS:
+        elif self.op == ImplType.AND_DEF:
             pass
-        else:
-            msg = 'Implementation only supports :=, &=, |= for now'
-            raise NormError(msg)
+
         self.lam = lam
         return self
 

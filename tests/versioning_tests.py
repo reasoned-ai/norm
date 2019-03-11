@@ -1,5 +1,5 @@
 """Unit tests for Norm"""
-from tests.norm.utils import NormTestCase
+from tests.utils import NormTestCase
 
 
 class VersioningTestCase(NormTestCase):

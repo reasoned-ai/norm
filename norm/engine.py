@@ -57,8 +57,10 @@ class NormCompiler(normListener):
         self.set_namespaces()
 
     def set_namespaces(self):
-        self.context_namespace = '{}.{}'.format(config.CONTEXT_NAMESPACE_STUB, self.context_id)
-        self.user_namespace = '{}.{}'.format(config.USER_NAMESPACE_STUB, self.user.username)
+        if self.context_id:
+            self.context_namespace = '{}.{}'.format(config.CONTEXT_NAMESPACE_STUB, self.context_id)
+        if self.user:
+            self.user_namespace = '{}.{}'.format(config.USER_NAMESPACE_STUB, self.user.username)
         from norm.models import NativeLambda, CoreLambda
         self.search_namespaces = {NativeLambda.NAMESPACE, CoreLambda.NAMESPACE, self.context_namespace,
                                   self.user_namespace}
@@ -134,7 +136,7 @@ class NormCompiler(normListener):
             type_declaration = self._pop()  # type: TypeDeclaration
             description = self._pop() if ctx.comments() else ''
             type_declaration.description = description
-            op = ImplType(ctx.IMPL().getText())
+            op = ImplType(ctx.IMPL().getText()) if ctx.IMPL() else None
             self._push(TypeImplementation(type_declaration, op, query, description).compile(self))
         elif ctx.imports() or ctx.exports() or ctx.commands() or ctx.multiLineExpression():
             if ctx.comments():
@@ -237,7 +239,7 @@ class NormCompiler(normListener):
     def exitTypeName(self, ctx:normParser.TypeNameContext):
         typename = ctx.VARNAME()
         if typename:
-            version = int(ctx.version().getText()[1:]) if ctx.version() else None
+            version = ctx.version().getText() if ctx.version() else None
             self._push(TypeName(str(typename), version).compile(self))
         elif ctx.LSBR():
             intern = self._pop()  # type: TypeName

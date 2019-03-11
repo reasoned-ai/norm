@@ -1,7 +1,7 @@
 """Unit tests for Norm"""
 import os
 
-from tests.norm.utils import NormTestCase
+from tests.utils import NormTestCase
 from norm.models import Lambda, Variable, retrieve_type, Status, Level
 
 
@@ -44,12 +44,12 @@ class LambdaTestCase(NormTestCase):
                      name='Test',
                      description='Test lambda'
                      )
-        self.assertTrue(lam.signature == '{}.Test@None'.format(self.executor.context_namespace))
+        self.assertTrue(lam.signature.startswith('{}.Test$'.format(self.executor.context_namespace)))
         lam = Lambda(namespace=None, name='Test')
-        self.assertTrue(lam.signature == 'Test@None')
+        self.assertTrue(lam.signature.startswith('Test$'))
         lam = Lambda(name='Test')
-        lam.version = 23
-        self.assertTrue(lam.signature == 'Test@23')
+        lam.version = '$23'
+        self.assertTrue(lam.signature == 'Test$23')
 
     def test_check_draft_status(self):
         lam = Lambda(namespace=self.executor.context_namespace,

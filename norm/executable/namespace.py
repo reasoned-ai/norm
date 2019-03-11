@@ -1,7 +1,8 @@
+import uuid
+
 from norm.executable import NormExecutable, NormError
 from norm.executable.type import TypeName
 
-from norm.models.mixins import new_version
 from norm.models import Status
 
 import logging
@@ -107,7 +108,7 @@ class Export(NormExecutable):
         if self.alias:
             lam.name = self.alias
         # TODO: version has to be set here instead of at the commitment time. need to verify.
-        lam.version = new_version(lam.namespace, lam.name)
+        lam.version = str(uuid.uuid4())
         lam.status = Status.READY
 
         # clone this one back to the current context for further modification

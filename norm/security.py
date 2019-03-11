@@ -16,7 +16,10 @@ def login(usr=None):
 
 
 # Initialize the user
-user = login()
+try:
+    user = login()
+except:
+    user = None
 
 
 
