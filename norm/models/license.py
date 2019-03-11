@@ -1,10 +1,8 @@
 """A collection of ORM sqlalchemy models for managing copyright"""
 from norm import config
+from norm.models import Model
 
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, exists
-
-Model = declarative_base()
 
 
 class License(Model):

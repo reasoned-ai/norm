@@ -1,11 +1,11 @@
 """A collection of ORM sqlalchemy models for Revision"""
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, orm, JSON
 from sqlalchemy import Table
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from norm.models.mixins import ParametrizedMixin
 from norm.models.norm import Lambda, Variable
+from norm.models import Model
 
 from pandas import DataFrame
 import pandas as pd
@@ -13,7 +13,6 @@ import pandas as pd
 import logging
 logger = logging.getLogger(__name__)
 
-Model = declarative_base()
 metadata = Model.metadata
 
 
@@ -146,7 +145,7 @@ class RenameVariableRevision(SchemaRevision):
 class RetypeVariableRevision(SchemaRevision):
 
     __mapper_args__ = {
-        'polymorphic_identity': 'revision_schema_rename'
+        'polymorphic_identity': 'revision_schema_retype'
     }
 
     def __init__(self, variables, lam):

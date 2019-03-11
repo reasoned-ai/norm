@@ -1,7 +1,5 @@
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime
-
-Model = declarative_base()
+from norm.models import Model
 
 
 class User(Model):

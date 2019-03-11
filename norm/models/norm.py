@@ -3,10 +3,10 @@ import norm.config as config
 from norm.models.mixins import lazy_property, ParametrizedMixin, new_version, ARRAY
 from norm.models.license import License
 from norm.models.user import User
+from norm.models import Model
 
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, desc, UniqueConstraint, orm
 from sqlalchemy import Table
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.orderinglist import ordering_list
@@ -27,7 +27,6 @@ from typing import List, Dict
 import logging
 logger = logging.getLogger(__name__)
 
-Model = declarative_base()
 metadata = Model.metadata
 
 

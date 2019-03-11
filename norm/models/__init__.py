@@ -1,3 +1,6 @@
+from sqlalchemy.ext.declarative import declarative_base
+Model = declarative_base()
+
 from norm.models.mixins import Version
 from norm.models.norm import (Variable, lambda_variable, Lambda, Status, Level,
                               KerasLambda, retrieve_type)

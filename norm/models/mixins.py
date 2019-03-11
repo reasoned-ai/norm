@@ -270,7 +270,7 @@ class ARRAY(TypeDecorator):
 
     impl = String
 
-    def __init__(self, intern):
+    def __init__(self, intern=None):
         super().__init__()
         self.intern = intern
 

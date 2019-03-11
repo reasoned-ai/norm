@@ -14,12 +14,12 @@ UNICODE = 'utf-8'
 
 # Where the data is stored, e.g., s3://datalake, gs://datalake
 DATA_STORAGE_ROOT = 'data'
-DB_PATH = 'db/norm.db'
+DB_PATH = 'norm/db/norm.db'
 
 # Default user name
 PUBLIC_USER = dict(first_name='norm',
                    last_name='ai',
-                   user_name='norm',
+                   username='norm',
                    email='norm@reasoned.ai')
 
 # Create database session
