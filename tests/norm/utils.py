@@ -1,38 +1,29 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-import superset
-
-from norm.config import db, user_model
-from norm.engine import executor
-from norm.utils import set_current_user
 import unittest
+from norm.config import session
 
-__all__ = ['superset', 'user_tester', 'NormTestCase']
+__all__ = ['user_tester', 'NormTestCase']
 
 
 def user_tester():
-    tester = db.session.query(user_model).filter(user_model.username == 'tester',
-                                                 user_model.email == 'norm-tester@reasoned.ai').first()
+    from norm.models.user import User
+    tester = session.query(User).filter(User.username == 'tester',
+                                        User.email == 'norm-tester@reasoned.ai').first()
     if tester is None:
-        tester = user_model(username='tester', first_name='tester', last_name='norm',
-                            email='norm-tester@reasoned.ai', password='')
-        db.session.add(tester)
-        db.session.commit()
-
-    set_current_user(tester)
+        tester = User(username='tester', first_name='tester', last_name='norm',
+                      email='norm-tester@reasoned.ai')
+        session.add(tester)
+        session.commit()
     return tester
 
 
 class NormTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.session = db.session
+        from norm.engine import NormCompiler
+        self.session = session
         self.user = user_tester()
         self.context_id = 'testing'
-        self.executor = executor(self.context_id, self.session)
+        self.executor = NormCompiler(self.context_id, self.user, self.session)
 
     def tearDown(self):
         self.session.rollback()

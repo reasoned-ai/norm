@@ -1,3 +1,7 @@
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import uuid
+
 # Default namespace stubs
 CONTEXT_NAMESPACE_STUB = 'norm.tmp'
 USER_NAMESPACE_STUB = 'norm.user'
@@ -8,14 +12,23 @@ MAX_LIMIT = 1000000
 # Unicode encoding
 UNICODE = 'utf-8'
 
-# Where the data is stored, e.g., s3://datalake
+# Where the data is stored, e.g., s3://datalake, gs://datalake
 DATA_STORAGE_ROOT = 'data'
+DB_PATH = 'db/norm.db'
 
-# Security of the data storage
+# Default user name
+PUBLIC_USER = dict(first_name='norm',
+                   last_name='ai',
+                   user_name='norm',
+                   email='norm@reasoned.ai')
 
-# SQLAlchemy hooks
-db = None      # type: flask_sqlalchmey.db
-Model = None   # type: flask_sqlalchemy.Model
-user_model = None
-cache = None  # type: norm.cache.SimpleCache
+# Create database session
+engine = create_engine('sqlite:///{}'.format(DB_PATH))
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# Set the context id
+context_id = str(uuid.uuid4())
+
+
 

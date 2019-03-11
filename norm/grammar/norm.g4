@@ -1,17 +1,20 @@
 grammar norm;
 
-script: statement ((WS|NS)? statement)* (WS|NS)?;
+script: statement (WS|NS)? SEMICOLON ((WS|NS)? statement (WS|NS)? SEMICOLON)* (WS|NS)?;
 
 statement
-    : comments SEMICOLON
-    | comments? imports (WS|NS)? SEMICOLON
-    | comments? exports (WS|NS)? SEMICOLON
-    | comments? (WS|NS)? typeDeclaration (WS|NS)? SEMICOLON
-    | comments? typeName (WS|NS)? COLON EQ (WS|NS)? multiLineExpression (WS|NS)? SEMICOLON
-    | comments? typeName (WS|NS)? OR EQ (WS|NS)? multiLineExpression (WS|NS)? SEMICOLON
-    | comments? typeName (WS|NS)? AND EQ (WS|NS)? multiLineExpression (WS|NS)? SEMICOLON
-    | comments? (WS|NS)? multiLineExpression (WS|NS)? SEMICOLON
+    : comments
+    | comments? imports
+    | comments? exports
+    | comments? commands
+    | comments? (WS|NS)? multiLineExpression
+    | comments? (WS|NS)? typeDeclaration ((WS|NS)? IMPL (WS|NS)? multiLineExpression)?
     ;
+
+IMPL: CEQ | OEQ | AEQ;
+CEQ: ':=';
+OEQ: '|=';
+AEQ: '&=';
 
 SINGLELINE: '//' ~[\r\n]* [\r\n]*;
 MULTILINE: '/*' (.)*? '*/' [\r\n]*;
@@ -32,11 +35,19 @@ imports
 
 SPACED_IMPORT: 'import'|'Import'|'IMPORT' [ \t]*;
 
+commands: SPACED_COMMAND typeName;
+
+SPACED_COMMAND: REVISIONS|VERSIONS|UNDO|REDO [ \t]*;
+REVISIONS: 'revisions'|'Revisions'|'REVISIONS';
+VERSIONS: 'versions'|'Versions'|'VERSIONS';
+UNDO: 'undo'|'Undo'|'UNDO';
+REDO: 'redo'|'Redo'|'REDO';
+
 argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName;
 
 argumentDeclarations: argumentDeclaration ((WS|NS)? COMMA (WS|NS)? argumentDeclaration)*;
 
-typeDeclaration : typeName (LBR argumentDeclarations RBR)? ((WS|NS)? COLON (WS|NS)? typeName)?;
+typeDeclaration: typeName (LBR argumentDeclarations RBR)? ((WS|NS)? COLON (WS|NS)? typeName)?;
 
 version: '@' INTEGER?;
 

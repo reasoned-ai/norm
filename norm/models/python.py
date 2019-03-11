@@ -1,9 +1,4 @@
 """A collection of ORM sqlalchemy models for PythonLambda"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from norm.models.norm import Lambda, Status
 
 import logging
@@ -27,10 +22,4 @@ class PythonLambda(Lambda):
                          dtype=dtype)
         self.status = Status.READY
         self.shape = []
-
-    def __call__(self, *args, **kwargs):
-        """
-        TODO: implement
-        """
-        pass
 

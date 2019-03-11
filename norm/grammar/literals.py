@@ -104,6 +104,13 @@ class LOP(Enum):
         return self.value
 
 
+class MOP(Enum):
+    REVISIONS = 'revisions'
+    VERSIONS = 'versions'
+    REDO = 'redo'
+    UNDO = 'undo'
+
+
 class ConstantType(Enum):
     NULL = 'none'
     BOOL = 'bool'
@@ -118,6 +125,6 @@ class ConstantType(Enum):
 
 
 class ImplType(Enum):
-    DEF = 'def'
-    OR_DEF = 'or_def'
-    AND_DEF = 'and_def'
+    DEF = ':='
+    OR_DEF = '|='
+    AND_DEF = '&='

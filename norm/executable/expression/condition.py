@@ -1,12 +1,8 @@
 from norm.executable import NormError, Constant
-from norm.literals import COP, ConstantType, LOP
+from norm.grammar.literals import COP, ConstantType, LOP
 
 from norm.executable.expression import NormExpression
-from norm.executable.expression.arithmetic import ArithmeticExpr
-from norm.executable.expression.assignment import AssignmentExpr
 from norm.executable.variable import VariableName
-
-from typing import Union
 
 import logging
 logger = logging.getLogger(__name__)

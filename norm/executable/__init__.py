@@ -1,4 +1,4 @@
-from norm.literals import ConstantType
+from norm.grammar.literals import ConstantType
 
 
 class NormError(RuntimeError):

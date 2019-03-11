@@ -1,9 +1,9 @@
 from norm.executable import ListConstant, NormError
-from norm.executable.expression import NormExpression, Projection
+from norm.executable.expression import NormExpression
 from norm.executable.expression.argument import ArgumentExpr
 from norm.executable.expression.condition import ConditionExpr, CombinedConditionExpr
 from norm.executable.expression.evaluation import EvaluationExpr
-from norm.literals import LOP
+from norm.grammar.literals import LOP
 
 import logging
 logger = logging.getLogger(__name__)

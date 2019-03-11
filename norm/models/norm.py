@@ -1,33 +1,25 @@
 """A collection of ORM sqlalchemy models for Lambda"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+import norm.config as config
+from norm.models.mixins import lazy_property, ParametrizedMixin, new_version
+from norm.models.license import License
+from norm.models.user import User
 
 import json
 import os
 import errno
 import uuid
-
-from datetime import datetime
 import enum
 
-from future.standard_library import install_aliases
+from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, desc, UniqueConstraint, orm
 from sqlalchemy import Table
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, with_polymorphic, joinedload
-from sqlalchemy.ext.orderinglist import ordering_list
-from sqlalchemy.orm import lazyload
-from flask_sqlalchemy_cache import FromCache
-from flask_sqlalchemy_cache import RelationshipCache
 
-from norm.models.mixins import lazy_property, ParametrizedMixin, new_version
-from norm.models.license import License
-from norm.utils import current_user
-import norm.config as config
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.orderinglist import ordering_list
 
 from pandas import DataFrame
 import pandas as pd
@@ -38,12 +30,8 @@ from typing import List, Dict
 import logging
 logger = logging.getLogger(__name__)
 
-install_aliases()
-
-Model = config.Model
+Model = declarative_base()
 metadata = Model.metadata
-user_model = config.user_model
-cache = config.cache
 
 
 class Variable(Model, ParametrizedMixin):
@@ -191,8 +179,8 @@ class Lambda(Model, ParametrizedMixin):
     # complexity level
     level = Column(Enum(Level), default=Level.COMPUTABLE)
     # owner
-    created_by_id = Column(Integer, ForeignKey(user_model.id))
-    owner = relationship(user_model, backref='lambdas', foreign_keys=[created_by_id])
+    created_by_id = Column(Integer, ForeignKey(User.id))
+    owner = relationship(User, backref='lambdas', foreign_keys=[created_by_id])
     # audition
     created_on = Column(DateTime, default=datetime.now)
     changed_on = Column(DateTime, default=datetime.now, onupdate=datetime.now)
@@ -222,14 +210,14 @@ class Lambda(Model, ParametrizedMixin):
     __table_args__ = tuple(UniqueConstraint('namespace', 'name', 'version', name='unique_lambda'))
 
     def __init__(self, namespace='', name='', description='', params='{}', variables=None, dtype=None, ttype=None,
-                 shape=None):
+                 shape=None, user=None):
         self.id = None  # type: int
         self.namespace = namespace  # type: str
         self.name = name  # type: str
         self.version = None  # type: int
         self.description = description   # type: str
         self.params = params  # type: str
-        self.owner = current_user()  # type: user_model
+        self.owner = user  # type: User
         self.status = Status.DRAFT  # type: Status
         self.merged_from_ids = []  # type: List[int]
         self.variables = variables or []  # type: List[Variable]
@@ -301,8 +289,6 @@ class Lambda(Model, ParametrizedMixin):
 
     @property
     def data(self):
-        if self.df is None:
-            self.df = self.from_cache()
         if self.df is None:
             self.df = self.empty_data()
         return self.df
@@ -495,29 +481,6 @@ class Lambda(Model, ParametrizedMixin):
         self.revisions.append(revision)
         revision.apply()
         self.current_revision += 1
-        self.to_cache()
-
-    def from_cache(self):
-        """
-        Retrieve the data from the cache if available
-        :return: the data
-        :rtype: DataFrame
-        """
-        if cache is None:
-            return
-
-        key = (self.id, self.current_revision)
-        return cache.get(key)
-
-    def to_cache(self):
-        """
-        Cache the data frame if cache is available
-        """
-        if cache is None or self.df is None:
-            return
-
-        key = (self.id, self.current_revision)
-        cache.set(key, self.df)
 
     @_check_draft_status
     def save(self):
@@ -785,32 +748,19 @@ def retrieve_type(namespaces, name, version=None, status=None, session=None):
         queries.append(Lambda.version <= version)
 
     if session is None:
-        from norm.config import db
-        session = db.session
-    vc = RelationshipCache(Lambda.variables, cache)
-    oc = RelationshipCache(Lambda.owner, cache)
-    lc = RelationshipCache(Lambda.license, cache)
-    cc = RelationshipCache(Lambda.cloned_from, cache)
-    rc = RelationshipCache(Lambda.revisions, cache)
-    lams = session.query(Lambda) \
-                  .options(FromCache(cache)) \
-                  .options(joinedload(Lambda.variables), oc) \
-                  .options(joinedload(Lambda.owner), vc) \
-                  .options(joinedload(Lambda.license), lc) \
-                  .options(joinedload(Lambda.cloned_from), cc) \
-                  .options(joinedload(Lambda.revisions), rc) \
-                  .filter(*queries) \
-                  .order_by(desc(Lambda.version)) \
-                  .all()
-    if len(lams) == 0:
+        import norm.config
+        session = norm.config.session
+    lam = session.query(Lambda) \
+                 .filter(*queries) \
+                 .order_by(desc(Lambda.version)) \
+                 .first()
+    if lam is None:
         return None
 
-    lam = lams[0]  # type: Lambda
     if version is not None and lam.version < version:
         msg = 'The specified version {} does not exist for {}.{}'.format(version, lam.namespace, lam.name)
         raise RuntimeError(msg)
 
-    assert(lam is None or isinstance(lam, Lambda))
     return lam
 
 
@@ -824,13 +774,10 @@ def retrieve_variable(name, type_id, session=None):
     """
     #  find the latest versions
     if session is None:
-        from norm.config import db
-        session = db.session
+        import norm.config
+        session = norm.config.session
 
-    vt = RelationshipCache(Variable.type_, cache)
     var = session.query(Variable)\
-                 .options(FromCache(cache))\
-                 .options(joinedload(Variable.type_), vt)\
                  .filter(Variable.name == name,
                          Variable.type_id == type_id)\
                  .first()

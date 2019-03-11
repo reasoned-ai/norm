@@ -1,11 +1,11 @@
-from norm.literals import COP
+from norm.grammar.literals import COP
 
 from norm.executable import NormError, Constant
 from norm.executable.expression.argument import ArgumentExpr
 from norm.executable.variable import VariableName, ColumnVariable
 from norm.executable.expression import NormExpression
 
-from typing import List, Union
+from typing import List
 
 import logging
 logger = logging.getLogger(__name__)

@@ -1,9 +1,7 @@
-from norm.literals import COP
+from norm.grammar.literals import COP
 
 from norm.executable import Projection
 from norm.executable.expression import NormExpression
-
-from typing import Union
 
 import logging
 logger = logging.getLogger(__name__)

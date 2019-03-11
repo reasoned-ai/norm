@@ -1,13 +1,8 @@
 """A collection of ORM sqlalchemy models for NativeLambda"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+from norm.config import session
+from norm.models.norm import Lambda, Variable, Status, retrieve_type
 
 from sqlalchemy import exists
-
-from norm.config import db
-from norm.models.norm import Lambda, Variable, Status, retrieve_type
 
 import logging
 import traceback
@@ -29,12 +24,12 @@ class RegisterNatives(object):
     def register(cls):
         for clz, args, kwargs in cls.types:
             instance = clz(*args, **kwargs)
-            in_store = db.session.query(exists().where(clz.name == instance.name)).scalar()
+            in_store = session.query(exists().where(clz.name == instance.name)).scalar()
             if not in_store:
                 logger.info('Registering class {}'.format(instance.name))
-                db.session.add(instance)
+                session.add(instance)
         try:
-            db.session.commit()
+            session.commit()
         except:
             logger.error('Type registration failed')
             logger.debug(traceback.print_exc())
@@ -42,10 +37,10 @@ class RegisterNatives(object):
     @classmethod
     def retrieve(cls, clz, *args, **kwargs):
         instance = clz(*args, **kwargs)
-        stored_inst = db.session.query(clz).filter(clz.name == instance.name).scalar()
+        stored_inst = session.query(clz).filter(clz.name == instance.name).scalar()
         if stored_inst is None:
             stored_inst = instance
-            db.session.add(instance)
+            session.add(instance)
         return stored_inst
 
 

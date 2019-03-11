@@ -1,16 +1,11 @@
 """A collection of ORM sqlalchemy models for Revision"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, orm, JSON
 from sqlalchemy import Table
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from norm.models.mixins import ParametrizedMixin
 from norm.models.norm import Lambda, Variable
-import norm.config as config
 
 from pandas import DataFrame
 import pandas as pd
@@ -18,9 +13,8 @@ import pandas as pd
 import logging
 logger = logging.getLogger(__name__)
 
-Model = config.Model
+Model = declarative_base()
 metadata = Model.metadata
-user_model = config.user_model
 
 
 class Revision(Model, ParametrizedMixin):
@@ -146,7 +140,7 @@ class RenameVariableRevision(SchemaRevision):
             if old_name is not None:
                 v.name = old_name
         if self.lam and self.lam.data:
-            self.lam.data.rename(columns=self.renames_r)
+            self.lam.data.rename(columns=renames_r)
 
 
 class RetypeVariableRevision(SchemaRevision):

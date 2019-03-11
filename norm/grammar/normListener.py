@@ -1,4 +1,4 @@
-# Generated from /home/ax/Workspace/supernorm/norm/norm.g4 by ANTLR 4.7.2
+# Generated from /home/ax/Workspace/norm/norm/grammar/norm.g4 by ANTLR 4.7.2
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .normParser import normParser
@@ -50,6 +50,15 @@ class normListener(ParseTreeListener):
 
     # Exit a parse tree produced by normParser#imports.
     def exitImports(self, ctx:normParser.ImportsContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#commands.
+    def enterCommands(self, ctx:normParser.CommandsContext):
+        pass
+
+    # Exit a parse tree produced by normParser#commands.
+    def exitCommands(self, ctx:normParser.CommandsContext):
         pass
 
 

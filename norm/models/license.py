@@ -1,14 +1,10 @@
 """A collection of ORM sqlalchemy models for managing copyright"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from norm import config
 
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, exists
 
-Model = config.Model
+Model = declarative_base()
 
 
 class License(Model):
@@ -29,9 +25,9 @@ LICENSES = [
 
 def register_licenses():
     for lic in LICENSES:
-        in_store = config.db.session.query(exists().where(License.name == lic)).scalar()
+        in_store = config.session.query(exists().where(License.name == lic)).scalar()
         if not in_store:
             inst = License(name=lic)
-            config.db.session.add(inst)
-    config.db.session.commit()
+            config.session.add(inst)
+    config.session.commit()
 

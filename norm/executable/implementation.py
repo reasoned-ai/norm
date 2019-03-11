@@ -1,4 +1,5 @@
 from norm.executable import NormExecutable, NormError
+from norm.executable.declaration import TypeDeclaration
 from norm.executable.expression import NormExpression
 from norm.models import Lambda
 
@@ -10,8 +11,8 @@ class TypeImplementation(NormExecutable):
         The implementation of a type. Depending on the operation, it can be initial implementation or
         incremental implementation.
         :param type_: the type to implement
-        :type type_: TypeName
-        :param op: the operation of the implementation, i.e., ['=', '|=', '&=']
+        :type type_: TypeDeclaration
+        :param op: the operation of the implementation, i.e., [':=', '|=', '&=']
         :type op: ImplType
         :param query: the query expression that implements the type
         :type query: NormExpression
@@ -28,7 +29,7 @@ class TypeImplementation(NormExecutable):
     def compile(self, context):
         """
         Three types of implementations
-            * new implementation (=) implies an anchor version
+            * new implementation (:=) implies an anchor version
               if the existing one is cloned or has at least one revision.
             * conjunctive implementation (&=)
             * disjunctive implementation (|=)
@@ -49,7 +50,7 @@ class TypeImplementation(NormExecutable):
         elif self.op == ImplType.ANDAS:
             pass
         else:
-            msg = 'Implementation only supports =, &=, |= for now'
+            msg = 'Implementation only supports :=, &=, |= for now'
             raise NormError(msg)
         self.lam = lam
         return self

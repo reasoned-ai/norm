@@ -1,3 +1,5 @@
+from sqlalchemy.ext.declarative import declarative_base
+
 import norm.config as config
 from sqlalchemy import Column, Integer, String, Text, exists, and_
 
@@ -6,15 +8,17 @@ import logging
 import traceback
 logger = logging.getLogger(__name__)
 
+Model = declarative_base()
 
-class Version(config.Model):
+
+class Version(Model):
     """
     Version lambdas
     """
 
     __tablename__ = 'versions'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True)
     namespace = Column(String(512), default='')
     name = Column(String(256), nullable=False)
     max_ver = Column(Integer, default=0)
@@ -29,15 +33,15 @@ def new_version(namespace, name):
     :rtype: Column
     """
 
-    in_store = config.db.session.query(exists().where(and_(Version.namespace == namespace,
-                                                      Version.name == name))).scalar()
+    in_store = config.session.query(exists().where(and_(Version.namespace == namespace,
+                                                        Version.name == name))).scalar()
     if not in_store:
-        ver = config.db.engine.execute("""
+        ver = config.engine.execute("""
         INSERT INTO versions (namespace, name, max_ver) VALUES ('{}', '{}', 1)
         RETURNING max_ver;
         """.format(namespace, name)).fetchone()[0]
     else:
-        ver = config.db.engine.execute("""
+        ver = config.engine.execute("""
         UPDATE versions SET max_ver = max_ver + 1
         WHERE namespace = '{}' AND name = '{}'
         RETURNING max_ver;
@@ -112,7 +116,7 @@ class register_parameter(object):
                 p_params=getattr(cls, f)
                 # use append then sum should be faster if the loop is deep.  Otherwise, extend should be fast.
                 parent_params.append([p for p in p_params if p['name'] not in parent_param_names])
-                parent_param_names|={p['name'] for p in p_params}
+                parent_param_names |= {p['name'] for p in p_params}
             parent_params=sum(parent_params, [])
 
             setattr(tcls, field, parent_params)

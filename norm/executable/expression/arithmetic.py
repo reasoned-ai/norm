@@ -1,4 +1,4 @@
-from norm.literals import AOP
+from norm.grammar.literals import AOP
 from norm.executable import NormError
 from norm.executable.expression import NormExpression
 

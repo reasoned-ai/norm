@@ -4,12 +4,11 @@ import uuid
 from antlr4 import *
 from antlr4.error.ErrorListener import ErrorListener
 from dateutil import parser as dateparser
-from functools import lru_cache
 from textwrap import dedent
-from typing import List
 
 from norm import config
-from norm.executable import Constant, Projection, NormExecutable, ListConstant
+from norm.executable import NormExecutable, Projection
+from norm.executable.command import Command
 from norm.executable.declaration import *
 from norm.executable.expression.arithmetic import *
 from norm.executable.expression.code import *
@@ -20,12 +19,10 @@ from norm.executable.expression.slice import *
 from norm.executable.implementation import *
 from norm.executable.type import *
 from norm.executable.namespace import *
-from norm.literals import AOP, COP, LOP, ImplType, CodeMode, ConstantType
-from norm.models import CoreLambda
-from norm.utils import current_user
-from norm.normLexer import normLexer
-from norm.normListener import normListener
-from norm.normParser import normParser
+from norm.grammar.literals import AOP, COP, LOP, ImplType, CodeMode, ConstantType, MOP
+from norm.grammar.normLexer import normLexer
+from norm.grammar.normListener import normListener
+from norm.grammar.normParser import normParser
 
 
 class ParseError(ValueError):
@@ -48,43 +45,28 @@ walker = ParseTreeWalker()
 class NormCompiler(normListener):
     TMP_VARIABLE_STUB = 'tmp_'
 
-    def __init__(self, context_id):
-        # TODO: make sure the context can be save/load from cache
-        # context_id, user, namespaces should be able to be cached directly
-        # scope, stack and session should be reset
+    def __init__(self, context_id, user, session=None):
         self.context_id = context_id
         self.scope = None  # type: Lambda
         self.stack = []
-        self.session = None
-        self.user = None
+        self.session = session
+        self.user = user
         self.context_namespace = None
         self.user_namespace = None
         self.search_namespaces = None
         self.set_namespaces()
 
     def set_namespaces(self):
-        self.user = current_user()
         self.context_namespace = '{}.{}'.format(config.CONTEXT_NAMESPACE_STUB, self.context_id)
         self.user_namespace = '{}.{}'.format(config.USER_NAMESPACE_STUB, self.user.username)
-        from norm.models import NativeLambda
+        from norm.models import NativeLambda, CoreLambda
         self.search_namespaces = {NativeLambda.NAMESPACE, CoreLambda.NAMESPACE, self.context_namespace,
                                   self.user_namespace}
-
-    def set_session(self, session):
-        """
-        Set the db session
-        :param session: the db session
-        :type session: sqlalchemy.session
-        """
-        self.session = session
-        self.scope = None
-        self.stack = []
 
     def set_temp_scope(self):
         """
         For a unnamed query, we assign a temporary type for the scope.
         For a named query, i.e., type implementation, the scope is the type.
-        :return:
         """
         self.scope = Lambda(self.context_namespace, self.TMP_VARIABLE_STUB + str(uuid.uuid4()))
 
@@ -148,26 +130,13 @@ class NormCompiler(normListener):
 
     def exitStatement(self, ctx:normParser.StatementContext):
         if ctx.typeDeclaration():
-            type_declaration = self._pop()
+            query = self._pop() if ctx.IMPL() else None  # type: NormExpression
+            type_declaration = self._pop()  # type: TypeDeclaration
             description = self._pop() if ctx.comments() else ''
             type_declaration.description = description
-            self._push(type_declaration)
-        elif ctx.typeName():
-            query = self._pop()  # type: NormExpression
-            type_name = self._pop()
-            description = self._pop() if ctx.comments() else ''
-            if ctx.OR():
-                op = ImplType.OR_DEF
-            elif ctx.AND():
-                op = ImplType.AND_DEF
-            elif ctx.COLON():
-                op = ImplType.DEF
-            else:
-                msg = 'Currently only support :=, |=, &= for implementation'
-                logger.error(msg)
-                raise NormError(msg)
-            self._push(TypeImplementation(type_name, op, query, description).compile(self))
-        elif ctx.imports() or ctx.exports() or ctx.multiLineExpression():
+            op = ImplType(ctx.IMPL().getText())
+            self._push(TypeImplementation(type_declaration, op, query, description).compile(self))
+        elif ctx.imports() or ctx.exports() or ctx.commands() or ctx.multiLineExpression():
             if ctx.comments():
                 expr = self._pop()
                 # ignore comments
@@ -243,6 +212,11 @@ class NormCompiler(normListener):
         namespace = [str(v) for v in ctx.VARNAME()]
         variable = namespace.pop() if ctx.AS() else None
         self._push(Export('.'.join(namespace), type_, variable).compile(self))
+
+    def exitCommands(self, ctx:normParser.CommandsContext):
+        type_ = self._pop()  # type: TypeName
+        op = MOP(ctx.SPACED_COMMAND().getText().strip().lower())
+        self._push(Command(op, type_).compile(self))
 
     def exitArgumentDeclaration(self, ctx:normParser.ArgumentDeclarationContext):
         type_name = self._pop()  # type: TypeName
@@ -372,19 +346,3 @@ class NormCompiler(normListener):
             self._push(CodeExpr(CodeMode.QUERY, ctx.code().getText()).compile(self))
 
 
-@lru_cache(maxsize=128)
-def get_compiler(context_id):
-    """
-    Get the compiler with respect to the context id
-    :param context_id: the id for the context
-    :type context_id: int
-    :return: a norm compiler
-    :rtype: NormCompiler
-    """
-    return NormCompiler(context_id)
-
-
-def executor(context_id, session):
-    compiler = get_compiler(context_id)
-    compiler.set_session(session)
-    return compiler
