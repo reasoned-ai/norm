@@ -1,14 +1,11 @@
-from sqlalchemy.ext.declarative import declarative_base
-
 import norm.config as config
+from norm.models import Model
 from sqlalchemy import Column, Integer, String, Text, exists, and_, TypeDecorator
 
 import json
 import logging
 import traceback
 logger = logging.getLogger(__name__)
-
-Model = declarative_base()
 
 
 class Version(Model):
@@ -33,21 +30,14 @@ def new_version(namespace, name):
     :rtype: Column
     """
 
-    in_store = config.session.query(exists().where(and_(Version.namespace == namespace,
-                                                        Version.name == name))).scalar()
-    if not in_store:
-        ver = config.engine.execute("""
-        INSERT INTO versions (namespace, name, max_ver) VALUES ('{}', '{}', 1)
-        RETURNING max_ver;
-        """.format(namespace, name)).fetchone()[0]
+    ver = config.session.query(Version).filter(Version.namespace == namespace,
+                                               Version.name == name).scalar()
+    if ver is None:
+        ver = Version(namespace=namespace, name=name, max_ver=1)
+        config.session.add(ver)
     else:
-        ver = config.engine.execute("""
-        UPDATE versions SET max_ver = max_ver + 1
-        WHERE namespace = '{}' AND name = '{}'
-        RETURNING max_ver;
-        """.format(namespace, name)).fetchone()[0]
-
-    return ver
+        ver.max_ver += 1
+    return ver.max_ver
 
 
 def lazy_property(f):
