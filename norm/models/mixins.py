@@ -1,7 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 
 import norm.config as config
-from sqlalchemy import Column, Integer, String, Text, exists, and_
+from sqlalchemy import Column, Integer, String, Text, exists, and_, TypeDecorator
 
 import json
 import logging
@@ -259,3 +259,27 @@ class ParametrizedMixin(LazyMixin):
         self.invalidate(name)
         self.params = json.dumps(self.parameters)
         return self
+
+
+class ARRAY(TypeDecorator):
+    """ Sqlite-like does not support arrays.
+        Let's use a custom type decorator.
+
+        See http://docs.sqlalchemy.org/en/latest/core/types.html#sqlalchemy.types.TypeDecorator
+    """
+
+    impl = String
+
+    def __init__(self, intern):
+        super().__init__()
+        self.intern = intern
+
+    def process_bind_param(self, value, dialect):
+        return json.dumps(value)
+
+    def process_result_value(self, value, dialect):
+        return json.loads(value)
+
+    def copy(self):
+        return ARRAY(self.impl.length)
+

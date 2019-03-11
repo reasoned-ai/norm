@@ -1,8 +1,15 @@
 """A collection of ORM sqlalchemy models for Lambda"""
 import norm.config as config
-from norm.models.mixins import lazy_property, ParametrizedMixin, new_version
+from norm.models.mixins import lazy_property, ParametrizedMixin, new_version, ARRAY
 from norm.models.license import License
 from norm.models.user import User
+
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, desc, UniqueConstraint, orm
+from sqlalchemy import Table
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.orderinglist import ordering_list
 
 import json
 import os
@@ -11,16 +18,6 @@ import uuid
 import enum
 
 from datetime import datetime
-
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, desc, UniqueConstraint, orm
-from sqlalchemy import Table
-from sqlalchemy.dialects.postgresql import ARRAY
-
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.orderinglist import ordering_list
-
 from pandas import DataFrame
 import pandas as pd
 import numpy as np
@@ -221,6 +218,7 @@ class Lambda(Model, ParametrizedMixin):
         self.status = Status.DRAFT  # type: Status
         self.merged_from_ids = []  # type: List[int]
         self.variables = variables or []  # type: List[Variable]
+        from norm.models.revision import Revision
         self.revisions = []  # type: List[Revision]
         self.current_revision = -1  # type: int
         self.dtype = dtype or 'object'   # type: str
