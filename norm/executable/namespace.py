@@ -6,6 +6,9 @@ from norm.executable.type import TypeName
 from norm.models import Status
 
 import logging
+
+from norm.models.norm import new_version
+
 logger = logging.getLogger(__name__)
 
 
@@ -107,8 +110,7 @@ class Export(NormExecutable):
         old_lam_name = lam.name
         if self.alias:
             lam.name = self.alias
-        # TODO: version has to be set here instead of at the commitment time. need to verify.
-        lam.version = str(uuid.uuid4())
+        lam.version = new_version()
         lam.status = Status.READY
 
         # clone this one back to the current context for further modification

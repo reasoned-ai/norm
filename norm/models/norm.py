@@ -21,6 +21,7 @@ from datetime import datetime
 from pandas import DataFrame
 import pandas as pd
 import numpy as np
+from hashids import Hashids
 
 from typing import List, Dict
 
@@ -28,6 +29,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 metadata = Model.metadata
+hashids = Hashids(min_length=config.VERSION_MIN_LENGTH)
 
 
 class Variable(Model, ParametrizedMixin):
@@ -91,8 +93,9 @@ class Level(enum.IntEnum):
     ADAPTABLE = 2
 
 
-def default_version():
-    return '$' + str(uuid.uuid4())
+def new_version():
+    import time
+    return '$' + hashids.encode(int(time.time() * 1000))
 
 
 def _check_draft_status(func):
@@ -147,8 +150,6 @@ class Lambda(Model, ParametrizedMixin):
     __tablename__ = 'lambdas'
     category = Column(String(128))
 
-    VERSION_TRUNCATE = 5
-
     VAR_OUTPUT = 'output'
     VAR_LABEL = 'label'
     VAR_LABEL_T = 'float'
@@ -187,7 +188,7 @@ class Lambda(Model, ParametrizedMixin):
     cloned_from_id = Column(Integer, ForeignKey('lambdas.id'))
     cloned_from = relationship('Lambda', remote_side=[id])
     merged_from_ids = Column(ARRAY(Integer))
-    version = Column(String, default=default_version, nullable=False)
+    version = Column(String, default=new_version, nullable=False)
     # revision
     revisions = relationship('Revision', order_by='Revision.position', collection_class=ordering_list('position'))
     current_revision = Column(Integer, default=-1)
@@ -209,7 +210,7 @@ class Lambda(Model, ParametrizedMixin):
         self.id = None  # type: int
         self.namespace = namespace  # type: str
         self.name = name  # type: str
-        self.version = default_version()  # type: str
+        self.version = new_version()  # type: str
         self.description = description   # type: str
         self.params = params  # type: str
         self.owner = user  # type: User
@@ -292,9 +293,9 @@ class Lambda(Model, ParametrizedMixin):
     @property
     def signature(self):
         if self.namespace is not None and self.namespace.strip() != '':
-            return self.namespace + '.' + self.name + self.version[:self.VERSION_TRUNCATE]
+            return self.namespace + '.' + self.name + self.version[:config.VERSION_MIN_LENGTH]
         else:
-            return self.name + self.version[:self.VERSION_TRUNCATE]
+            return self.name + self.version[:config.VERSION_MIN_LENGTH]
 
     def clone(self):
         """
@@ -368,10 +369,11 @@ class Lambda(Model, ParametrizedMixin):
         self._add_revision(revision)
 
     def _add_data(self, query, df):
-        cols = {col: dtype for col, dtype in zip(df.columns, df.dtypes)}
-        #for v in self.variables:
-        #    assert(cols.get(v.name, v.type_.dtype) == v.type_.dtype)
+        # If the query already exists, the revision is skipped
+        if any((rev.query == query for rev in self.revisions)):
+            return
 
+        cols = {col: dtype for col, dtype in zip(df.columns, df.dtypes)}
         from norm.models.native import get_type_by_dtype
         current_variable_names = set(self._all_columns)
         vars_to_add = [Variable(col, get_type_by_dtype(dtype)) for col, dtype in cols.items()
@@ -474,7 +476,6 @@ class Lambda(Model, ParametrizedMixin):
         self._add_revision(revision)
 
     def _add_revision(self, revision):
-        self.revisions.append(revision)
         revision.apply()
         self.current_revision += 1
 
@@ -536,10 +537,10 @@ class Lambda(Model, ParametrizedMixin):
 
     @property
     def folder(self):
-        return '{}/{}/{}'.format(config.DATA_STORAGE_ROOT,
-                                 self.namespace.replace('.', '/'),
-                                 self.name,
-                                 self.version)
+        return '{}/{}/{}/{}'.format(config.DATA_STORAGE_ROOT,
+                                    self.namespace.replace('.', '/'),
+                                    self.name,
+                                    self.version[1:].replace('-', ''))
 
     @_only_queryable
     def _create_folder(self):
@@ -677,10 +678,6 @@ class Lambda(Model, ParametrizedMixin):
             ocols = list(outputs.keys())
             rt.df = rt.df[ocols].rename(columns=outputs)
         return rt
-
-    def __add__(self, other):
-        assert(other, Lambda)
-        return 3
 
 
 class GroupLambda(Lambda):

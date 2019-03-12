@@ -12,6 +12,9 @@ MAX_LIMIT = 1000000
 # Unicode encoding
 UNICODE = 'utf-8'
 
+# Version minimal length
+VERSION_MIN_LENGTH = 6
+
 # Where the data is stored, e.g., s3://datalake, gs://datalake
 DATA_STORAGE_ROOT = 'data'
 DB_PATH = 'norm/db/norm.db'

@@ -208,7 +208,7 @@ FLOAT:      [+-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
 STRING:     '"' ( ~["\r\n\t] )*? '"' | '\'' ( ~['\r\n\t] )*? '\'' ;
 
 PATTERN:   'r' STRING;
-UUID:      '$' [0-9a-fA-F-]*;
+UUID:      '$' [0-9a-zA-Z-]*;
 URL:       'u' STRING;
 DATETIME:  't' STRING;
 

@@ -1,4 +1,9 @@
 # Created by .ignore support plugin (hsz.mobi)
+*.db-journal
+*.pyc
+.cache
+.DS_Store
+.coverage
 _build/
 .idea/
 __pycache__/
