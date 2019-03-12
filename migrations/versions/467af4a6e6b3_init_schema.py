@@ -1,8 +1,8 @@
 """init schema
 
-Revision ID: d3545671fa7f
+Revision ID: 467af4a6e6b3
 Revises: 
-Create Date: 2019-03-11 01:47:29.036752
+Create Date: 2019-03-11 16:23:21.021301
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'd3545671fa7f'
+revision = '467af4a6e6b3'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -54,7 +54,7 @@ def upgrade():
     sa.Column('anchor', sa.Boolean(), nullable=True),
     sa.Column('cloned_from_id', sa.Integer(), nullable=True),
     sa.Column('merged_from_ids', ARRAY(), nullable=True),
-    sa.Column('version', sa.Integer(), nullable=False),
+    sa.Column('version', sa.String(), nullable=False),
     sa.Column('current_revision', sa.Integer(), nullable=True),
     sa.Column('status', sa.Enum('DRAFT', 'READY', name='status'), nullable=True),
     sa.Column('license_id', sa.Integer(), nullable=True),

@@ -18,6 +18,6 @@ class VersioningTestCase(NormTestCase):
         lam1 = self.execute("export version_test;")
         self.execute("version_test(test:Integer, test2:String);")
         lam2 = self.execute("export version_test;")
-        self.assertTrue(lam2.version > lam1.version)
+        self.assertTrue(lam2.version != lam1.version and lam2.created_on > lam1.created_on)
         self.assertTrue(lam2.cloned_from is lam1)
 

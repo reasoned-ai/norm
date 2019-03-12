@@ -187,7 +187,7 @@ class Lambda(Model, ParametrizedMixin):
     cloned_from_id = Column(Integer, ForeignKey('lambdas.id'))
     cloned_from = relationship('Lambda', remote_side=[id])
     merged_from_ids = Column(ARRAY(Integer))
-    version = Column(Integer, default=default_version, nullable=False)
+    version = Column(String, default=default_version, nullable=False)
     # revision
     revisions = relationship('Revision', order_by='Revision.position', collection_class=ordering_list('position'))
     current_revision = Column(Integer, default=-1)

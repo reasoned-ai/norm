@@ -95,6 +95,8 @@ class ListType(NormExecutable):
             # create a new ListLambda
             llam = ListLambda(lam)
             context.session.add(llam)
+        else:
+            llam = llam[0]
         self.lam = llam
         return self
 

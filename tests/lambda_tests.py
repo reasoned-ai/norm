@@ -16,7 +16,7 @@ class LambdaTestCase(NormTestCase):
                                 Variable('c', retrieve_type('norm.native', 'Datetime', session=self.session))]
                      )
         self.assertTrue(lam is not None)
-        self.assertTrue(lam.version is None)
+        self.assertTrue(lam.version.startswith('$'))
         self.assertTrue(lam.status == Status.DRAFT)
         self.assertTrue(lam.ttype == 'float32')
         self.assertTrue(len(lam.variables) == 3)

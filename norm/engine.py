@@ -132,12 +132,19 @@ class NormCompiler(normListener):
 
     def exitStatement(self, ctx:normParser.StatementContext):
         if ctx.typeDeclaration():
-            query = self._pop() if ctx.IMPL() else None  # type: NormExpression
-            type_declaration = self._pop()  # type: TypeDeclaration
-            description = self._pop() if ctx.comments() else ''
-            type_declaration.description = description
-            op = ImplType(ctx.IMPL().getText()) if ctx.IMPL() else None
-            self._push(TypeImplementation(type_declaration, op, query, description).compile(self))
+            if ctx.IMPL():
+                query = self._pop()  # type: NormExpression
+                type_declaration = self._pop()  # type: TypeDeclaration
+                description = self._pop() if ctx.comments() else ''
+                type_declaration.description = description
+                op = ImplType(ctx.IMPL().getText())
+                self._push(TypeImplementation(type_declaration, op, query, description).compile(self))
+            elif ctx.comments():
+                # otherwise just pass through
+                type_declaration = self._pop()  # type: TypeDeclaration
+                description = self._pop()
+                type_declaration.description = description  # need to be recompiled
+                self._push(type_declaration.compile(self))
         elif ctx.imports() or ctx.exports() or ctx.commands() or ctx.multiLineExpression():
             if ctx.comments():
                 expr = self._pop()
