@@ -2,10 +2,10 @@
 test(a:String, b:Integer);
 
 // Export lambdas
-export test@3 norm.test;
+export test$AWeq23 norm.test;
 
 // Import lambdas
-import norm.test.test@4 as tt;
+import norm.test.test$AWeq23 as tt;
 
 // Adding some data
 test := ('sfs', 4)

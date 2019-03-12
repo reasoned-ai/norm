@@ -47,3 +47,15 @@ class NamespaceTestCase(NormTestCase):
         self.assertTrue(lam.namespace == self.executor.user_namespace)
         self.assertTrue(lam.name == 'Tester')
 
+    def test_exporting_a_version(self):
+        lam = self.execute("Tester(dummy:Integer);")
+        lam = self.execute("export Tester{} norm.test3;".format(lam.version))
+        self.assertTrue(lam is not None)
+        self.assertTrue(lam.namespace == "norm.test3")
+        self.assertTrue(lam.name == 'Tester')
+        self.assertTrue(lam.status == Status.READY)
+        lam = self.execute("Tester;")
+        self.assertTrue(lam is not None)
+        self.assertTrue(lam.namespace == self.executor.context_namespace)
+        self.assertTrue(lam.status == Status.DRAFT)
+
