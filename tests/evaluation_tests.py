@@ -1,6 +1,8 @@
 """Unit tests for Norm"""
+import os
+
 from norm.config import DATA_STORAGE_ROOT
-from norm.models import Level, Status
+from norm.models import Level, Status, Lambda
 from tests.utils import NormTestCase
 
 
@@ -8,7 +10,7 @@ class EvaluationTestCase(NormTestCase):
 
     def test_read_data(self):
         self.execute("wikisql(phase:Integer);")
-        lam = self.execute("wikisql.read('./data/norm/tmp/wikisql/train.jsonl', ext='jsonl');")
+        lam = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
         self.assertTrue(lam is not None)
         self.assertTrue(len(lam.revisions) == 2)
         self.assertTrue(lam.end_of_revisions)
@@ -21,14 +23,14 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(lam.folder == '{}/{}/{}/{}'.format(DATA_STORAGE_ROOT,
                                                            lam.namespace.replace('.', '/'),
                                                            lam.name,
-                                                           lam.version[1:].replace('-', '')))
+                                                           lam.version))
 
     def test_ignore_same_revision(self):
         self.execute("wikisql(phase: Integer);")
-        lam = self.execute("wikisql.read('./data/norm/tmp/wikisql/train.jsonl', ext='jsonl');")
+        lam = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
         self.assertTrue(lam is not None)
         self.assertTrue(len(lam.revisions) == 2)
-        lam2 = self.execute("wikisql.read('./data/norm/tmp/wikisql/train.jsonl', ext='jsonl');")
+        lam2 = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
         self.assertTrue(lam is lam2)
         self.assertTrue(len(lam.revisions) == 2)
         self.assertTrue(len(lam.data) > 0)
@@ -38,7 +40,15 @@ class EvaluationTestCase(NormTestCase):
         Company(name: String, description: String, founders: [String], founded_at: Datetime);
         """
         company = self.execute(script)
-        assert(company is not None)
+        self.assertTrue(company is not None)
 
         new_company = self.execute(script)
-        assert(company is new_company)
+        self.assertTrue(company is new_company)
+
+    def test_save_lambda_with_data_after_commit(self):
+        self.execute("wikisql(phase:Integer);")
+        self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
+        self.session.commit()
+        lam = self.execute("wikisql;")
+        self.assertTrue(os.path.exists(lam.folder))
+

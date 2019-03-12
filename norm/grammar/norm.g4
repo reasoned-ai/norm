@@ -37,11 +37,12 @@ SPACED_IMPORT: 'import'|'Import'|'IMPORT' [ \t]*;
 
 commands: SPACED_COMMAND typeName;
 
-SPACED_COMMAND: REVISIONS|VERSIONS|UNDO|REDO [ \t]*;
+SPACED_COMMAND: REVISIONS|VERSIONS|UNDO|REDO|DELETE [ \t]*;
 REVISIONS: 'revisions'|'Revisions'|'REVISIONS';
 VERSIONS: 'versions'|'Versions'|'VERSIONS';
 UNDO: 'undo'|'Undo'|'UNDO';
 REDO: 'redo'|'Redo'|'REDO';
+DELETE: 'del'|'Del'|'DEL';
 
 argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName;
 
@@ -211,9 +212,6 @@ PATTERN:   'r' STRING;
 UUID:      '$' [0-9a-zA-Z-]*;
 URL:       'u' STRING;
 DATETIME:  't' STRING;
-
-SHOW: '%show' (WS|NS)?;
-DELETE: '%delete' (WS|NS)?;
 
 PYTHON_BLOCK : '{%python' (WS|NS)?;
 SQL_BLOCK : '{%sql' (WS|NS)?;

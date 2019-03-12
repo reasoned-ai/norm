@@ -226,10 +226,12 @@ class Lambda(Model, ParametrizedMixin):
         self.anchor = True  # type: bool
         self.level = Level.COMPUTABLE  # type: Level
         self.df = None  # type: DataFrame
+        self.modified = True
 
     @orm.reconstructor
     def init_on_load(self):
         self.df = None
+        self.modified = False
 
     @hybrid_property
     def nargs(self):
@@ -478,6 +480,7 @@ class Lambda(Model, ParametrizedMixin):
     def _add_revision(self, revision):
         revision.apply()
         self.current_revision += 1
+        self.modified = True
 
     @_check_draft_status
     def save(self):
@@ -540,7 +543,7 @@ class Lambda(Model, ParametrizedMixin):
         return '{}/{}/{}/{}'.format(config.DATA_STORAGE_ROOT,
                                     self.namespace.replace('.', '/'),
                                     self.name,
-                                    self.version[1:].replace('-', ''))
+                                    self.version)
 
     @_only_queryable
     def _create_folder(self):
@@ -773,3 +776,5 @@ def retrieve_variable(name, type_id, session=None):
                          Variable.type_id == type_id)\
                  .first()
     return var
+
+

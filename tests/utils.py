@@ -1,5 +1,9 @@
 import unittest
 from norm import session
+import hashids
+import time
+
+hashid = hashids.Hashids()
 
 __all__ = ['user_tester', 'NormTestCase']
 
@@ -22,7 +26,7 @@ class NormTestCase(unittest.TestCase):
         from norm.engine import NormCompiler
         self.session = session
         self.user = user_tester()
-        self.context_id = 'testing'
+        self.context_id = hashid.encode(int(time.time() * 1000))
         self.executor = NormCompiler(self.context_id, self.user, self.session)
 
     def tearDown(self):
