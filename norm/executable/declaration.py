@@ -78,8 +78,16 @@ class TypeDeclaration(NormExecutable):
         :rtype: Lambda
         """
         # TODO: optimize to query db in batch for all types or utilize cache
-        variables = [var_declaration.var for var_declaration in self.argument_declarations]
         lam = self.type_name.lam  # type: Lambda
+        if self.argument_declarations is None:
+            if lam is None:
+                lam = Lambda(namespace=context.context_namespace, name=self.type_name.name)
+                context.session.add(lam)
+            self.lam = lam
+            if context.scope is None:
+                context.scope = lam
+            return self
+        variables = [var_declaration.var for var_declaration in self.argument_declarations]
         if lam is None:
             #  Create a new Lambda
             lam = Lambda(namespace=context.context_namespace, name=self.type_name.name)
@@ -98,6 +106,9 @@ class TypeDeclaration(NormExecutable):
                 if self.description:
                     lam.description = self.description
         self.lam = lam
+        # Set the context scope to this Lambda
+        if context.scope is None:
+            context.scope = lam
         return self
 
     def execute(self, context):

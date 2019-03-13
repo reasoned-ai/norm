@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class ArgumentExpr(NormExpression):
 
-    def __init__(self, variable, op, expr, projection):
+    def __init__(self, variable=None, op=None, expr=None, projection=None):
         """
         The argument expression project to a new variable, either assigning or conditional.
         :param variable: the variable

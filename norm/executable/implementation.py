@@ -1,8 +1,11 @@
 from norm.executable import NormExecutable, NormError
 from norm.executable.declaration import TypeDeclaration
 from norm.executable.expression import NormExpression
-from norm.models import Lambda
+from norm.executable.expression.evaluation import EvaluationExpr
+from norm.models import Lambda, Status
 
+import logging
+logger = logging.getLogger(__name__)
 
 class TypeImplementation(NormExecutable):
 
@@ -34,24 +37,26 @@ class TypeImplementation(NormExecutable):
             * conjunctive implementation (&=)
             * disjunctive implementation (|=)
         """
-        session = context.session
-        from norm.engine import ImplType
-        lam = None
-        if self.op == ImplType.DEF:
-            lam = self.type_.lam
-            if lam is None:
-                #  Create a new Lambda
-                lam = Lambda(namespace=context.context_namespace, name=self.type_.name)
-                session.add(lam)
-            # TODO
-            lam.conjunction()
-        elif self.op == ImplType.OR_DEF:
-            pass
-        elif self.op == ImplType.AND_DEF:
-            pass
-
+        lam = self.type_.lam
+        if lam.status != Status.DRAFT:
+            logger.info('Lambda: {} is not in DRAFT mode. Import first'.format(lam))
+            lam = Lambda(namespace=context.context_namespace, name=lam.name, description=lam.description,
+                         variables=lam.variables, user=context.user)
+        self.query.lam = lam
+        if self.description is not None or self.description.strip() != '':
+            self.query.description = self.description
         self.lam = lam
         return self
 
     def execute(self, context):
-        return self.lam
+        from norm.engine import ImplType
+        lam = self.lam
+        if self.op == ImplType.DEF:
+            # Ensure the Lambda is a new implementation
+            if len(lam.revisions) > 0:
+                lam.remove_revisions()
+        elif self.op == ImplType.OR_DEF:
+            pass
+        elif self.op == ImplType.AND_DEF:
+            pass
+        return self.query.execute(context)

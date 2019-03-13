@@ -44,9 +44,24 @@ class QueryExpr(NormExpression):
         elif len(args) < length:
             return args + [fill_value] * (length - len(args))
 
+    @staticmethod
+    def __combine_args(arg1, arg2):
+        if isinstance(arg1.expr, ListConstant):
+            if isinstance(arg2.expr, ListConstant):
+                arg1.expr.value.extends(arg2.expr.value)
+            else:
+                arg1.expr.value.append(arg2.expr.value)
+            return arg1.expr
+        else:
+            if isinstance(arg2.expr, ListConstant):
+                arg1.expr.value = [arg1.expr.value] + arg2.expr.value
+                return arg1.expr
+            else:
+                return ListConstant(arg1.expr.type_, [arg1.expr.value, arg2.expr.value])
+
     def compile(self, context):
-        if isinstance(self.expr1, EvaluationExpr) and self.expr1.is_to_add_data()\
-                and isinstance(self.expr2, EvaluationExpr) and self.expr2.is_to_add_data():
+        if isinstance(self.expr1, EvaluationExpr) and self.expr1.is_to_add_data\
+                and isinstance(self.expr2, EvaluationExpr) and self.expr2.is_to_add_data:
             # Combine the constant arguments for adding data
             # ensure that all arguments are constants
             if self.expr1.is_constant_arguments and self.expr2.is_constant_arguments:
@@ -54,15 +69,15 @@ class QueryExpr(NormExpression):
                 #     they will be converted
                 # If two arguments are of different length, the missing values will be filled with N/A
                 length = max(len(self.expr1.args), len(self.expr2.args))
-                args = [ArgumentExpr(None, None, ListConstant(arg1.expr.type_, [arg1.expr.value, arg2.expr.value]))
+                args = [ArgumentExpr(expr=self.__combine_args(arg1, arg2))
                         for arg1, arg2 in zip(self.__pad_arguments(self.expr1.args, length),
                                               self.__pad_arguments(self.expr2.args, length))]
-                return EvaluationExpr(args)
+                return EvaluationExpr(args).compile(context)
             else:
                 # TODO: combine expressions instead of just constants
                 pass
         if isinstance(self.expr1, ConditionExpr) and isinstance(self.expr2, ConditionExpr):
-            return CombinedConditionExpr(self.op, self.expr1, self.expr2)
+            return CombinedConditionExpr(self.op, self.expr1, self.expr2).compile(context)
         return self
 
     def serialize(self):

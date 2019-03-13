@@ -172,6 +172,7 @@ class Lambda(Model, ParametrizedMixin):
     VAR_TENSOR = 'tensor'
     VAR_TOMBSTONE = 'tombstone'
     VAR_TOMBSTONE_T = 'bool'
+    VAR_ANONYMOUS_STUB = 'var'
 
     # identifiers
     id = Column(Integer, primary_key=True)
@@ -236,12 +237,12 @@ class Lambda(Model, ParametrizedMixin):
         self.anchor = True  # type: bool
         self.level = Level.COMPUTABLE  # type: Level
         self.df = None  # type: DataFrame
-        self.modified = True
+        self.modified_or_new = True
 
     @orm.reconstructor
     def init_on_load(self):
         self.df = None
-        self.modified = False
+        self.modified_or_new = False
 
     @hybrid_property
     def nargs(self):
@@ -397,7 +398,7 @@ class Lambda(Model, ParametrizedMixin):
         revision = FitRevision('', '', self)
         self._add_revision(revision)
 
-    def _add_data(self, query, df):
+    def add_data(self, query, df):
         # If the query already exists, the revision is skipped
         if any((rev.query == query for rev in self.revisions)):
             return
@@ -419,7 +420,7 @@ class Lambda(Model, ParametrizedMixin):
         if self.VAR_OID not in cols.keys():
             base = hash(query)
             delta[self.VAR_OID] = [hashids.encode(base + i) for i in df.index]
-        self._add_revision(DisjunctionRevision(query, '_add_data', self, delta))
+        self._add_revision(DisjunctionRevision(query, 'add_data', self, delta))
         self.level = Level.QUERYABLE
 
     @_check_draft_status
@@ -438,7 +439,7 @@ class Lambda(Model, ParametrizedMixin):
             df = pd.read_csv(path)
         query = 'read("{}", {}, "csv")'.format(path, ', '.join('{}={}'.format(key, value)
                                                                for key, value in params.items()))
-        self._add_data(query, df)
+        self.add_data(query, df)
 
     @_check_draft_status
     def read_parquet(self, path, params):
@@ -449,7 +450,7 @@ class Lambda(Model, ParametrizedMixin):
             df = pd.read_parquet(path)
         query = 'read("{}", {}, "parq")'.format(path, ', '.join('{}={}'.format(key, value)
                                                                 for key, value in params.items()))
-        self._add_data(query, df)
+        self.add_data(query, df)
 
     @_check_draft_status
     def read_jsonl(self, path):
@@ -458,7 +459,7 @@ class Lambda(Model, ParametrizedMixin):
         with open(path) as f:
             df = DataFrame([json.loads(line) for line in f])
         query = 'read("{}", "jsonl")'.format(path)
-        self._add_data(query, df)
+        self.add_data(query, df)
 
     @_check_draft_status
     def add_variable(self, variables):
@@ -513,7 +514,7 @@ class Lambda(Model, ParametrizedMixin):
     def _add_revision(self, revision):
         revision.apply()
         self.current_revision += 1
-        self.modified = True
+        self.modified_or_new = True
 
     @_check_draft_status
     def save(self):
@@ -522,6 +523,11 @@ class Lambda(Model, ParametrizedMixin):
         """
         self._save_data()
         self._save_model()
+        self.modified_or_new = False
+
+    def remove_revisions(self):
+        self.current_revision = -1
+        self.revisions = []
 
     @property
     def empty_revisions(self):
@@ -684,7 +690,6 @@ class Lambda(Model, ParametrizedMixin):
         """
         pass
 
-    @_only_queryable
     def query(self, inputs, outputs):
         """
         Query the Lambda according to the inputs, and generate another Lambda projected to the outputs
@@ -695,10 +700,9 @@ class Lambda(Model, ParametrizedMixin):
         :return: the resulting view of the data
         :rtype: Lambda
         """
-        output_name = outputs.get(self.VAR_OUTPUT, None) or str(uuid.uuid4())
+        output_name = (outputs is not None and outputs.get(self.VAR_OUTPUT, None)) or str(uuid.uuid4())
         rt = Lambda(self.namespace, output_name)
         rt.level = self.level
-        rt.status = Status.DRAFT
         if isinstance(inputs, str):
             # a query string passed in
             if inputs.find('.str.') > -1:
@@ -706,6 +710,7 @@ class Lambda(Model, ParametrizedMixin):
             else:
                 rt.df = self.data.query(inputs)
         else:
+
             # TODO: execute the correct revisions according to the inputs and outputs.
             pass
         if outputs is not None and len(outputs) > 0:

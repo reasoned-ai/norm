@@ -1,3 +1,5 @@
+from pandas import DataFrame
+
 from norm.grammar.literals import COP
 
 from norm.executable import NormError, Constant
@@ -5,10 +7,16 @@ from norm.executable.expression.argument import ArgumentExpr
 from norm.executable.variable import VariableName, ColumnVariable
 from norm.executable.expression import NormExpression
 
+from hashids import Hashids
 from typing import List
 
 import logging
+
+from norm.utils import hash_df
+
 logger = logging.getLogger(__name__)
+
+h = Hashids()
 
 
 class EvaluationExpr(NormExpression):
@@ -64,6 +72,12 @@ class EvaluationExpr(NormExpression):
         :rtype: Dict
         """
         assert(self.lam is not None)
+        if self.lam.nargs == 0:
+            # Lambda is anonymously created
+            from norm.models.norm import Lambda
+            return {arg.variable.name if arg.variable else '{}{}'.format(Lambda.VAR_ANONYMOUS_STUB, i): arg.expr
+                    for i, arg in enumerate(self.args)}
+
         nargs = len(self.args)
         assert(nargs <= self.lam.nargs)
         keyword_arg = False
@@ -141,6 +155,11 @@ class EvaluationExpr(NormExpression):
             inputs = dict((key, value.execute(context)) for key, value in self.inputs.items())
         else:
             inputs = self.inputs
+        if self.is_to_add_data:
+            cols = list(sorted(inputs.keys()))
+            df = DataFrame(data=inputs, columns=cols)
+            self.lam.add_data(hash_df(df), df)
+            return self.lam
         return self.lam.query(inputs, self.outputs)
 
 

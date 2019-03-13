@@ -7,6 +7,8 @@ class NormExpression(NormExecutable):
     def __init__(self):
         super().__init__()
         self._projection = None  # type: Projection
+        self.lam = None
+        self.description = None
 
     @property
     def projection(self):

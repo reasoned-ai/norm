@@ -45,7 +45,7 @@ class Register(object):
 @event.listens_for(Session, "after_commit")
 def save_lambda_after_commit(sess):
     for obj in sess.identity_map.values():
-        if isinstance(obj, Lambda) and obj.modified and obj.status == Status.DRAFT:
+        if isinstance(obj, Lambda) and obj.modified_or_new and obj.status == Status.DRAFT:
             obj.save()
 
 
