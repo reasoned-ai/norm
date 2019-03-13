@@ -33,12 +33,7 @@ class ArgumentDeclaration(NormExecutable):
             raise NormError(msg)
 
         from norm.models import Variable
-        var = session.query(Variable).filter(Variable.name == self.variable_name.name,
-                                             Variable.type_id == lam.id).scalar()
-        if var is None:
-            var = Variable(self.variable_name.name, lam)
-            session.add(var)
-        self.var = var
+        self.var = Variable(self.variable_name.name, lam)
         return self
 
     def execute(self, context):

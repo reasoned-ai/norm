@@ -42,6 +42,15 @@ class Variable(Model, ParametrizedMixin):
     type_id = Column(Integer, ForeignKey('lambdas.id'))
     type_ = relationship('Lambda', foreign_keys=[type_id])
 
+    def __new__(cls, name, type_):
+        from norm.config import session
+        instance = session.query(Variable).filter(Variable.name == name,
+                                                  Variable.type_id == type_.id).scalar()
+        if instance is None:
+            instance = super().__new__(cls, name, type_)
+            session.add(instance)
+        return instance
+
     def __init__(self, name, type_):
         """
         Construct the variable
