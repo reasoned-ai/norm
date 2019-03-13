@@ -13,7 +13,7 @@ class DeclarationTestCase(NormTestCase):
 
     def test_recognize_repeated_declaration_within_the_same_session(self):
         script = """
-        Company(name: String, description: String, founders: [String], founded_at: Datetime);
+        Company(name: String, mission: String, founders: [String], founded_at: Datetime);
         """
         company = self.execute(script)
         self.assertTrue(company is not None)

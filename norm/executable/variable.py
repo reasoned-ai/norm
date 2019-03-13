@@ -97,7 +97,7 @@ class ColumnVariable(VariableName):
     def execute(self, context):
         lam = self.scope.execute(context).clone()
         from norm.models.norm import Variable
-        lam.variables = [Variable(str(self), self.variable_type())]
+        lam.variables = [Variable.create(str(self), self.variable_type())]
         return lam
 
 
@@ -117,6 +117,6 @@ class JoinVariable(VariableName):
     def execute(self, context):
         lam = self.scope.execute(context).clone()
         from norm.models.norm import Variable
-        lam.variables.append(Variable(str(self), self.variable_type()))
+        lam.variables.append(Variable.create(str(self), self.variable_type()))
         lam.df = lam.data.join(self.lam.data[[self.name]].rename(columns={self.name: str(self)}), on=str(self.scope))
         return lam

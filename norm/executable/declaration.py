@@ -24,7 +24,6 @@ class ArgumentDeclaration(NormExecutable):
         self.var = None
 
     def compile(self, context):
-        session = context.session
         # TODO: jointly search the type for the variable
         lam = self.variable_type.lam
         if lam is None:
@@ -33,7 +32,7 @@ class ArgumentDeclaration(NormExecutable):
             raise NormError(msg)
 
         from norm.models import Variable
-        self.var = Variable(self.variable_name.name, lam)
+        self.var = Variable.create(self.variable_name.name, lam)
         return self
 
     def execute(self, context):

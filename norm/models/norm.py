@@ -42,12 +42,13 @@ class Variable(Model, ParametrizedMixin):
     type_id = Column(Integer, ForeignKey('lambdas.id'))
     type_ = relationship('Lambda', foreign_keys=[type_id])
 
-    def __new__(cls, name, type_):
+    @classmethod
+    def create(cls, name=None, type_=None):
         from norm.config import session
         instance = session.query(Variable).filter(Variable.name == name,
                                                   Variable.type_id == type_.id).scalar()
         if instance is None:
-            instance = super().__new__(cls, name, type_)
+            instance = Variable(name, type_)
             session.add(instance)
         return instance
 
@@ -408,7 +409,7 @@ class Lambda(Model, ParametrizedMixin):
         cols = {col: dtype for col, dtype in zip(df.columns, df.dtypes)}
         from norm.models.native import get_type_by_dtype
         current_variable_names = set(self._all_columns)
-        vars_to_add = [Variable(col, get_type_by_dtype(dtype)) for col, dtype in cols.items()
+        vars_to_add = [Variable.create(col, get_type_by_dtype(dtype)) for col, dtype in cols.items()
                        if col not in current_variable_names]
         if len(vars_to_add) > 0:
             from norm.models.revision import AddVariableRevision

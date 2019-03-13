@@ -1,8 +1,6 @@
 """Unit tests for Norm"""
 import os
 
-from sqlalchemy import exists
-
 from tests.utils import NormTestCase
 from norm.models import Lambda, Variable, retrieve_type, Status, Level
 
@@ -13,30 +11,30 @@ class LambdaTestCase(NormTestCase):
         lam1 = Lambda(namespace=self.executor.context_namespace,
                       name='Test',
                       description='Comment 1',
-                      variables=[Variable(Lambda.VAR_OUTPUT,
-                                          retrieve_type('norm.native', 'String', session=self.session))])
+                      variables=[Variable.create(Lambda.VAR_OUTPUT,
+                                                 retrieve_type('norm.native', 'String', session=self.session))])
         self.session.add(lam1)
         self.assertTrue(Lambda.exists(self.session, lam1))
         lam2 = Lambda(namespace=self.executor.context_namespace,
                       name='Test',
                       description='Comment 2',
-                      variables=[Variable(Lambda.VAR_OUTPUT,
-                                          retrieve_type('norm.native', 'String', session=self.session))])
+                      variables=[Variable.create(Lambda.VAR_OUTPUT,
+                                                 retrieve_type('norm.native', 'String', session=self.session))])
         self.assertTrue(not Lambda.exists(self.session, lam2))
         lam3 = Lambda(namespace=self.executor.context_namespace,
                       name='Test',
                       description='Comment 2',
-                      variables=[Variable(Lambda.VAR_OUTPUT,
-                                          retrieve_type('norm.native', 'Type', session=self.session))])
+                      variables=[Variable.create(Lambda.VAR_OUTPUT,
+                                                 retrieve_type('norm.native', 'Type', session=self.session))])
         self.assertTrue(not Lambda.exists(self.session, lam3))
 
     def test_creation(self):
         lam = Lambda(namespace=self.executor.context_namespace,
                      name='Test',
                      description='Test lambda',
-                     variables=[Variable('a', retrieve_type('norm.native', 'String', session=self.session)),
-                                Variable('b', retrieve_type('norm.native', 'Integer', session=self.session)),
-                                Variable('c', retrieve_type('norm.native', 'Datetime', session=self.session))]
+                     variables=[Variable.create('a', retrieve_type('norm.native', 'String', session=self.session)),
+                                Variable.create('b', retrieve_type('norm.native', 'Integer', session=self.session)),
+                                Variable.create('c', retrieve_type('norm.native', 'Datetime', session=self.session))]
                      )
         self.assertTrue(lam is not None)
         self.assertTrue(lam.version.startswith('$'))
@@ -52,9 +50,9 @@ class LambdaTestCase(NormTestCase):
         lam = Lambda(namespace=self.executor.context_namespace,
                      name='Test',
                      description='Test lambda',
-                     variables=[Variable('a', retrieve_type('norm.native', 'String', session=self.session)),
-                                Variable('b', retrieve_type('norm.native', 'Integer', session=self.session)),
-                                Variable('c', retrieve_type('norm.native', 'Datetime', session=self.session))]
+                     variables=[Variable.create('a', retrieve_type('norm.native', 'String', session=self.session)),
+                                Variable.create('b', retrieve_type('norm.native', 'Integer', session=self.session)),
+                                Variable.create('c', retrieve_type('norm.native', 'Datetime', session=self.session))]
                      )
         lam.status = Status.READY
         cloned = lam.clone()
@@ -89,7 +87,7 @@ class LambdaTestCase(NormTestCase):
                      description='Test lambda'
                      )
         lam.level = Level.QUERYABLE
-        self.assertTrue(lam.folder == 'data/norm/tmp/testing/Test')
+        self.assertTrue(lam.folder == 'data/norm/tmp/{}/Test/{}'.format(self.executor.context_id, lam.version))
         lam._create_folder()
         self.assertTrue(os.path.exists(lam.folder))
 
@@ -97,9 +95,9 @@ class LambdaTestCase(NormTestCase):
         lam = Lambda(namespace=self.executor.context_namespace,
                      name='Test',
                      description='Test lambda',
-                     variables=[Variable('a', retrieve_type('norm.native', 'String', session=self.session)),
-                                Variable('b', retrieve_type('norm.native', 'Integer', session=self.session)),
-                                Variable('c', retrieve_type('norm.native', 'Datetime', session=self.session))]
+                     variables=[Variable.create('a', retrieve_type('norm.native', 'String', session=self.session)),
+                                Variable.create('b', retrieve_type('norm.native', 'Integer', session=self.session)),
+                                Variable.create('c', retrieve_type('norm.native', 'Datetime', session=self.session))]
                      )
         lam.level = Level.QUERYABLE
         df = lam.empty_data()
