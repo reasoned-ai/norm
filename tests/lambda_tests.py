@@ -1,11 +1,34 @@
 """Unit tests for Norm"""
 import os
 
+from sqlalchemy import exists
+
 from tests.utils import NormTestCase
 from norm.models import Lambda, Variable, retrieve_type, Status, Level
 
 
 class LambdaTestCase(NormTestCase):
+
+    def test_equality(self):
+        lam1 = Lambda(namespace=self.executor.context_namespace,
+                      name='Test',
+                      description='Commnet 1',
+                      variables=[Variable(Lambda.VAR_OUTPUT,
+                                          retrieve_type('norm.native', 'String', session=self.session))])
+        self.session.add(lam1)
+        self.assertTrue(Lambda.exists(self.session, lam1))
+        lam2 = Lambda(namespace=self.executor.context_namespace,
+                      name='Test',
+                      description='Commnet 2',
+                      variables=[Variable(Lambda.VAR_OUTPUT,
+                                          retrieve_type('norm.native', 'String', session=self.session))])
+        self.assertTrue(not Lambda.exists(self.session, lam2))
+        lam3 = Lambda(namespace=self.executor.context_namespace,
+                      name='Test',
+                      description='Commnet 2',
+                      variables=[Variable(Lambda.VAR_OUTPUT,
+                                          retrieve_type('norm.native', 'Type', session=self.session))])
+        self.assertTrue(not Lambda.exists(self.session, lam3))
 
     def test_creation(self):
         lam = Lambda(namespace=self.executor.context_namespace,

@@ -2,7 +2,7 @@
 import os
 
 from norm.config import DATA_STORAGE_ROOT
-from norm.models import Level, Status, Lambda
+from norm.models import Level, Status
 from tests.utils import NormTestCase
 
 
@@ -34,6 +34,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(lam is lam2)
         self.assertTrue(len(lam.revisions) == 2)
         self.assertTrue(len(lam.data) > 0)
+        self.assertTrue(len(lam.data[lam.VAR_OID]) > 0)
 
     def test_recognize_repeated_declaration_within_the_same_session(self):
         script = """

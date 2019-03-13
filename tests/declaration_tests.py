@@ -16,8 +16,11 @@ class DeclarationTestCase(NormTestCase):
         Company(name: String, description: String, founders: [String], founded_at: Datetime);
         """
         company = self.execute(script)
-        assert(company is not None)
+        self.assertTrue(company is not None)
 
         new_company = self.execute(script)
-        assert(company.id == new_company.id)
+        self.assertTrue(company is new_company)
 
+    def test_none_declaration(self):
+        lam = self.execute("test;")
+        self.assertTrue(lam is None)

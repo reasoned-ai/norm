@@ -273,6 +273,23 @@ class Lambda(Model, ParametrizedMixin):
 
         return False
 
+    @classmethod
+    def exists(cls, session, obj):
+        """
+        Build the SQLAlchemy equality condition
+        :param session: the session to check against
+        :type session: sqlalchemy.orm.Session
+        :param obj: another Lambda to compare with
+        :type obj: Lambda
+        :return: List
+        """
+        in_stores = session.query(Lambda)\
+                           .filter(Lambda.name == obj.name,
+                                   Lambda.description == obj.description,
+                                   Lambda.namespace == obj.namespace)\
+                           .all()
+        return any(in_store.variables == obj.variables for in_store in in_stores)
+
     def get_type(self, variable_name):
         """
         Get the type of the variable by the name
@@ -375,6 +392,10 @@ class Lambda(Model, ParametrizedMixin):
         if any((rev.query == query for rev in self.revisions)):
             return
 
+        # Reset index of the dataframe if it is not a RangeIndex
+        if not isinstance(df.index, pd.RangeIndex):
+            df = df.reset_index()
+
         cols = {col: dtype for col, dtype in zip(df.columns, df.dtypes)}
         from norm.models.native import get_type_by_dtype
         current_variable_names = set(self._all_columns)
@@ -384,9 +405,11 @@ class Lambda(Model, ParametrizedMixin):
             from norm.models.revision import AddVariableRevision
             self._add_revision(AddVariableRevision(vars_to_add, self))
         from norm.models.revision import DisjunctionRevision
-        added_data = DisjunctionRevision(query, 'Append new data', self)
-        added_data.delta = df
-        self._add_revision(added_data)
+        delta = df
+        if self.VAR_OID not in cols.keys():
+            base = hash(query)
+            delta[self.VAR_OID] = [hashids.encode(base + i) for i in df.index]
+        self._add_revision(DisjunctionRevision(query, '_add_data', self, delta))
         self.level = Level.QUERYABLE
 
     @_check_draft_status

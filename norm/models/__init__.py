@@ -27,11 +27,12 @@ class Register(object):
     @classmethod
     def register(cls):
         for clz, args, kwargs in cls.types:
-            instance = clz(*args, **kwargs)
-            in_store = session.query(exists().where(clz.name == instance.name)).scalar()
-            if not in_store:
-                logger.info('Registering class {}'.format(instance.name))
-                session.add(instance)
+            if hasattr(clz, 'exists'):
+                instance = clz(*args, **kwargs)
+                in_store = clz.exists(session, instance)
+                if not in_store:
+                    logger.info('Registering class {}'.format(instance.name))
+                    session.add(instance)
         try:
             session.commit()
         except:
@@ -39,15 +40,6 @@ class Register(object):
             logger.debug(traceback.print_exc())
             session.rollback()
             session.close()
-
-    @classmethod
-    def retrieve(cls, clz, *args, **kwargs):
-        instance = clz(*args, **kwargs)
-        stored_inst = session.query(clz).filter(clz.name == instance.name).scalar()
-        if stored_inst is None:
-            stored_inst = instance
-            session.add(instance)
-        return stored_inst
 
 
 @event.listens_for(Session, "after_commit")

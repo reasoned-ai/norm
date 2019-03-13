@@ -58,7 +58,8 @@ class ReadFileLambda(CoreLambda):
                          variables=[Variable(self.VAR_LAMBDA, lambda_type),
                                     Variable(self.VAR_PATH, string_type),
                                     Variable(self.VAR_PARM, any_type),
-                                    Variable(self.VAR_EXT, string_type)])
+                                    Variable(self.VAR_EXT, string_type),
+                                    Variable(self.VAR_OUTPUT, lambda_type)])
 
     def query(self, inputs, outputs):
         lam = inputs.get(self.VAR_LAMBDA)

@@ -204,9 +204,10 @@ class DeltaRevision(Revision):
         'polymorphic_identity': 'revision_delta'
     }
 
-    def __init__(self, query, description, lam):
+    def __init__(self, query, description, lam, delta=None):
         super().__init__(query, description, lam)
-        self._delta = None
+        self._delta = delta
+        self.orig_df = None
 
     @orm.reconstructor
     def init_on_load(self):
@@ -267,8 +268,8 @@ class ConjunctionRevision(DeltaRevision):
         'polymorphic_identity': 'revision_delta_conjunction'
     }
 
-    def __init__(self, query, description, lam):
-        super().__init__(query, description, lam)
+    def __init__(self, query, description, lam, delta=None):
+        super().__init__(query, description, lam, delta)
 
     def apply(self):
         pass
@@ -286,9 +287,8 @@ class DisjunctionRevision(DeltaRevision):
         'polymorphic_identity': 'revision_delta_disjunction'
     }
 
-    def __init__(self, query, description, lam):
-        super().__init__(query, description, lam)
-        self.orig_df = None
+    def __init__(self, query, description, lam, delta=None):
+        super().__init__(query, description, lam, delta)
 
     def apply(self):
         self.orig_df = self.lam.df
