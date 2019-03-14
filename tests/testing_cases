@@ -13,7 +13,7 @@ test := ('sfs', 4)
       ;
 test('aa', 6);
 // A new empty/default data
-test();
+test;
 
 // Add another attribute
 test &= (t:Datetime, p:Person);

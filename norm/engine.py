@@ -145,6 +145,10 @@ class NormCompiler(normListener):
                 description = self._pop()
                 type_declaration.description = description  # need to be recompiled
                 self._push(type_declaration.compile(self))
+        elif ctx.argumentDeclarations():
+            args = self._pop()  # type: List[ArgumentDeclaration]
+            type_ = self._pop()  # type: TypeName
+            self._push(AdditionalTypeDeclaration(type_, args).compile(self))
         elif ctx.imports() or ctx.exports() or ctx.commands() or ctx.multiLineExpression():
             if ctx.comments():
                 expr = self._pop()

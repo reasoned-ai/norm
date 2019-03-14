@@ -1,5 +1,5 @@
 """Unit tests for Implementation"""
-from norm.models import Lambda, retrieve_type
+from norm.models import Lambda, retrieve_type, AddVariableRevision, RetypeVariableRevision
 from norm.utils import hash_df
 from tests.utils import NormTestCase
 from pandas import DataFrame
@@ -68,3 +68,18 @@ class ImplementationTestCase(NormTestCase):
         self.assertTrue(len(lam.data) == 5)
         self.assertTrue(all(lam.data['a'] == [1, 4, 1, 2, 4]))
 
+    def test_add_variables(self):
+        self.execute("test(a: Integer, b: String);")
+        lam = self.execute("test &= (c: String, d: Integer);")
+        self.assertTrue(lam.get_type('c') == retrieve_type('norm.native', 'String'))
+        self.assertTrue(lam.get_type('d') == retrieve_type('norm.native', 'Integer'))
+        self.assertTrue(len(lam.revisions) == 1)
+
+    def test_add_modify_variables(self):
+        self.execute("test(a: Integer, b: String);")
+        lam = self.execute("test &= (a: String, d: Integer);")
+        self.assertTrue(lam.get_type('a') == retrieve_type('norm.native', 'String'))
+        self.assertTrue(lam.get_type('d') == retrieve_type('norm.native', 'Integer'))
+        self.assertTrue(len(lam.revisions) == 2)
+        self.assertTrue(isinstance(lam.revisions[0], AddVariableRevision))
+        self.assertTrue(isinstance(lam.revisions[1], RetypeVariableRevision))

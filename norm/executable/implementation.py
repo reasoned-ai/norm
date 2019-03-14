@@ -7,6 +7,7 @@ from norm.models import Lambda, Status
 import logging
 logger = logging.getLogger(__name__)
 
+
 class TypeImplementation(NormExecutable):
 
     def __init__(self, type_, op, query, description):

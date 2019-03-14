@@ -114,3 +114,31 @@ class TypeDeclaration(NormExecutable):
     def execute(self, context):
         return self.lam
 
+
+class AdditionalTypeDeclaration(TypeDeclaration):
+
+    def __init__(self, type_name, argument_declarations):
+        """
+        Adding additional variables to the type or override the existing ones
+        :param type_name: the name of type
+        :type type_name: TypeName
+        :param argument_declarations: the list of variables to add or modify
+        :type argument_declarations: List[ArgumentDeclaration]
+        """
+        super().__init__(type_name, argument_declarations, None)
+
+    def compile(self, context):
+        lam = self.type_name.lam
+        variables = [var_declaration.var for var_declaration in self.argument_declarations]
+        assert(lam.status == Status.DRAFT)
+        assert(sorted(lam.variables, key=lambda v: v.name) != sorted(variables, key=lambda v: v.name))
+        # Revise the existing schema
+        current_variables = {v.name: v.type_ for v in lam.variables}
+        lam.add_variable([v for v in variables if v.name not in current_variables.keys()])
+        lam.astype([v for v in variables if v.name in current_variables.keys()
+                    and current_variables.get(v.name) != v.type_])
+        self.lam = lam
+        return self
+
+    def execute(self, context):
+        return self.lam

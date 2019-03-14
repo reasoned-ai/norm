@@ -19,7 +19,7 @@ class TypeName(NormExecutable):
         self.namespace = None
         self.name = name
         self.version = version
-        self.lam = None
+        self.lam = None  # type: Lambda
         assert(self.name is not None)
         assert(self.name != '')
 

@@ -8,6 +8,7 @@ statement
     | comments? exports
     | comments? commands
     | comments? (WS|NS)? multiLineExpression
+    | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? LBR argumentDeclarations RBR
     | comments? (WS|NS)? typeDeclaration ((WS|NS)? IMPL (WS|NS)? multiLineExpression)?
     ;
 
