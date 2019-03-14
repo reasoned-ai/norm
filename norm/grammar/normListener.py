@@ -80,6 +80,24 @@ class normListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by normParser#rename.
+    def enterRename(self, ctx:normParser.RenameContext):
+        pass
+
+    # Exit a parse tree produced by normParser#rename.
+    def exitRename(self, ctx:normParser.RenameContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#renames.
+    def enterRenames(self, ctx:normParser.RenamesContext):
+        pass
+
+    # Exit a parse tree produced by normParser#renames.
+    def exitRenames(self, ctx:normParser.RenamesContext):
+        pass
+
+
     # Enter a parse tree produced by normParser#typeDeclaration.
     def enterTypeDeclaration(self, ctx:normParser.TypeDeclarationContext):
         pass

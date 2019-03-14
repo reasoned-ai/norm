@@ -18,11 +18,11 @@ test;
 // Add another attribute
 test &= (t:Datetime, p:Person);
 
-// Rename an attribute
-test.rename('a', 'b');
-
 // Retype attributes and add another attribute
-test.astype('t', String);
+test &= (t: String);
+
+// Rename an attribute
+test &= (a -> b);
 
 // Add another attribute implicitly with values
 import python.datetime.datetime.utcnow;

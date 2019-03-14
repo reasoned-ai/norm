@@ -9,6 +9,7 @@ statement
     | comments? commands
     | comments? (WS|NS)? multiLineExpression
     | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? LBR argumentDeclarations RBR
+    | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? LBR renames RBR
     | comments? (WS|NS)? typeDeclaration ((WS|NS)? IMPL (WS|NS)? multiLineExpression)?
     ;
 
@@ -48,6 +49,10 @@ DELETE: 'del'|'Del'|'DEL';
 argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName;
 
 argumentDeclarations: argumentDeclaration ((WS|NS)? COMMA (WS|NS)? argumentDeclaration)*;
+
+rename: variable (WS|NS)? '->' (WS|NS)? variable;
+
+renames: rename ((WS|NS)? COMMA (WS|NS)? rename)*;
 
 typeDeclaration: typeName (LBR argumentDeclarations RBR)? ((WS|NS)? COLON (WS|NS)? typeName)?;
 

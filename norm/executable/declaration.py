@@ -39,6 +39,21 @@ class ArgumentDeclaration(NormExecutable):
         raise NotImplementedError
 
 
+class RenameArgument(NormExecutable):
+
+    def __init__(self, variable_original_name, variable_new_name):
+        """
+        Rename a variable
+        :param variable_original_name: the original name
+        :type variable_original_name: str
+        :param variable_new_name: the new name
+        :type variable_new_name: str
+        """
+        super().__init__()
+        self.variable_original_name = variable_original_name
+        self.variable_new_name = variable_new_name
+
+
 class TypeDeclaration(NormExecutable):
 
     def __init__(self, type_name, argument_declarations, output_type_name):
@@ -137,6 +152,32 @@ class AdditionalTypeDeclaration(TypeDeclaration):
         lam.add_variable([v for v in variables if v.name not in current_variables.keys()])
         lam.astype([v for v in variables if v.name in current_variables.keys()
                     and current_variables.get(v.name) != v.type_])
+        self.lam = lam
+        return self
+
+    def execute(self, context):
+        return self.lam
+
+
+class RenameTypeDeclaration(TypeDeclaration):
+
+    def __init__(self, type_name, rename_arguments):
+        """
+        Rename the variables
+        :param type_name: the name of the type
+        :type type_name: TypeName
+        :param rename_arguments: the list of variables to rename
+        :type rename_arguments: List[RenameArgument]
+        """
+        super().__init__(type_name, None, None)
+        self.rename_arguments = rename_arguments
+
+    def compile(self, context):
+        lam = self.type_name.lam
+        assert(lam is not None)
+        variables = {rename.variable_original_name: rename.variable_new_name for rename in self.rename_arguments
+                     if rename.variable_original_name in lam}
+        lam.rename_variable(variables)
         self.lam = lam
         return self
 

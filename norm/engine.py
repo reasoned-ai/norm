@@ -149,6 +149,10 @@ class NormCompiler(normListener):
             args = self._pop()  # type: List[ArgumentDeclaration]
             type_ = self._pop()  # type: TypeName
             self._push(AdditionalTypeDeclaration(type_, args).compile(self))
+        elif ctx.renames():
+            renames = self._pop()  # type: List[RenameArgument]
+            type_ = self._pop()  # type: TypeName
+            self._push(RenameTypeDeclaration(type_, renames).compile(self))
         elif ctx.imports() or ctx.exports() or ctx.commands() or ctx.multiLineExpression():
             if ctx.comments():
                 expr = self._pop()
@@ -239,6 +243,16 @@ class NormCompiler(normListener):
     def exitArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
         args = list(reversed([self._pop() for ch in ctx.children
                              if isinstance(ch, normParser.ArgumentDeclarationContext)]))
+        self._push(args)
+
+    def exitRename(self, ctx:normParser.RenameContext):
+        new_name = self._pop()  # type: VariableName
+        original_name = self._pop()  # type: VariableName
+        self._push(RenameArgument(original_name.name, new_name.name).compile(self))
+
+    def exitRenames(self, ctx:normParser.RenamesContext):
+        args = list(reversed([self._pop() for ch in ctx.children
+                              if isinstance(ch, normParser.RenameContext)]))
         self._push(args)
 
     def exitTypeDeclaration(self, ctx:normParser.TypeDeclarationContext):
