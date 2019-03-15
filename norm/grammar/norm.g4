@@ -1,6 +1,6 @@
 grammar norm;
 
-script: statement (WS|NS)? SEMICOLON ((WS|NS)? statement (WS|NS)? SEMICOLON)* (WS|NS)?;
+script: statement (WS|NS)? SEMICOLON ((WS|NS)* statement (WS|NS)? SEMICOLON)* (WS|NS)?;
 
 statement
     : comments
@@ -10,6 +10,7 @@ statement
     | comments? (WS|NS)? multiLineExpression
     | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? LBR argumentDeclarations RBR
     | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? LBR renames RBR
+    | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? codeExpression
     | comments? (WS|NS)? typeDeclaration ((WS|NS)? IMPL (WS|NS)? multiLineExpression)?
     ;
 
@@ -86,9 +87,9 @@ constant
     | LSBR constant (COMMA constant)* RSBR
     ;
 
-code: ~(PYTHON_BLOCK|SQL_BLOCK|BLOCK_END)*;
+code: ~(PYTHON_BLOCK|BLOCK_END)*;
 
-codeExpression: (PYTHON_BLOCK|SQL_BLOCK) code BLOCK_END;
+codeExpression: PYTHON_BLOCK code BLOCK_END;
 
 argumentExpression
     : arithmeticExpression
@@ -105,7 +106,6 @@ argumentExpressions
 
 evaluationExpression
     : constant
-    | codeExpression
     | variable
     | argumentExpressions
     | variable argumentExpressions
@@ -164,7 +164,7 @@ conditionOperator: EQ | NE | IN | NI | LT | LE | GT | GE | LK;
 
 spacedConditionOperator: (WS|NS)? conditionOperator (WS|NS)?;
 
-WS: [ \t\u000C]+ -> skip;
+WS: [ \t\u000C]+;
 
 NS: [ \t\u000C]+ [\r\n] [ \t\u000C]* | [\r\n] [ \t\u000C]*;
 
@@ -219,9 +219,8 @@ UUID:      '$' [0-9a-zA-Z-]*;
 URL:       'u' STRING;
 DATETIME:  't' STRING;
 
-PYTHON_BLOCK : '{%python' (WS|NS)?;
-SQL_BLOCK : '{%sql' (WS|NS)?;
-BLOCK_END : '%}';
+PYTHON_BLOCK : '{{' WS? [\r\n]?;
+BLOCK_END : (WS|NS)? '}}';
 
 VARNAME: [a-zA-Z][a-zA-Z0-9_]*;
 

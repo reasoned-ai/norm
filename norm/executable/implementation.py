@@ -1,8 +1,11 @@
+import pandas as pd
+from pandas import DataFrame
+
 from norm.executable import NormExecutable, NormError
 from norm.executable.declaration import TypeDeclaration
 from norm.executable.expression import NormExpression
 from norm.executable.expression.evaluation import EvaluationExpr
-from norm.models import Lambda, Status
+from norm.models import Lambda, Status, Variable, retrieve_type
 
 import logging
 logger = logging.getLogger(__name__)
@@ -43,10 +46,11 @@ class TypeImplementation(NormExecutable):
             logger.info('Lambda: {} is not in DRAFT mode. Import first'.format(lam))
             lam = Lambda(namespace=context.context_namespace, name=lam.name, description=lam.description,
                          variables=lam.variables, user=context.user)
-        self.query.lam = lam
         if self.description is not None or self.description.strip() != '':
             self.query.description = self.description
         self.lam = lam
+        if context.scope is None:
+            context.scope = lam
         return self
 
     def execute(self, context):
@@ -59,5 +63,17 @@ class TypeImplementation(NormExecutable):
         elif self.op == ImplType.OR_DEF:
             pass
         elif self.op == ImplType.AND_DEF:
-            pass
+            to_concat = self.query.execute(context)
+            if isinstance(to_concat.data, DataFrame) and len(lam.data) == len(to_concat.data):
+                lam.df = pd.concat([lam.data, to_concat], axis=1)
+            else:
+                if len(self.query.projection.variables) == 1:
+                    vn = self.query.projection.variables[0].name
+                    lam.df[vn] = to_concat.data
+                    if vn not in lam:
+                        lam.add_variable(Variable.create(vn, retrieve_type('norm.native', 'Any')))
+                else:
+                    for i, v in enumerate(self.query.projection.variables):
+                        lam.df[v.name] = to_concat.data[i]
+            return lam
         return self.query.execute(context)

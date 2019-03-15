@@ -1,7 +1,7 @@
 from norm.executable import NormExecutable, NormError
 from norm.executable.variable import VariableName
 from norm.executable.type import TypeName
-from norm.models import Lambda, Status
+from norm.models import Lambda, Status, PythonLambda
 from typing import List
 
 import logging
@@ -178,6 +178,32 @@ class RenameTypeDeclaration(TypeDeclaration):
         variables = {rename.variable_original_name: rename.variable_new_name for rename in self.rename_arguments
                      if rename.variable_original_name in lam}
         lam.rename_variable(variables)
+        self.lam = lam
+        return self
+
+    def execute(self, context):
+        return self.lam
+
+
+class CodeTypeDeclaration(TypeDeclaration):
+
+    def __init__(self, type_name, code, description):
+        """
+        Declare a python lambda
+        :param type_name: the name of the lambda
+        :type type_name: TypeName
+        :param code: the python code
+        :type code: str
+        :param description: the description of the lambda
+        :type description: str
+        """
+        super().__init__(type_name, None, None)
+        self.code = code
+        self._description = description
+
+    def compile(self, context):
+        lam = PythonLambda(context.context_namespace, self.type_name.name, self.description, self.code)
+        context.session.add(lam)
         self.lam = lam
         return self
 

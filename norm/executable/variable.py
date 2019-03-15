@@ -95,7 +95,7 @@ class ColumnVariable(VariableName):
         return self
 
     def execute(self, context):
-        lam = self.scope.execute(context).clone()
+        lam = self.lam
         from norm.models.norm import Variable
         lam.variables = [Variable.create(str(self), self.variable_type())]
         return lam

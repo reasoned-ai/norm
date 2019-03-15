@@ -72,6 +72,12 @@ class Variable(Model, ParametrizedMixin):
             return False
         return other.name == self.name and other.type_ == self.type_
 
+    def __repr__(self):
+        return '{}: {}'.format(self.name, self.type_)
+
+    def __str__(self):
+        return self.__repr__()
+
 
 lambda_variable = Table(
     'lambda_variable', metadata,
@@ -318,7 +324,10 @@ class Lambda(Model, ParametrizedMixin):
     def data(self):
         if self.df is None:
             self.df = self.empty_data()
-        return self.df
+        if isinstance(self.df, DataFrame) and len(self.variables) > 0:
+            return self.df[[var.name for var in self.variables]]
+        else:
+            return self.df
 
     @property
     def signature(self):
@@ -467,6 +476,8 @@ class Lambda(Model, ParametrizedMixin):
         Add new new variables to the Lambda
         :type variables: Tuple[Variable]
         """
+        if isinstance(variables, Variable):
+            variables = [variables]
         if len(variables) == 0:
             return
         from norm.models.revision import AddVariableRevision
@@ -740,23 +751,6 @@ class GroupLambda(Lambda):
         :return: Lambda
         """
         raise NotImplementedError
-
-
-class KerasLambda(Lambda):
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'lambda_keras'
-    }
-
-    @lazy_property
-    def keras_model(self):
-        return None
-
-    def __call__(self, *args, **kwargs):
-        """
-        TODO: implement
-        """
-        pass
 
 
 def retrieve_type(namespaces, name, version=None, status=None, session=None):

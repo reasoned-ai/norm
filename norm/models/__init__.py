@@ -49,8 +49,7 @@ def save_lambda_after_commit(sess):
             obj.save()
 
 
-from norm.models.norm import (Variable, lambda_variable, Lambda, Status, Level,
-                              KerasLambda, retrieve_type)
+from norm.models.norm import (Variable, lambda_variable, Lambda, GroupLambda, Status, Level, retrieve_type)
 from norm.models.revision import (Revision, revision_variable, SchemaRevision, AddVariableRevision,
                                   DeleteVariableRevision, RenameVariableRevision, RetypeVariableRevision,
                                   DeltaRevision, ConjunctionRevision, DisjunctionRevision, FitRevision)

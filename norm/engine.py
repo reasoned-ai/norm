@@ -153,6 +153,11 @@ class NormCompiler(normListener):
             renames = self._pop()  # type: List[RenameArgument]
             type_ = self._pop()  # type: TypeName
             self._push(RenameTypeDeclaration(type_, renames).compile(self))
+        elif ctx.codeExpression():
+            code = self._pop()  # type: str
+            type_ = self._pop()  # type: TypeName
+            description = self._pop() if ctx.comments() else ''
+            self._push(CodeTypeDeclaration(type_, code, description).compile(self))
         elif ctx.imports() or ctx.exports() or ctx.commands() or ctx.multiLineExpression():
             if ctx.comments():
                 expr = self._pop()
@@ -365,11 +370,5 @@ class NormCompiler(normListener):
             self._push(EvaluationExpr(args, variable).compile(self))
 
     def exitCodeExpression(self, ctx:normParser.CodeExpressionContext):
-        if ctx.PYTHON_BLOCK():
-            self._push(CodeExpr(CodeMode.PYTHON, ctx.code().getText()).compile(self))
-        elif ctx.SQL_BLOCK():
-            self._push(CodeExpr(CodeMode.SQL, ctx.code().getText()).compile(self))
-        else:
-            self._push(CodeExpr(CodeMode.QUERY, ctx.code().getText()).compile(self))
-
+        self._push(ctx.code().getText())
 

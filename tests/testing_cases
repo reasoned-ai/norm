@@ -12,8 +12,6 @@ test := ('sfs', 4)
       | ('fff', 1)
       ;
 test('aa', 6);
-// A new empty/default data
-test;
 
 // Add another attribute
 test &= (t:Datetime, p:Person);
@@ -25,8 +23,13 @@ test &= (t: String);
 test &= (a -> b);
 
 // Add another attribute implicitly with values
-import python.datetime.datetime.utcnow;
-test &= utcnow()?t2; // automatically adding t2 as a Datetime type (inferred by the now output type)
+utcnow := {{
+    import datetime
+    return datetime.datetime.utcnow
+}};
+
+// automatically adding t2 as a Datetime type (inferred by the now output type)
+test &= utcnow()?t2;
 
 // Query the data
 test;
