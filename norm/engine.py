@@ -357,7 +357,25 @@ class NormCompiler(normListener):
                 end = self._pop() if ctx.integer_c(1) else None  # type: Constant
                 start = self._pop() if ctx.integer_c(0) else None  # type: Constant
                 expr = self._pop()
-                self._push(SliceExpr(expr, start.value, end.value if end else start.value + 1).compile(self))
+                start_value = start.value
+                if end is not None:
+                    end_value = end.value
+                elif ctx.COLON():
+                    colon_before_number = True
+                    for ch in ctx.children:
+                        if ch == ctx.COLON():
+                            break
+                        elif ch == ctx.integer_c(0):
+                            colon_before_number = False
+                            break
+                    if colon_before_number:
+                        end_value = start_value
+                        start_value = 0
+                    else:
+                        end_value = None
+                else:
+                    end_value = start_value + 1
+                self._push(SliceExpr(expr, start_value, end_value).compile(self))
 
     def exitEvaluationExpression(self, ctx:normParser.EvaluationExpressionContext):
         if ctx.DOT():
