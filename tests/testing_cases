@@ -32,23 +32,21 @@ utcnow := {{
 test &= utcnow()?t2;
 
 // Query the data
-test;
-test?;
-test('aa', 6)?;
+test();
+test('aa', 6);
 test(a?);
 test(a?, b?);
 test(a='sfs', b?);
 test(a~'s'?, b>3);
 
-// Define the probability distribution
 test &= gaussian(mu=2, gamma=0.1, b)?prob;
 test &= view(p, time<t, page?);
 
 // Sort on an attribute
-test.t.desc;
+test.t.desc();
 
 // Group by an attribute and take the mean
-tt = test.foreach(t) & tt.a.mean?a_mean & tt.a.max?a_max & tt.b.mean?b_mean;
+tt := test.foreach(t) & tt.a.mean()?a_mean & tt.a.max()?a_max & tt.b.mean()?b_mean;
 
 // Extract a pattern on an attribute
 test &= extract(a, r'sf')?sf;

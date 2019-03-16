@@ -474,7 +474,7 @@ class Lambda(Model, ParametrizedMixin):
     def add_variable(self, variables):
         """
         Add new new variables to the Lambda
-        :type variables: Tuple[Variable]
+        :type variables: List[Variable] or Variable
         """
         if isinstance(variables, Variable):
             variables = [variables]
