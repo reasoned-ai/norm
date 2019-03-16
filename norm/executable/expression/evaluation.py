@@ -168,7 +168,7 @@ class EvaluationExpr(NormExpression):
             self.lam.add_data(hash_df(df), df)
             return self.lam
         lam = self.lam.query(inputs, self.outputs)
-        if len(self.projection.variables) > 0:
+        if self.projection and len(self.projection.variables) > 0:
             assert(len(lam.df.columns) == len(self.projection.variables))
             renames = {old_col: new_col.name for old_col, new_col in zip(lam.df.columns, self.projection.variables)}
             lam.rename_variable(renames)

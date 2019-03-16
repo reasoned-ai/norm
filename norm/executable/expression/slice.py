@@ -28,9 +28,10 @@ class SliceExpr(NormExpression):
 
     def execute(self, context):
         lam = self.expr.execute(context)
-        df = lam.df.iloc[self.start:self.end]
+        lam = lam.clone()
+        lam.df = lam.df.iloc[self.start:self.end]
         # TODO reset the index for the projected variable
-        return df
+        return lam
 
 
 class EvaluatedSliceExpr(SliceExpr):
