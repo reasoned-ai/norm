@@ -65,3 +65,16 @@ class SliceTestCase(NormTestCase):
         self.assertTrue(all(lam.data['a'] == ['test', 'here']))
         self.assertTrue(all(lam.data['b'] == [1, 2]))
 
+    def test_slice_negative_ends(self):
+        self.execute("test(a: String, b: Integer);")
+        test = self.execute("test;")
+        self.assertTrue(test is not None)
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3)"
+                     "     ;")
+        lam = self.execute("test[:-1];")
+        self.assertTrue(lam is not test)
+        self.assertTrue(lam.variables == test.variables)
+        self.assertTrue(all(lam.data['a'] == ['test', 'here']))
+        self.assertTrue(all(lam.data['b'] == [1, 2]))
