@@ -94,6 +94,13 @@ class TypeDeclaration(NormExecutable):
         """
         # TODO: optimize to query db in batch for all types or utilize cache
         lam = self.type_name.lam  # type: Lambda
+        if self.output_type_name is not None:
+            output_arg = ArgumentDeclaration(VariableName(None, Lambda.VAR_OUTPUT), self.output_type_name)\
+                .compile(context)
+            if self.argument_declarations is None:
+                self.argument_declarations = [output_arg]
+            else:
+                self.argument_declarations.append(output_arg)
         if self.argument_declarations is None:
             if lam is None:
                 lam = Lambda(namespace=context.context_namespace, name=self.type_name.name)

@@ -31,9 +31,10 @@ utcnow := {{
 // automatically adding t2 as a Datetime type (inferred by the now output type)
 test &= utcnow()?t2;
 
-// Query the data
+// evaluate and query data
 test();
 test('aa', 6);
+test('aa', b=6);
 test(a?);
 test(a?, b?);
 test(a='sfs', b?);

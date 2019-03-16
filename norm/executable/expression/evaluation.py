@@ -84,6 +84,8 @@ class EvaluationExpr(NormExpression):
         inputs = {}
         from norm.models.norm import Variable
         for ov, arg in zip(self.lam.variables[:nargs], self.args):  # type: Variable, ArgumentExpr
+            if arg.expr is None:
+                continue
             if arg.op is None and arg.variable is not None:
                 keyword_arg = True
             if not keyword_arg:
@@ -101,6 +103,8 @@ class EvaluationExpr(NormExpression):
         assert(self.lam is not None)
         inputs = []
         for arg in self.args:
+            if arg.op is None or arg.expr is None:
+                continue
             # arg.expr should have been compiled
             if arg.op == COP.LK:
                 condition = '{}.str.contains({})'.format(arg.variable, arg.expr)
@@ -127,7 +131,10 @@ class EvaluationExpr(NormExpression):
                 if arg.variable is None:
                     outputs[ov.name] = arg.projection.variables[0].name
                 else:
-                    outputs[arg.variable.name] = arg.projection.variables[0].name
+                    if len(arg.projection.variables) == 0:
+                        outputs[arg.variable.name] = arg.variable.name
+                    else:
+                        outputs[arg.variable.name] = arg.projection.variables[0].name
         return outputs
 
     def compile(self, context):

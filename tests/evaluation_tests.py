@@ -53,3 +53,96 @@ class EvaluationTestCase(NormTestCase):
         lam = self.execute("wikisql;")
         self.assertTrue(os.path.exists(lam.folder))
 
+    def test_evaluate_empty(self):
+        self.execute("test(a: String, b: Integer);")
+        test = self.execute("test;")
+        self.assertTrue(test is not None)
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3)"
+                     "     ;")
+        lam = self.execute("test();")
+        self.assertTrue(lam is not test)
+        self.assertTrue(lam.variables == test.variables)
+        self.assertTrue(all(lam.data['a'] == ['test', 'here', 'there']))
+        self.assertTrue(all(lam.data['b'] == [1, 2, 3]))
+
+    def test_evaluate_assigned_columns(self):
+        self.execute("test(a: String, b: Integer);")
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3)"
+                     "     ;")
+        test = self.execute("test;")
+        self.assertTrue(test is not None)
+        lam = self.execute("test('test', 1);")
+        self.assertTrue(lam is not test)
+        self.assertTrue(lam.variables == test.variables)
+        self.assertTrue(all(lam.data['a'] == ['test']))
+        self.assertTrue(all(lam.data['b'] == [1]))
+        lam = self.execute("test(['test', 'here'], [1, 2]);")
+        self.assertTrue(all(lam.data['a'] == ['test', 'here']))
+        self.assertTrue(all(lam.data['b'] == [1, 2]))
+
+    def test_evaluate_assigned_columns_uneven(self):
+        self.execute("test(a: String, b: Integer);")
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3)"
+                     "     ;")
+        test = self.execute("test;")
+        self.assertTrue(test is not None)
+        lam = self.execute("test(['test', 'here'], b=1);")
+        self.assertTrue(all(lam.data['a'] == ['test', 'here']))
+        self.assertTrue(all(lam.data['b'] == [1, 1]))
+        lam = self.execute("test(b=1, a=['test', 'here']);")
+        self.assertTrue(all(lam.data['a'] == ['test', 'here']))
+        self.assertTrue(all(lam.data['b'] == [1, 1]))
+
+    def test_evaluate_assigned_lambda_columns(self):
+        self.execute("test2: String;")
+        self.execute("test2 := ('test')"
+                     "      |  ('here')"
+                     "      |  ('there')"
+                     "      ;")
+        self.execute("test(a: test2, b: Integer);")
+        lam = self.execute("test(a=test2(), b=1);")
+        self.assertTrue(all(lam.data['a'] == ['test', 'here', 'there']))
+        self.assertTrue(all(lam.data['b'] == [1, 1, 1]))
+
+    def test_evaluate_projection(self):
+        self.execute("test(a: String, b: Integer);")
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3)"
+                     "     ;")
+        lam = self.execute("test(a?);")
+        self.assertTrue(lam is not None)
+        self.assertTrue(all(lam.data['a'] == ['test', 'here', 'there']))
+        self.assertTrue('b' not in lam.data.columns)
+
+    def test_evaluate_equality_projection(self):
+        self.execute("test(a: String, b: Integer);")
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3)"
+                     "     ;")
+        lam = self.execute("test(a=='here', b?);")
+        self.assertTrue(lam is not None)
+        self.assertTrue(all(lam.data['b'] == [2]))
+        self.assertTrue('a' not in lam.data.columns)
+
+    def test_evaluate_conditional_projection(self):
+        self.execute("test(a: String, b: Integer);")
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3)"
+                     "     ;")
+        lam = self.execute("test(a~'here', b?);")
+        self.assertTrue(lam is not None)
+        self.assertTrue(all(lam.data['b'] == [2, 3]))
+        self.assertTrue('a' not in lam.data.columns)
+        lam = self.execute("test(a~'here'?, b>2);")
+        self.assertTrue(lam is not None)
+        self.assertTrue(all(lam.data['a'] == ['there']))
+        self.assertTrue('b' not in lam.data.columns)

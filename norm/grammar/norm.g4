@@ -70,8 +70,8 @@ variable
 
 queryProjection
     : '?' variable?
-    | '?' LCBR variable (COMMA variable)* RCBR
-    | '?' LBR variable (COMMA variable)* RBR
+    | '?' LCBR variable (WS? COMMA WS? variable)* RCBR
+    | '?' LBR variable (WS? COMMA WS? variable)* RBR
     ;
 
 constant
@@ -84,7 +84,7 @@ constant
     | uuid
     | url
     | datetime
-    | LSBR constant (COMMA constant)* RSBR
+    | LSBR constant (WS? COMMA WS? constant)* RSBR
     ;
 
 code: ~(PYTHON_BLOCK|BLOCK_END)*;

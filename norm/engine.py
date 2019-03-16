@@ -205,7 +205,7 @@ class NormCompiler(normListener):
                 type_ = ConstantType.ANY
             else:
                 type_ = types.pop()
-            self._push(ListConstant(type_, constants).compile(self))
+            self._push(ListConstant(type_, [constant.value for constant in constants]).compile(self))
 
     def exitQueryProjection(self, ctx:normParser.QueryProjectionContext):
         variables = list(reversed([self._pop() for ch in ctx.children

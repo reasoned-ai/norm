@@ -21,6 +21,10 @@ class DeclarationTestCase(NormTestCase):
         new_company = self.execute(script)
         self.assertTrue(company is new_company)
 
+    def test_declaration_function(self):
+        lam = self.execute("test: String;")
+        self.assertTrue(lam.get_type(lam.VAR_OUTPUT).name == 'String')
+
     def test_none_declaration(self):
         lam = self.execute("test;")
         self.assertTrue(lam is None)

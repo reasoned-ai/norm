@@ -109,6 +109,17 @@ class Level(enum.IntEnum):
     ADAPTABLE = 2
 
 
+class Strategy(enum.Enum):
+    """
+    Strategy to unify inputs:
+        shortest: align the data and cut to the shortest length. If two inputs, one with a list of 10 objects, the
+                  other with a list of 2 objects. The unified data contains 2 objects.
+        longest: align the data to the longest length. Fill with n/a or type defaults.
+    """
+    SHORTEST = 'shortest'
+    LONGEST  = 'longest'
+
+
 def new_version():
     import time
     return '$' + hashids.encode(int(time.time() * 1000))
@@ -167,6 +178,7 @@ class Lambda(Model, ParametrizedMixin):
     category = Column(String(128))
 
     VAR_OUTPUT = 'output'
+    # OUTPUT default to boolean, but can be overriden to any other types
     VAR_LABEL = 'label'
     VAR_LABEL_T = 'float'
     VAR_OID = 'oid'
@@ -327,7 +339,7 @@ class Lambda(Model, ParametrizedMixin):
         if isinstance(self.df, DataFrame) and len(self.variables) > 0:
             return self.df[[var.name for var in self.variables]]
         else:
-            return self.df
+            return self.df.copy()
 
     @property
     def signature(self):
@@ -701,34 +713,79 @@ class Lambda(Model, ParametrizedMixin):
         """
         pass
 
+    def unify(self, inputs, strategy=Strategy.LONGEST):
+        """
+        Unify multi-variates into one DataFrame.
+        :param inputs: the dictionary of the input values
+        :type inputs: Dict
+        :param strategy: the strategy to align inputs
+        :type strategy: Strategy
+        :return: the unified DataFrame
+        :rtype: DataFrame
+        """
+        list_inputs = {k: v for k, v in inputs.items() if isinstance(v, list)}
+        df_inputs = {k: v for k, v in inputs.items() if isinstance(v, Lambda) and isinstance(v.data, DataFrame)}
+        constant_inputs = {k: v for k, v in inputs.items() if k not in list_inputs.keys() and k not in df_inputs}
+        to_concat = [DataFrame(list_inputs)]
+        for k, v in df_inputs.items():
+            if len(v.data.columns) == 1:
+                renames = {col: k for col in v.data.columns}
+            else:
+                renames = {col: '{}.{}'.format(k, col) for col in v.data.columns}
+            to_concat.append(v.data.rename(columns=renames))
+        rt = pd.concat(to_concat, axis=1)
+        if len(rt) == 0:
+            for k, v in constant_inputs.items():
+                rt.loc[0, k] = v
+        else:
+            for k, v in constant_inputs.items():
+                rt[k] = v
+        return rt
+
     def query(self, inputs, outputs):
         """
         Query the Lambda according to the inputs, and generate another Lambda projected to the outputs
-        :param inputs: the inputs for variable and value pairs, or a query string
+        :param inputs: the inputs for variable and value pairs, or a query string passed to DataFrame
         :type inputs: Dict[str, Lambda] or str
         :param outputs: the outputs
         :type outputs: Dict[str, str]
         :return: the resulting view of the data
         :rtype: Lambda
         """
-        output_name = (outputs is not None and outputs.get(self.VAR_OUTPUT, None)) or str(uuid.uuid4())
+        assert(inputs is not None)
+        assert(outputs is not None)
+        # TODO: query string is built for DataFrame query API. A more generic way should be considered
+        assert(isinstance(inputs, dict) or isinstance(inputs, str))
+        assert(isinstance(outputs, dict))
+        output_name = outputs.get(self.VAR_OUTPUT, None) or str(uuid.uuid4())
         rt = Lambda(self.namespace, output_name)
         rt.level = self.level
         if isinstance(inputs, str):
-            # a query string passed in
+            assert(self.level >= Level.QUERYABLE)
+            # A query string passed in
             if inputs.find('.str.') > -1:
                 rt.df = self.data.query(inputs, engine='python')
             else:
                 rt.df = self.data.query(inputs)
+        elif len(inputs) == 0:
+            rt.df = self.data
         else:
-
-            # TODO: execute the correct revisions according to the inputs and outputs.
-            pass
-        if outputs is not None and len(outputs) > 0:
-            rt.variables = self.variables
-            # TODO: fix this
-            ocols = list(outputs.keys())
+            if len(outputs) == 0:
+                # Create objects
+                rt.df = self.unify(inputs)
+                rt.level = Level.QUERYABLE
+            elif len(outputs) > 0:
+                # TODO: execute the correct revisions according to the inputs and outputs.
+                pass
+        if len(outputs) > 0:
+            # Project variables
+            rt.add_variable([Variable.create(outputs.get(v.name), v.type_) for v in self.variables
+                             if v.name in outputs.keys()])
+            ocols = [v.name for v in self.variables if v.name in outputs.keys()]
             rt.df = rt.df[ocols].rename(columns=outputs)
+        else:
+            # Take all variables
+            rt.add_variable(self.variables)
         return rt
 
 
