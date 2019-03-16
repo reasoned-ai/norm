@@ -167,7 +167,12 @@ class EvaluationExpr(NormExpression):
             df = DataFrame(data=inputs, columns=cols)
             self.lam.add_data(hash_df(df), df)
             return self.lam
-        return self.lam.query(inputs, self.outputs)
+        lam = self.lam.query(inputs, self.outputs)
+        if len(self.projection.variables) > 0:
+            assert(len(lam.df.columns) == len(self.projection.variables))
+            renames = {old_col: new_col.name for old_col, new_col in zip(lam.df.columns, self.projection.variables)}
+            lam.rename_variable(renames)
+        return lam
 
 
 class ChainedEvaluationExpr(NormExpression):

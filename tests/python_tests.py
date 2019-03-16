@@ -86,3 +86,24 @@ class PythonTestCase(NormTestCase):
         self.assertTrue(lam is not None)
         self.assertTrue(isinstance(lam.data, DataFrame))
         self.assertTrue(lam.data['time'] is not None)
+
+    def test_python_function_projection2(self):
+        script = """
+        gaussian := {{
+            import numpy as np
+            def gaussian(v):
+                return np.exp(-v*v / 2)/np.sqrt(2*np.pi)
+            return gaussian
+        }};
+        """
+        self.execute(script)
+        script = """
+        a(v: Float, mu: Float) := (1.2, 2.3)
+                               |  (1.0, 2.0)
+                               ;
+        """
+        self.execute(script)
+        lam = self.execute("a &= gaussian(v)?p;")
+        self.assertTrue(lam is not None)
+        self.assertTrue(isinstance(lam.data, DataFrame))
+        self.assertTrue(lam.data['p'] is not None)

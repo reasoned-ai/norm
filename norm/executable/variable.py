@@ -1,4 +1,4 @@
-from norm.models.norm import retrieve_type, Status
+from norm.models.norm import retrieve_type, Status, Lambda
 from norm.executable import NormExecutable
 
 from typing import Union
@@ -95,9 +95,9 @@ class ColumnVariable(VariableName):
         return self
 
     def execute(self, context):
-        lam = self.lam
         from norm.models.norm import Variable
-        lam.variables = [Variable.create(str(self), self.variable_type())]
+        lam = Lambda(variables=[Variable.create(str(self), self.variable_type())])
+        lam.df = self.lam.df
         return lam
 
 

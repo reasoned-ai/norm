@@ -65,17 +65,18 @@ class TypeImplementation(NormExecutable):
         elif self.op == ImplType.AND_DEF:
             to_concat = self.query.execute(context)
             if isinstance(to_concat.data, DataFrame) and len(lam.data) == len(to_concat.data):
-                lam.df = pd.concat([lam.data, to_concat], axis=1)
+                lam.df = pd.concat([lam.df, to_concat.data], axis=1)
             else:
                 if len(self.query.projection.variables) == 1:
                     lam.df[self.query.projection.variables[0].name] = to_concat.data
                 else:
                     for i, v in enumerate(self.query.projection.variables):
                         lam.df[v.name] = to_concat.data[i]
-                # Add new variables automatically
-                # TODO: need a better type inference
-                any_type = retrieve_type('norm.native', 'Any')
-                lam.add_variable([Variable.create(v.name, any_type) for v in self.query.projection.variables
-                                  if v.name not in lam])
+            # Add new variables automatically
+            # TODO: need a better type inference
+            from norm.models import lambdas
+            any_type = lambdas.Any
+            lam.add_variable([Variable.create(v.name, any_type) for v in self.query.projection.variables
+                              if v.name not in lam])
             return lam
         return self.query.execute(context)

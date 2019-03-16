@@ -1,7 +1,7 @@
 """A collection of ORM sqlalchemy models for PythonLambda"""
 from textwrap import dedent
 
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from sqlalchemy import Column, Text, orm
 
 from norm.executable import NormError
@@ -72,11 +72,16 @@ class PythonLambda(Lambda):
         try:
             if inp is not None:
                 out.df = self._func(inp.data)
+                if isinstance(out.df, Series):
+                    out.df = DataFrame(out.df)
                 if isinstance(inp.data, DataFrame) and not isinstance(out.df, DataFrame):
                     raise NormError
             else:
                 out.df = self._func()
         except:
             out.df = DataFrame(inp.data.apply(self._func, axis=1))
+        from norm.models import lambdas
+        a = lambdas.Any
+        out.variables = [Variable.create(c, a) for c in out.df.columns]
         return out
 

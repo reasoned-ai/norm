@@ -191,9 +191,10 @@ def get_type_by_dtype(dtype):
     :return: the Lambda
     :rtype: Lambda
     """
+    from norm.models import lambdas
     if dtype.name.find('int') > -1:
-        return retrieve_type('norm.native', 'Integer')
+        return lambdas.Integer
     elif dtype.name.find('float') > -1:
-        return retrieve_type('norm.native', 'Float')
+        return lambdas.Float
     else:
-        return retrieve_type('norm.native', 'Any')
+        return lambdas.Any

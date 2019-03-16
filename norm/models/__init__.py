@@ -41,6 +41,36 @@ class Register(object):
             session.rollback()
             session.close()
 
+    @classmethod
+    def restore_lambdas(cls):
+        lams = {}
+        for clz, args, kwargs in cls.types:
+            instance = clz(*args, **kwargs)
+            if isinstance(instance, Lambda):
+                lam = retrieve_type(instance.namespace, instance.name)
+                if lam is not None:
+                    if lams.get(lam.name) is not None:
+                        msg = '{} has been declared in {}\n'.format(lam.name, lams.get(lam.name))
+                        msg += 'now is replaced by {}.{}'.format(lam.namespace, lam.name)
+                        logger.warning(msg)
+                    lams[lam.name] = lam
+        return lams
+
+
+class Store(object):
+
+    def __init__(self):
+        self.items = Register.restore_lambdas()
+
+    def __dir__(self):
+        return list(self.items.keys())
+
+    def __getitem__(self, item):
+        return self.items.get(item, None)
+
+    def __getattr__(self, item):
+        return self.items.get(item, None)
+
 
 @event.listens_for(Session, "after_commit")
 def save_lambda_after_commit(sess):
@@ -60,4 +90,7 @@ from norm.models.native import (NativeLambda, TypeLambda, AnyLambda, ListLambda,
                                 URLLambda, DatetimeLambda, TensorLambda)
 from norm.models.core import (CoreLambda, StringFormatterLambda, ExtractPatternLambda, ReadFileLambda)
 from norm.models.license import License
+
+lambdas = Store()
+
 
