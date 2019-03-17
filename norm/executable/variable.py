@@ -97,7 +97,7 @@ class ColumnVariable(VariableName):
     def execute(self, context):
         from norm.models.norm import Variable
         lam = Lambda(variables=[Variable.create(str(self), self.variable_type())])
-        lam.df = self.lam.df
+        lam.df = self.lam.df[[self.name]]
         return lam
 
 

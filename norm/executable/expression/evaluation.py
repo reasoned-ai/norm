@@ -150,6 +150,9 @@ class EvaluationExpr(NormExpression):
             self.outputs = None
         else:
             self.lam = self.variable.lam
+            if self.lam is None:
+                # Might need to be combined with previous context
+                return self
             if self.check_assignment_arguments():
                 self.inputs = self.build_assignment_inputs()
             else:
@@ -214,10 +217,13 @@ class ChainedEvaluationExpr(NormExpression):
                 logger.error(msg)
                 raise NormError(msg)
         elif isinstance(self.rexpr, EvaluationExpr):
-            # Evaluation with the previous expression as the first input argument
-            self.rexpr.args = [ArgumentExpr(None, None, self.lexpr, None)] + self.rexpr.args
-            # Recompile the expression
-            return self.rexpr.compile(context)
+            if self.rexpr.lam is None and isinstance(self.lexpr, ColumnVariable):
+                return DataFrameColumnFunctionExpr(self.lexpr, self.rexpr).compile(context)
+            else:
+                # Evaluation with the previous expression as the first input argument
+                self.rexpr.args = [ArgumentExpr(None, None, self.lexpr, None)] + self.rexpr.args
+                # Recompile the expression
+                return self.rexpr.compile(context)
         else:
             msg = 'Only chaining on a variable or an evaluation, but got {}'.format(self.rexpr)
             logger.error(msg)
@@ -225,3 +231,33 @@ class ChainedEvaluationExpr(NormExpression):
 
     def execute(self, context):
         return self.lam
+
+
+class DataFrameColumnFunctionExpr(EvaluationExpr):
+
+    def __init__(self, column_variable, expr):
+        super().__init__([], None)
+        self.column_variable = column_variable  # type: ColumnVariable
+        self.expr = expr  # type: EvaluationExpr
+
+    def compile(self, context):
+        return self
+
+    def execute(self, context):
+        lam = self.column_variable.scope.lam.clone()
+        col = self.column_variable.scope.lam.data[self.column_variable.name]
+        args = []
+        kwargs = {}
+        for arg in self.expr.args:  # type: ArgumentExpr
+            if arg.expr is None:
+                continue
+            if arg.op is None and arg.variable is not None:
+                kwargs[arg.variable.name] = arg.expr.execute(context)
+            else:
+                args.append(arg.expr.execute(context))
+        func = self.expr.variable.name
+        try:
+            lam.df = getattr(col, func)(*args, **kwargs)
+        except:
+            lam.df = getattr(col.str, func)(*args, **kwargs)
+        return lam

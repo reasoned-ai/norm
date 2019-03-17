@@ -34,7 +34,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(lam is lam2)
         self.assertTrue(len(lam.revisions) == 2)
         self.assertTrue(len(lam.data) > 0)
-        self.assertTrue(len(lam.data[lam.VAR_OID]) > 0)
+        self.assertTrue(len(lam.df[lam.VAR_OID]) > 0)
 
     def test_recognize_repeated_declaration_within_the_same_session(self):
         script = """
@@ -146,3 +146,29 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(lam is not None)
         self.assertTrue(all(lam.data['a'] == ['there']))
         self.assertTrue('b' not in lam.data.columns)
+
+    def test_chained_evaluation(self):
+        self.execute("test(a: String, b: Integer);")
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3)"
+                     "     ;")
+        lam = self.execute("test.a.max();")
+        self.assertTrue(lam is not None)
+        self.assertTrue(lam.data == 'there')
+        lam = self.execute("test.a.count();")
+        self.assertTrue(lam is not None)
+        self.assertTrue(lam.data == 3)
+
+    def test_chained_str_evaluation(self):
+        self.execute("test(a: String, b: Integer);")
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3)"
+                     "     ;")
+        lam = self.execute("test.a.capitalize();")
+        self.assertTrue(all(lam.data == ['Test', 'Here', 'There']))
+        lam = self.execute("test.a.len();")
+        self.assertTrue(all(lam.data == [4, 4, 5]))
+        lam = self.execute("test.a.findall('ere');")
+        self.assertTrue(all(lam.data == [[], ['ere'], ['ere']]))

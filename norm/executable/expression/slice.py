@@ -29,8 +29,8 @@ class SliceExpr(NormExpression):
     def execute(self, context):
         lam = self.expr.execute(context)
         lam = lam.clone()
-        lam.df = lam.df.iloc[self.start:self.end]
-        # TODO reset the index for the projected variable
+        lam.df = lam.df.iloc[self.start:self.end].reset_index(drop=True)
+        # TODO whether reset the index for the projected variable or not?
         return lam
 
 

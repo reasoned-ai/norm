@@ -340,10 +340,13 @@ class Lambda(Model, ParametrizedMixin):
     def data(self):
         if self.df is None:
             self.df = self.empty_data()
-        if isinstance(self.df, DataFrame) and len(self.variables) > 0:
-            return self.df[[var.name for var in self.variables]]
+        if isinstance(self.df, DataFrame):
+            if len(self.variables) > 0:
+                return self.df[[var.name for var in self.variables]]
+            else:
+                return self.df.copy()
         else:
-            return self.df.copy()
+            return self.df
 
     @property
     def signature(self):

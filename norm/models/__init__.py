@@ -66,10 +66,16 @@ class Store(object):
         return list(self.items.keys())
 
     def __getitem__(self, item):
-        return self.items.get(item, None)
+        lam = self.items.get(item, None)
+        if lam is not None:
+            lam = session.merge(lam)
+        return lam
 
     def __getattr__(self, item):
-        return self.items.get(item, None)
+        lam = self.items.get(item, None)
+        if lam is not None:
+            lam = session.merge(lam)
+        return lam
 
 
 @event.listens_for(Session, "after_commit")
