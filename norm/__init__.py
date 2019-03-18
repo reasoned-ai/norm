@@ -22,8 +22,6 @@ if get_ipython() is not None:
         :param cell: a multi-line of norm command
         :type cell: str
         """
-        print(line)
-        print(cell)
         if cell is None:
             return context.execute(line)
         else:

@@ -2,8 +2,8 @@
 import io
 import os
 import sys
+import errno
 from shutil import rmtree
-
 from setuptools import setup, Command
 from distutils.command.install import install
 
@@ -77,10 +77,16 @@ class InstallCommand(install):
 
     def run(self):
         install.run(self)
-        os.system('mkdir ~/.norm')
-        os.system('mkdir ~/.norm/db')
-        os.system('mkdir ~/.norm/data')
-        os.system('cp {}/norm/db/norm.db ~/.norm/db/norm.db'.format(BASEDIR))
+        home_dir = os.environ.get('NORM_HOME', '~/.norm')
+        try:
+            os.mkdir(home_dir)
+            os.mkdir(os.path.join(home_dir, 'db'))
+            os.mkdir(os.path.join(home_dir, 'data'))
+            os.system('cp {}/norm/db/norm.db {}/db/norm.db'.format(BASEDIR, home_dir))
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                raise
+            print('\n\t\033[1;31;47m.norm\033[0m already exists, delete it first if you would like to overwrite\n')
 
 
 setup(

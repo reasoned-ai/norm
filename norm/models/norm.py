@@ -482,8 +482,6 @@ class Lambda(Model, ParametrizedMixin):
 
     @_check_draft_status
     def read_jsonl(self, path):
-        import os
-        logger.error(os.getcwd())
         with open(path) as f:
             df = DataFrame([json.loads(line) for line in f])
         query = 'read("{}", "jsonl")'.format(path)
