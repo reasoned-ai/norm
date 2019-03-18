@@ -478,6 +478,7 @@ class Lambda(Model, ParametrizedMixin):
             df = pd.read_parquet(path)
         query = 'read("{}", {}, "parq")'.format(path, ', '.join('{}={}'.format(key, value)
                                                                 for key, value in params.items()))
+        logger.debug(query)
         self.add_data(query, df)
 
     @_check_draft_status

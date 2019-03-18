@@ -30,7 +30,7 @@ PUBLIC_USER = dict(first_name='norm',
 # Create database session
 try:
     engine = create_engine('sqlite:///{}'.format(DB_PATH))
-    Session = sessionmaker(bind=engine, autoflush=False)
+    Session = sessionmaker(bind=engine)
     session = Session()
 except:
     engine = None

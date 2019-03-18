@@ -32,6 +32,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(lam.end_of_revisions)
         self.assertTrue(not lam.empty_revisions)
         self.assertTrue(lam.data is not None)
+        self.assertTrue(len(lam.data) > 0)
         self.assertTrue(lam.current_revision == len(lam.revisions) - 1)
         self.assertTrue(lam.level == Level.QUERYABLE)
         self.assertTrue(lam.status == Status.DRAFT)
