@@ -1,6 +1,6 @@
 from pandas import DataFrame
-from zlib import adler32
 from hashids import Hashids
+from zlib import adler32
 h = Hashids()
 
 

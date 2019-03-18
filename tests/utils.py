@@ -1,11 +1,16 @@
 import unittest
-from norm import session
 import hashids
 import time
+import os
 
 hashid = hashids.Hashids()
 
 __all__ = ['user_tester', 'NormTestCase']
+
+os.environ['NORM_DATA_STORAGE_ROOT'] = 'data'
+os.environ['NORM_DB_PATH'] = 'norm/db/norm.db'
+
+from norm import session
 
 
 def user_tester():
@@ -25,6 +30,7 @@ class NormTestCase(unittest.TestCase):
     def setUp(self):
         from norm.engine import NormCompiler
         self.session = session
+        # override norm configuration
         self.user = user_tester()
         self.context_id = hashid.encode(int(time.time() * 1000))
         self.executor = NormCompiler(self.context_id, self.user, self.session)

@@ -33,10 +33,11 @@ class PythonLambda(Lambda):
         :param code: the code of the Python implementation
         :type code: str
         """
+        from norm.models import lambdas
         super().__init__(namespace=namespace,
                          name=name,
                          description=description,
-                         variables=[Variable.create(self.VAR_INPUTS, retrieve_type('norm.native', 'Any'))])
+                         variables=[Variable.create(self.VAR_INPUTS, lambdas.Any)])
         self.status = Status.READY
         self.shape = []
         self.code = dedent(code)
@@ -79,9 +80,9 @@ class PythonLambda(Lambda):
             else:
                 out.df = self._func()
         except:
-            out.df = DataFrame(inp.data.apply(self._func, axis=1))
-        from norm.models import lambdas
-        a = lambdas.Any
-        out.variables = [Variable.create(c, a) for c in out.df.columns]
+            out.df = DataFrame(inp.data.apply(self._func, axis=1), columns=[self.VAR_OUTPUT])
+        if isinstance(out.df, DataFrame):
+            from norm.models import lambdas
+            out.variables = [Variable.create(c, lambdas.Any) for c in out.df.columns]
         return out
 

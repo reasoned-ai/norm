@@ -46,8 +46,8 @@ class Variable(Model, ParametrizedMixin):
     def create(cls, name=None, type_=None):
         if name is None or type_ is None:
             return None
-        assert(isinstance(name, str))
         assert(isinstance(type_, Lambda))
+        name = str(name)
         from norm.config import session
         instance = session.query(Variable).filter(Variable.name == name,
                                                   Variable.type_id == type_.id).first()

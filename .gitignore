@@ -4,8 +4,11 @@
 .cache
 .DS_Store
 .coverage
-_build/
+build/
+dist/
 .idea/
 __pycache__/
 .pytest_cache/
 tests/data/norm/tmp/
+docs/_build/
+norm.egg-info/

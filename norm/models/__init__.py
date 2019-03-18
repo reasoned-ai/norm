@@ -1,6 +1,4 @@
-from itertools import chain
-
-from sqlalchemy import exists, event
+from sqlalchemy import event
 from sqlalchemy.ext.declarative import declarative_base
 
 from norm.config import session, Session

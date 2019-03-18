@@ -29,14 +29,16 @@ exports
     | SPACED_EXPORT typeName (WS|NS)? VARNAME (DOT VARNAME)* ((WS|NS)? AS (WS|NS)? VARNAME)?
     ;
 
-SPACED_EXPORT: 'export'|'Export'|'EXPORT' [ \t]*;
+SPACED_EXPORT: EXPORT [ \t]*;
+EXPORT: 'export'|'Export'|'EXPORT';
 
 imports
     : SPACED_IMPORT VARNAME (DOT VARNAME)* DOT '*'
     | SPACED_IMPORT VARNAME (DOT VARNAME)* DOT typeName ((WS|NS)? AS (WS|NS)? VARNAME)?
     ;
 
-SPACED_IMPORT: 'import'|'Import'|'IMPORT' [ \t]*;
+SPACED_IMPORT: IMPORT [ \t]*;
+IMPORT: 'import'|'Import'|'IMPORT';
 
 commands: SPACED_COMMAND typeName;
 

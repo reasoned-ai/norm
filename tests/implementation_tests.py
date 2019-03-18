@@ -1,7 +1,7 @@
 """Unit tests for Implementation"""
+from tests.utils import NormTestCase
 from norm.models import Lambda, retrieve_type, AddVariableRevision, RetypeVariableRevision, RenameVariableRevision
 from norm.utils import hash_df
-from tests.utils import NormTestCase
 from pandas import DataFrame
 
 

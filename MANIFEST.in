@@ -1,0 +1,4 @@
+include LICENSE.txt README.md
+recursive-include norm *
+recursive-include migrations *
+recursive-exclude tests *

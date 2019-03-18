@@ -1,9 +1,8 @@
 """Unit tests for Norm"""
-import os
-
+from tests.utils import NormTestCase
 from norm.config import DATA_STORAGE_ROOT
 from norm.models import Level, Status
-from tests.utils import NormTestCase
+import os
 
 
 class EvaluationTestCase(NormTestCase):
