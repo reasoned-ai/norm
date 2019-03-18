@@ -120,7 +120,6 @@ class NormCompiler(normListener):
 
     def execute(self, script):
         self.compile(dedent(script))
-        self.session.flush()
         results = None
         while len(self.stack) > 0:
             exe = self._pop()

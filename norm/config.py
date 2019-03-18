@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import uuid
+from datetime import datetime
 import os
 
 # Default namespace stubs
@@ -17,12 +17,9 @@ UNICODE = 'utf-8'
 VERSION_MIN_LENGTH = 6
 
 # Where the data is stored, e.g., s3://datalake, gs://datalake
-DATA_STORAGE_ROOT = os.environ.get('NORM_DATA_STORAGE_ROOT')
-if DATA_STORAGE_ROOT is None:
-    DATA_STORAGE_ROOT = '~/.norm/data'
-DB_PATH = os.environ.get('NORM_DB_PATH')
-if DB_PATH is None:
-    DB_PATH = '~/.norm/db/norm.db'
+NORM_HOME = os.environ.get('NORM_HOME', '~/.norm')
+DATA_STORAGE_ROOT = os.environ.get('NORM_DATA_STORAGE_ROOT', os.path.join(NORM_HOME, 'data'))
+DB_PATH = os.environ.get('NORM_DB_PATH', os.path.join(NORM_HOME, 'db/norm.db'))
 
 # Default user name
 PUBLIC_USER = dict(first_name='norm',
@@ -40,7 +37,7 @@ except:
     session = None
 
 # Set the context id
-context_id = str(uuid.uuid4())
+context_id = str(datetime.utcnow().strftime('%m%d%Y.%H%M%S'))
 
 
 
