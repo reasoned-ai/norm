@@ -2,7 +2,7 @@
 import os
 
 from tests.utils import NormTestCase
-from norm.models import Lambda, Variable, retrieve_type, Status, Level
+from norm.models import Lambda, Variable, Status, Level, lambdas
 
 
 class LambdaTestCase(NormTestCase):
@@ -11,30 +11,27 @@ class LambdaTestCase(NormTestCase):
         lam1 = Lambda(namespace=self.executor.context_namespace,
                       name='Test',
                       description='Comment 1',
-                      variables=[Variable.create(Lambda.VAR_OUTPUT,
-                                                 retrieve_type('norm.native', 'String', session=self.session))])
+                      variables=[Variable.create(Lambda.VAR_OUTPUT, lambdas.String)])
         self.session.add(lam1)
         self.assertTrue(Lambda.exists(self.session, lam1))
         lam2 = Lambda(namespace=self.executor.context_namespace,
                       name='Test',
                       description='Comment 2',
-                      variables=[Variable.create(Lambda.VAR_OUTPUT,
-                                                 retrieve_type('norm.native', 'String', session=self.session))])
+                      variables=[Variable.create(Lambda.VAR_OUTPUT, lambdas.String)])
         self.assertTrue(not Lambda.exists(self.session, lam2))
         lam3 = Lambda(namespace=self.executor.context_namespace,
                       name='Test',
                       description='Comment 2',
-                      variables=[Variable.create(Lambda.VAR_OUTPUT,
-                                                 retrieve_type('norm.native', 'Type', session=self.session))])
+                      variables=[Variable.create(Lambda.VAR_OUTPUT, lambdas.Type)])
         self.assertTrue(not Lambda.exists(self.session, lam3))
 
     def test_creation(self):
         lam = Lambda(namespace=self.executor.context_namespace,
                      name='Test',
                      description='Test lambda',
-                     variables=[Variable.create('a', retrieve_type('norm.native', 'String', session=self.session)),
-                                Variable.create('b', retrieve_type('norm.native', 'Integer', session=self.session)),
-                                Variable.create('c', retrieve_type('norm.native', 'Datetime', session=self.session))]
+                     variables=[Variable.create('a', lambdas.String),
+                                Variable.create('b', lambdas.Integer),
+                                Variable.create('c', lambdas.Datetime)]
                      )
         self.assertTrue(lam is not None)
         self.assertTrue(lam.version.startswith('$'))
@@ -50,9 +47,9 @@ class LambdaTestCase(NormTestCase):
         lam = Lambda(namespace=self.executor.context_namespace,
                      name='Test',
                      description='Test lambda',
-                     variables=[Variable.create('a', retrieve_type('norm.native', 'String', session=self.session)),
-                                Variable.create('b', retrieve_type('norm.native', 'Integer', session=self.session)),
-                                Variable.create('c', retrieve_type('norm.native', 'Datetime', session=self.session))]
+                     variables=[Variable.create('a', lambdas.String),
+                                Variable.create('b', lambdas.Integer),
+                                Variable.create('c', lambdas.Datetime)]
                      )
         lam.status = Status.READY
         cloned = lam.clone()
@@ -95,9 +92,9 @@ class LambdaTestCase(NormTestCase):
         lam = Lambda(namespace=self.executor.context_namespace,
                      name='Test',
                      description='Test lambda',
-                     variables=[Variable.create('a', retrieve_type('norm.native', 'String', session=self.session)),
-                                Variable.create('b', retrieve_type('norm.native', 'Integer', session=self.session)),
-                                Variable.create('c', retrieve_type('norm.native', 'Datetime', session=self.session))]
+                     variables=[Variable.create('a', lambdas.String),
+                                Variable.create('b', lambdas.Integer),
+                                Variable.create('c', lambdas.Datetime)]
                      )
         lam.level = Level.QUERYABLE
         df = lam.empty_data()
@@ -115,5 +112,5 @@ class LambdaTestCase(NormTestCase):
         self.assertTrue(df.dtypes['c'] == 'datetime64[ns]')
 
     def test_empty_data_native(self):
-        lam = retrieve_type('norm.native', 'String', session=self.session)
+        lam = lambdas.String
         self.assertTrue(lam.empty_data() is None)

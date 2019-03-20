@@ -1,6 +1,6 @@
 """Unit tests for Implementation"""
 from tests.utils import NormTestCase
-from norm.models import Lambda, retrieve_type, AddVariableRevision, RetypeVariableRevision, RenameVariableRevision
+from norm.models import Lambda, lambdas, AddVariableRevision, RetypeVariableRevision, RenameVariableRevision
 from norm.utils import hash_df
 from pandas import DataFrame
 
@@ -29,8 +29,8 @@ class ImplementationTestCase(NormTestCase):
         self.assertTrue(len(lam.revisions) == 2)
         self.assertTrue(lam.variables[0].name == '{}0'.format(Lambda.VAR_ANONYMOUS_STUB))
         self.assertTrue(lam.variables[1].name == '{}1'.format(Lambda.VAR_ANONYMOUS_STUB))
-        self.assertTrue(lam.variables[0].type_ == retrieve_type('norm.native', 'Integer'))
-        self.assertTrue(lam.variables[1].type_ == retrieve_type('norm.native', 'Any'))
+        self.assertTrue(lam.variables[0].type_ == lambdas.Integer)
+        self.assertTrue(lam.variables[1].type_ == lambdas.Any)
 
     def test_reset_data(self):
         self.execute("test(a: Integer, b: String);")
@@ -71,15 +71,15 @@ class ImplementationTestCase(NormTestCase):
     def test_add_variables(self):
         self.execute("test(a: Integer, b: String);")
         lam = self.execute("test &= (c: String, d: Integer);")
-        self.assertTrue(lam.get_type('c') == retrieve_type('norm.native', 'String'))
-        self.assertTrue(lam.get_type('d') == retrieve_type('norm.native', 'Integer'))
+        self.assertTrue(lam.get_type('c') == lambdas.String)
+        self.assertTrue(lam.get_type('d') == lambdas.Integer)
         self.assertTrue(len(lam.revisions) == 1)
 
     def test_add_modify_variables(self):
         self.execute("test(a: Integer, b: String);")
         lam = self.execute("test &= (a: String, d: Integer);")
-        self.assertTrue(lam.get_type('a') == retrieve_type('norm.native', 'String'))
-        self.assertTrue(lam.get_type('d') == retrieve_type('norm.native', 'Integer'))
+        self.assertTrue(lam.get_type('a') == lambdas.String)
+        self.assertTrue(lam.get_type('d') == lambdas.Integer)
         self.assertTrue(len(lam.revisions) == 2)
         self.assertTrue(isinstance(lam.revisions[0], AddVariableRevision))
         self.assertTrue(isinstance(lam.revisions[1], RetypeVariableRevision))
@@ -87,7 +87,7 @@ class ImplementationTestCase(NormTestCase):
     def test_retype_variables(self):
         self.execute("test(a: Integer, b: String);")
         lam = self.execute("test &= (a: String);")
-        self.assertTrue(lam.get_type('a') == retrieve_type('norm.native', 'String'))
+        self.assertTrue(lam.get_type('a') == lambdas.String)
         self.assertTrue(len(lam.revisions) == 1)
         self.assertTrue(isinstance(lam.revisions[0], RetypeVariableRevision))
 
@@ -97,15 +97,15 @@ class ImplementationTestCase(NormTestCase):
                      "     |  (2, 'b')"
                      "     ;")
         lam = self.execute("test &= (a -> b, b -> a);")
-        self.assertTrue(lam.get_type('a') == retrieve_type('norm.native', 'String'))
-        self.assertTrue(lam.get_type('b') == retrieve_type('norm.native', 'Integer'))
+        self.assertTrue(lam.get_type('a') == lambdas.String)
+        self.assertTrue(lam.get_type('b') == lambdas.Integer)
         self.assertTrue(isinstance(lam.revisions[1], RenameVariableRevision))
         self.assertTrue(str(lam.data.b.dtype) == 'int64')
         self.assertTrue(str(lam.data.a.dtype) == 'object')
         lam.rollback()
         self.assertTrue(lam.current_revision == 0)
-        self.assertTrue(lam.get_type('a') == retrieve_type('norm.native', 'Integer'))
-        self.assertTrue(lam.get_type('b') == retrieve_type('norm.native', 'String'))
+        self.assertTrue(lam.get_type('a') == lambdas.Integer)
+        self.assertTrue(lam.get_type('b') == lambdas.String)
         self.assertTrue(str(lam.data.a.dtype) == 'int64')
         self.assertTrue(str(lam.data.b.dtype) == 'object')
 

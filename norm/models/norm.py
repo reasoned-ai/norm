@@ -306,6 +306,9 @@ class Lambda(Model, ParametrizedMixin):
 
         return False
 
+    def _repr_html_(self):
+        return self.data._repr_html_()
+
     @classmethod
     def exists(cls, session, obj):
         """
@@ -465,8 +468,8 @@ class Lambda(Model, ParametrizedMixin):
         else:
             params = {}
             df = pd.read_csv(path)
-        query = 'read("{}", {}, "csv")'.format(path, ', '.join('{}={}'.format(key, value)
-                                                               for key, value in params.items()))
+        query = 'read("{}", {}, ext="csv")'.format(path, ', '.join('{}={}'.format(key, value)
+                                                                   for key, value in params.items()))
         self.add_data(query, df)
 
     @_check_draft_status
@@ -476,8 +479,8 @@ class Lambda(Model, ParametrizedMixin):
         else:
             params = {}
             df = pd.read_parquet(path)
-        query = 'read("{}", {}, "parq")'.format(path, ', '.join('{}={}'.format(key, value)
-                                                                for key, value in params.items()))
+        query = 'read("{}", {}, ext="parq")'.format(path, ', '.join('{}={}'.format(key, value)
+                                                                    for key, value in params.items()))
         logger.debug(query)
         self.add_data(query, df)
 
@@ -485,7 +488,7 @@ class Lambda(Model, ParametrizedMixin):
     def read_jsonl(self, path):
         with open(path) as f:
             df = DataFrame([json.loads(line) for line in f])
-        query = 'read("{}", "jsonl")'.format(path)
+        query = 'read("{}", ext="jsonl")'.format(path)
         self.add_data(query, df)
 
     @_check_draft_status
