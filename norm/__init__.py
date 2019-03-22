@@ -23,6 +23,8 @@ if get_ipython() is not None:
         :type cell: str
         """
         if cell is None:
+            if line.strip('\n\t ')[-1] != ';':
+                line += ';'
             return context.execute(line)
         else:
             return context.execute(cell)

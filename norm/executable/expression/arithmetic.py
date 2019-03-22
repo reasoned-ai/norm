@@ -1,8 +1,12 @@
+from norm.executable.expression.evaluation import EvaluationExpr
 from norm.grammar.literals import AOP
 from norm.executable import NormError
 from norm.executable.expression import NormExpression
 
 import logging
+
+from norm.models import Lambda, Variable
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,8 +39,13 @@ class ArithmeticExpr(NormExpression):
 
     def compile(self, context):
         if self.expr1:
-            self.expr1 = self.expr1.compile(context)
-        self.expr2 = self.expr2.compile(context)
+            if isinstance(self.expr1, EvaluationExpr) and self.expr1.variable is None and len(self.expr1.args) == 1:
+                # It is possible to be parsed as arguments
+                self.expr1 = self.expr1.args[0].expr
+        if isinstance(self.expr2, EvaluationExpr) and self.expr2.variable is None and len(self.expr2.args) == 1:
+            # It is possible to be parsed as arguments
+            self.expr2 = self.expr2.args[0].expr
+
         if self.op is AOP.SUB:
             self._exprstr = '-({})'.format(self.expr2)
         else:
@@ -50,5 +59,10 @@ class ArithmeticExpr(NormExpression):
         if self.projection and self.projection.num() >= 1:
             variable = self.projection.variables[0]
             # TODO: add a column to the schema?
-            df = context.scope.df
-            df[variable.name] = df.eval(self._exprstr)
+            from norm.models import lambdas
+            self.lam = Lambda(variables=[Variable.create(variable.name, lambdas.Any)])
+            self.lam.df = context.scope.df.copy()
+            self.lam.df[variable.name] = self.lam.df.eval(self._exprstr)
+            return self.lam
+        self.lam = context.scope
+        return self.lam

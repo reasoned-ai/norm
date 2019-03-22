@@ -114,7 +114,6 @@ class NormCompiler(normListener):
         tree = parser.script()
         walker.walk(self, tree)
         # assert(len(self.stack) == 1)  # Ensure that parsing and compilation has finished completely
-
         # return self.optimize(self._pop())
         return
 

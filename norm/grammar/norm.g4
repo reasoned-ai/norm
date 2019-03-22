@@ -135,7 +135,7 @@ conditionExpression
     ;
 
 oneLineExpression
-    : conditionExpression queryProjection?
+    : conditionExpression WS? queryProjection?
     | NOT WS? oneLineExpression
     | oneLineExpression spacedLogicalOperator oneLineExpression
     ;
