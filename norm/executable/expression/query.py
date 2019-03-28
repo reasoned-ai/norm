@@ -1,4 +1,5 @@
-from norm.executable import ListConstant, NormError
+from norm.executable import NormError
+from norm.executable.constant import ListConstant
 from norm.executable.expression import NormExpression
 from norm.executable.expression.argument import ArgumentExpr
 from norm.executable.expression.condition import ConditionExpr, CombinedConditionExpr
@@ -48,7 +49,7 @@ class QueryExpr(NormExpression):
     def __combine_args(arg1, arg2):
         if isinstance(arg1.expr, ListConstant):
             if isinstance(arg2.expr, ListConstant):
-                arg1.expr.value.extends(arg2.expr.value)
+                arg1.expr.value.extend(arg2.expr.value)
             else:
                 arg1.expr.value.append(arg2.expr.value)
             return arg1.expr
@@ -80,14 +81,11 @@ class QueryExpr(NormExpression):
             return CombinedConditionExpr(self.op, self.expr1, self.expr2).compile(context)
         return self
 
-    def serialize(self):
-        pass
-
     def execute(self, context):
-        lam1 = self.expr1.execute(context)
-        lam2 = self.expr2.execute(context)
+        df1 = self.expr1.execute(context)
+        df2 = self.expr2.execute(context)
         # TODO: AND to intersect, OR to union
-        return lam2
+        return df2
 
 
 class NegatedQueryExpr(NormExpression):
@@ -113,9 +111,6 @@ class NegatedQueryExpr(NormExpression):
             logger.error(msg)
             raise NotImplementedError(msg)
         return self.expr
-
-    def serialize(self):
-        pass
 
     def execute(self, context):
         msg = 'Negated query is not executable, but only compilable'

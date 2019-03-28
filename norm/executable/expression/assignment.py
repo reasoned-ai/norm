@@ -1,5 +1,5 @@
 from norm.executable.expression import NormExpression
-from norm.executable.variable import VariableName
+from norm.executable.schema.variable import VariableName
 
 
 class AssignmentExpr(NormExpression):

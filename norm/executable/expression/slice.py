@@ -27,11 +27,10 @@ class SliceExpr(NormExpression):
         pass
 
     def execute(self, context):
-        lam = self.expr.execute(context)
-        lam = lam.clone()
-        lam.df = lam.df.iloc[self.start:self.end].reset_index(drop=True)
+        df = self.expr.execute(context)
+        df = df.iloc[self.start:self.end].reset_index(drop=True)
         # TODO whether reset the index for the projected variable or not?
-        return lam
+        return df
 
 
 class EvaluatedSliceExpr(SliceExpr):
@@ -46,6 +45,3 @@ class EvaluatedSliceExpr(SliceExpr):
         """
         super().__init__(expr, 0, -1)
         self.expr_range = expr_range
-
-    def execute(self, context):
-        raise NotImplementedError

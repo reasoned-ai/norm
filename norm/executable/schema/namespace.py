@@ -1,7 +1,6 @@
-import uuid
-
 from norm.executable import NormExecutable, NormError
-from norm.executable.type import TypeName
+from norm.executable.schema import NormSchema
+from norm.executable.schema.type import TypeName
 
 from norm.models import Status
 
@@ -12,7 +11,7 @@ from norm.models.norm import new_version
 logger = logging.getLogger(__name__)
 
 
-class Import(NormExecutable):
+class Import(NormSchema):
 
     def __init__(self, namespace=None, type_=None, variable=None):
         """
@@ -31,7 +30,6 @@ class Import(NormExecutable):
         self.namespace = namespace
         self.type_ = type_
         self.variable = variable
-        self.lam = None
 
     def compile(self, context):
         """
@@ -58,17 +56,13 @@ class Import(NormExecutable):
                 self.lam = alias
             else:
                 self.lam = lam
+        else:
+            from norm.models.norm import Lambda
+            self.lam = Lambda(self.namespace, '*')
         return self
 
-    def execute(self, context):
-        if self.type_ is None:
-            # TODO: should figure out returning of namespace since it is not a Lambda
-            return self.namespace
-        else:
-            return self.lam
 
-
-class Export(NormExecutable):
+class Export(NormSchema):
 
     def __init__(self, namespace=None, type_=None, alias=None):
         """
@@ -85,7 +79,6 @@ class Export(NormExecutable):
         self.namespace = namespace
         self.type_ = type_
         self.alias = alias
-        self.lam = None
 
     def compile(self, context):
         session = context.session
@@ -123,6 +116,4 @@ class Export(NormExecutable):
         self.lam = lam
         return self
 
-    def execute(self, context):
-        return self.lam
 

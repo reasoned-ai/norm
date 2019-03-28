@@ -1,5 +1,5 @@
 from norm.executable import NormExecutable
-from norm.executable.type import TypeName
+from norm.executable.schema.type import TypeName
 from norm.grammar.literals import MOP
 
 import logging

@@ -1,13 +1,11 @@
 from norm.models.norm import retrieve_type, Status, Lambda
-from norm.executable import NormExecutable
-
-from typing import Union
+from norm.executable.schema import NormSchema
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class VariableName(NormExecutable):
+class VariableName(NormSchema):
 
     def __init__(self, scope, name):
         """
@@ -18,11 +16,8 @@ class VariableName(NormExecutable):
         :type name: str
         """
         super().__init__()
-
-        self.scope = scope  # type: VariableName
-        self.name = name  # type: str
-        from norm.models.norm import Lambda
-        self.lam = None  # type: Lambda
+        self.scope: VariableName = scope
+        self.name: str = name
 
     def __str__(self):
         if self.scope is not None:
@@ -74,9 +69,6 @@ class VariableName(NormExecutable):
                 from norm.executable.expression.evaluation import EvaluationExpr
                 return EvaluationExpr([arg], self)
 
-    def execute(self, context):
-        return self.lam
-
 
 class ColumnVariable(VariableName):
 
@@ -96,7 +88,7 @@ class ColumnVariable(VariableName):
 
     def execute(self, context):
         from norm.models.norm import Variable
-        lam = Lambda(variables=[Variable.create(str(self), self.variable_type())])
+        lam = Lambda(variables=[Variable(str(self), self.variable_type())])
         lam.df = self.lam.df[[self.name]]
         return lam
 
@@ -105,8 +97,7 @@ class JoinVariable(VariableName):
 
     def __init__(self, scope, name, joiner):
         super().__init__(scope, name)
-        from norm.models.norm import Lambda
-        self.lam = joiner  # type: Lambda
+        self.lam = joiner
 
     def variable_type(self):
         return self.lam.get_type(self.name)
@@ -117,6 +108,6 @@ class JoinVariable(VariableName):
     def execute(self, context):
         lam = self.scope.execute(context).clone()
         from norm.models.norm import Variable
-        lam.variables.append(Variable.create(str(self), self.variable_type()))
+        lam.variables.append(Variable(str(self), self.variable_type()))
         lam.df = lam.data.join(self.lam.data[[self.name]].rename(columns={self.name: str(self)}), on=str(self.scope))
         return lam

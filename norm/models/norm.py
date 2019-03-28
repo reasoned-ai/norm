@@ -766,36 +766,23 @@ class Lambda(Model, ParametrizedMixin):
         # TODO: query string is built for DataFrame query API. A more generic way should be considered
         assert(isinstance(inputs, dict) or isinstance(inputs, str))
         assert(isinstance(outputs, dict))
-        output_name = outputs.get(self.VAR_OUTPUT, None) or str(uuid.uuid4())
-        rt = Lambda(self.namespace, output_name)
-        rt.level = self.level
         if isinstance(inputs, str):
             assert(self.level >= Level.QUERYABLE)
-            # A query string passed in
-            if inputs.find('.str.') > -1:
-                rt.df = self.data.query(inputs, engine='python')
-            else:
-                rt.df = self.data.query(inputs)
+            df = self.df.query(inputs, engine='python')
         elif len(inputs) == 0:
-            rt.df = self.data
+            df = self.df
         else:
             if len(outputs) == 0:
                 # Create objects
-                rt.df = self.unify(inputs)
-                rt.level = Level.QUERYABLE
-            elif len(outputs) > 0:
-                # TODO: execute the correct revisions according to the inputs and outputs.
-                pass
+                df = self.unify(inputs)
+            else:
+                # TODO: execute the correct revisions according to the inputs and outputs
+                df = self.df
+
         if len(outputs) > 0:
             # Project variables
-            rt.add_variable([Variable.create(outputs.get(v.name), v.type_) for v in self.variables
-                             if v.name in outputs.keys()])
-            ocols = [v.name for v in self.variables if v.name in outputs.keys()]
-            rt.df = rt.df[ocols].rename(columns=outputs)
-        else:
-            # Take all variables
-            rt.add_variable(self.variables)
-        return rt
+            df = df.rename(columns=outputs)
+        return df
 
 
 class GroupLambda(Lambda):

@@ -1,8 +1,9 @@
-from norm.executable import NormError, Constant
+from norm.executable import NormError
+from norm.executable.constant import Constant
 from norm.grammar.literals import COP, ConstantType, LOP
 
 from norm.executable.expression import NormExpression
-from norm.executable.variable import VariableName
+from norm.executable.schema.variable import VariableName
 
 import logging
 logger = logging.getLogger(__name__)
@@ -45,13 +46,6 @@ class ConditionExpr(NormExpression):
         else:
             self._condition = '({}) {} ({})'.format(self.lexpr, self.op, self.rexpr)
         return self
-
-    def serialize(self):
-        pass
-
-    def execute(self, context):
-        # TODO query the condition
-        pass
 
 
 class CombinedConditionExpr(ConditionExpr):

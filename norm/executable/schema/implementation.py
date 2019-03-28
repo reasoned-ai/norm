@@ -1,17 +1,16 @@
 import pandas as pd
 from pandas import DataFrame
 
-from norm.executable import NormExecutable, NormError
-from norm.executable.declaration import TypeDeclaration
+from norm.executable.schema import NormSchema
+from norm.executable.schema.declaration import TypeDeclaration
 from norm.executable.expression import NormExpression
-from norm.executable.expression.evaluation import EvaluationExpr
-from norm.models import Lambda, Status, Variable, retrieve_type
+from norm.models import Lambda, Status, Variable
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class TypeImplementation(NormExecutable):
+class TypeImplementation(NormSchema):
 
     def __init__(self, type_, op, query, description):
         """
@@ -31,7 +30,6 @@ class TypeImplementation(NormExecutable):
         self.op = op
         self.query = query
         self.description = description
-        self.lam = None
 
     def compile(self, context):
         """
@@ -64,19 +62,19 @@ class TypeImplementation(NormExecutable):
             pass
         elif self.op == ImplType.AND_DEF:
             to_concat = self.query.execute(context)
-            if isinstance(to_concat.data, DataFrame) and len(lam.data) == len(to_concat.data):
-                lam.df = pd.concat([lam.df, to_concat.data], axis=1)
+            if isinstance(to_concat, DataFrame) and len(lam.data) == len(to_concat):
+                lam.df = pd.concat([lam.df, to_concat], axis=1)
             else:
                 if len(self.query.projection.variables) == 1:
-                    lam.df[self.query.projection.variables[0].name] = to_concat.data
+                    lam.df[self.query.projection.variables[0].name] = to_concat
                 else:
                     for i, v in enumerate(self.query.projection.variables):
-                        lam.df[v.name] = to_concat.data[i]
+                        lam.df[v.name] = to_concat[i]
             # Add new variables automatically
             # TODO: need a better type inference
             from norm.models import lambdas
             any_type = lambdas.Any
-            lam.add_variable([Variable.create(v.name, any_type) for v in self.query.projection.variables
+            lam.add_variable([Variable(v.name, any_type) for v in self.query.projection.variables
                               if v.name not in lam])
             return lam
-        return self.query.execute(context)
+        return lam

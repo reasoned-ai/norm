@@ -1,12 +1,9 @@
-from norm.executable.expression.evaluation import EvaluationExpr
 from norm.grammar.literals import AOP
 from norm.executable import NormError
 from norm.executable.expression import NormExpression
+from norm.executable.expression.evaluation import EvaluationExpr
 
 import logging
-
-from norm.models import Lambda, Variable
-
 logger = logging.getLogger(__name__)
 
 
@@ -23,12 +20,12 @@ class ArithmeticExpr(NormExpression):
         :type expr2: ArithmeticExpr
         """
         super().__init__()
-        self.op = op
-        self.expr1 = expr1
-        self.expr2 = expr2
+        self.op: AOP = op
+        self.expr1: ArithmeticExpr = expr1
+        self.expr2: ArithmeticExpr = expr2
         assert(self.op is not None)
         assert(self.expr2 is not None)
-        self._exprstr = None
+        self._exprstr: str = None
 
     def __str__(self):
         if self._exprstr is None:
@@ -52,17 +49,10 @@ class ArithmeticExpr(NormExpression):
             self._exprstr = '({}) {} ({})'.format(self.expr1, self.op, self.expr2)
         return self
 
-    def serialize(self):
-        pass
-
     def execute(self, context):
-        if self.projection and self.projection.num() >= 1:
-            variable = self.projection.variables[0]
-            # TODO: add a column to the schema?
-            from norm.models import lambdas
-            self.lam = Lambda(variables=[Variable.create(variable.name, lambdas.Any)])
-            self.lam.df = context.scope.df.copy()
-            self.lam.df[variable.name] = self.lam.df.eval(self._exprstr)
-            return self.lam
-        self.lam = context.scope
-        return self.lam
+        self.data = context.scope.data
+        df = self.data.eval(self._exprstr)
+        if self.projection and self.projection.num > 0:
+            self.data = df.renames({old_name: new_var.name for old_name, new_var in
+                                    zip(df.columns, self.projection.variables)})
+        return self.data

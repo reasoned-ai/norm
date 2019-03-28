@@ -1,5 +1,4 @@
 import re
-import uuid
 
 from antlr4 import *
 from antlr4.error.ErrorListener import ErrorListener
@@ -9,17 +8,15 @@ from textwrap import dedent
 from norm import config
 from norm.executable import NormExecutable, Projection
 from norm.executable.command import Command
-from norm.executable.declaration import *
+from norm.executable.schema.declaration import *
 from norm.executable.expression.arithmetic import *
-from norm.executable.expression.code import *
-from norm.executable.expression.condition import *
 from norm.executable.expression.evaluation import *
 from norm.executable.expression.query import *
 from norm.executable.expression.slice import *
-from norm.executable.implementation import *
-from norm.executable.type import *
-from norm.executable.namespace import *
-from norm.grammar.literals import AOP, COP, LOP, ImplType, CodeMode, ConstantType, MOP
+from norm.executable.schema.implementation import *
+from norm.executable.schema.type import *
+from norm.executable.schema.namespace import *
+from norm.grammar.literals import AOP, COP, LOP, ImplType, ConstantType, MOP
 from norm.grammar.normLexer import normLexer
 from norm.grammar.normListener import normListener
 from norm.grammar.normParser import normParser

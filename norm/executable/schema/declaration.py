@@ -1,6 +1,6 @@
-from norm.executable import NormExecutable, NormError
-from norm.executable.variable import VariableName
-from norm.executable.type import TypeName
+from norm.executable.schema import NormSchema
+from norm.executable.schema.variable import VariableName
+from norm.executable.schema.type import TypeName
 from norm.models import Lambda, Status, PythonLambda
 from typing import List
 
@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class ArgumentDeclaration(NormExecutable):
+class ArgumentDeclaration(object):
 
     def __init__(self, variable_name, variable_type):
         """
@@ -18,28 +18,13 @@ class ArgumentDeclaration(NormExecutable):
         :param variable_type: the type of the variable
         :type variable_type: TypeName
         """
-        super().__init__()
-        self.variable_name = variable_name
-        self.variable_type = variable_type
-        self.var = None
-
-    def compile(self, context):
-        # TODO: jointly search the type for the variable
-        lam = self.variable_type.lam
-        if lam is None:
-            msg = "Type {} for variable {} has not been declared yet"\
-                .format(self.variable_type.name, self.variable_name)
-            raise NormError(msg)
-
+        assert(variable_type is not None)
+        assert(variable_type.lam is not None)
         from norm.models import Variable
-        self.var = Variable.create(self.variable_name.name, lam)
-        return self
-
-    def execute(self, context):
-        raise NotImplementedError
+        self.var = Variable(variable_name.name, variable_type.lam)
 
 
-class RenameArgument(NormExecutable):
+class RenameArgument(object):
 
     def __init__(self, variable_original_name, variable_new_name):
         """
@@ -49,14 +34,13 @@ class RenameArgument(NormExecutable):
         :param variable_new_name: the new name
         :type variable_new_name: str
         """
-        super().__init__()
         self.variable_original_name = variable_original_name
         self.variable_new_name = variable_new_name
 
 
-class TypeDeclaration(NormExecutable):
+class TypeDeclaration(NormSchema):
 
-    def __init__(self, type_name, argument_declarations, output_type_name):
+    def __init__(self, type_name, argument_declarations=None, output_type_name=None):
         """
         The type declaration
         :param type_name: the type name
@@ -71,7 +55,6 @@ class TypeDeclaration(NormExecutable):
         self.argument_declarations = argument_declarations
         self.output_type_name = output_type_name
         self._description = None
-        self.lam = None  # type: Lambda
 
     @property
     def description(self):
@@ -95,8 +78,7 @@ class TypeDeclaration(NormExecutable):
         # TODO: optimize to query db in batch for all types or utilize cache
         lam = self.type_name.lam  # type: Lambda
         if self.output_type_name is not None:
-            output_arg = ArgumentDeclaration(VariableName(None, Lambda.VAR_OUTPUT), self.output_type_name)\
-                .compile(context)
+            output_arg = ArgumentDeclaration(VariableName(None, Lambda.VAR_OUTPUT), self.output_type_name)
             if self.argument_declarations is None:
                 self.argument_declarations = [output_arg]
             else:
@@ -133,9 +115,6 @@ class TypeDeclaration(NormExecutable):
             context.scope = lam
         return self
 
-    def execute(self, context):
-        return self.lam
-
 
 class AdditionalTypeDeclaration(TypeDeclaration):
 
@@ -147,7 +126,7 @@ class AdditionalTypeDeclaration(TypeDeclaration):
         :param argument_declarations: the list of variables to add or modify
         :type argument_declarations: List[ArgumentDeclaration]
         """
-        super().__init__(type_name, argument_declarations, None)
+        super().__init__(type_name, argument_declarations)
 
     def compile(self, context):
         lam = self.type_name.lam
@@ -162,9 +141,6 @@ class AdditionalTypeDeclaration(TypeDeclaration):
         self.lam = lam
         return self
 
-    def execute(self, context):
-        return self.lam
-
 
 class RenameTypeDeclaration(TypeDeclaration):
 
@@ -176,7 +152,7 @@ class RenameTypeDeclaration(TypeDeclaration):
         :param rename_arguments: the list of variables to rename
         :type rename_arguments: List[RenameArgument]
         """
-        super().__init__(type_name, None, None)
+        super().__init__(type_name)
         self.rename_arguments = rename_arguments
 
     def compile(self, context):
@@ -187,9 +163,6 @@ class RenameTypeDeclaration(TypeDeclaration):
         lam.rename_variable(variables)
         self.lam = lam
         return self
-
-    def execute(self, context):
-        return self.lam
 
 
 class CodeTypeDeclaration(TypeDeclaration):
@@ -204,7 +177,7 @@ class CodeTypeDeclaration(TypeDeclaration):
         :param description: the description of the lambda
         :type description: str
         """
-        super().__init__(type_name, None, None)
+        super().__init__(type_name)
         self.code = code
         self._description = description
 
@@ -213,6 +186,3 @@ class CodeTypeDeclaration(TypeDeclaration):
         context.session.add(lam)
         self.lam = lam
         return self
-
-    def execute(self, context):
-        return self.lam
