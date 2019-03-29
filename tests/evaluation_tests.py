@@ -9,12 +9,13 @@ class EvaluationTestCase(NormTestCase):
 
     def test_read_jsonl(self):
         self.execute("wikisql(phase:Integer);")
-        lam = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
+        data = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
+        lam = self.execute("wikisql;")
         self.assertTrue(lam is not None)
         self.assertTrue(len(lam.revisions) == 2)
         self.assertTrue(lam.end_of_revisions)
         self.assertTrue(not lam.empty_revisions)
-        self.assertTrue(lam.data is not None)
+        self.assertTrue(data is not None)
         self.assertTrue(lam.current_revision == len(lam.revisions) - 1)
         self.assertTrue(lam.level == Level.QUERYABLE)
         self.assertTrue(lam.status == Status.DRAFT)
@@ -26,13 +27,14 @@ class EvaluationTestCase(NormTestCase):
 
     def test_read_parquet(self):
         self.execute("alarms(event:String);")
-        lam = self.execute("alarms.read('./data/norm/packed_alarms.parquet', ext='parq');")
+        data = self.execute("alarms.read('./data/norm/packed_alarms.parquet', ext='parq');")
+        lam = self.execute("alarms;")
         self.assertTrue(lam is not None)
         self.assertTrue(len(lam.revisions) == 2)
         self.assertTrue(lam.end_of_revisions)
         self.assertTrue(not lam.empty_revisions)
-        self.assertTrue(lam.data is not None)
-        self.assertTrue(len(lam.data) > 0)
+        self.assertTrue(data is not None)
+        self.assertTrue(len(data) > 0)
         self.assertTrue(lam.current_revision == len(lam.revisions) - 1)
         self.assertTrue(lam.level == Level.QUERYABLE)
         self.assertTrue(lam.status == Status.DRAFT)
@@ -44,13 +46,12 @@ class EvaluationTestCase(NormTestCase):
 
     def test_ignore_same_revision(self):
         self.execute("wikisql(phase: Integer);")
-        lam = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
+        data = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
+        lam = self.execute("wikisql;")
         self.assertTrue(lam is not None)
         self.assertTrue(len(lam.revisions) == 2)
-        lam2 = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
-        self.assertTrue(lam is lam2)
-        self.assertTrue(len(lam.revisions) == 2)
-        self.assertTrue(len(lam.data) > 0)
+        data2 = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
+        self.assertTrue(len(data) == len(data2))
         self.assertTrue(len(lam.df[lam.VAR_OID]) > 0)
 
     def test_recognize_repeated_declaration_within_the_same_session(self):
@@ -78,11 +79,10 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('here', 2)"
                      "     |  ('there', 3)"
                      "     ;")
-        lam = self.execute("test();")
-        self.assertTrue(lam is not test)
-        self.assertTrue(lam.variables == test.variables)
-        self.assertTrue(all(lam.data['a'] == ['test', 'here', 'there']))
-        self.assertTrue(all(lam.data['b'] == [1, 2, 3]))
+        data = self.execute("test();")
+        self.assertTrue(data is not test)
+        self.assertTrue(all(data['a'] == ['test', 'here', 'there']))
+        self.assertTrue(all(data['b'] == [1, 2, 3]))
 
     def test_evaluate_assigned_columns(self):
         self.execute("test(a: String, b: Integer);")
@@ -92,14 +92,13 @@ class EvaluationTestCase(NormTestCase):
                      "     ;")
         test = self.execute("test;")
         self.assertTrue(test is not None)
-        lam = self.execute("test('test', 1);")
-        self.assertTrue(lam is not test)
-        self.assertTrue(lam.variables == test.variables)
-        self.assertTrue(all(lam.data['a'] == ['test']))
-        self.assertTrue(all(lam.data['b'] == [1]))
-        lam = self.execute("test(['test', 'here'], [1, 2]);")
-        self.assertTrue(all(lam.data['a'] == ['test', 'here']))
-        self.assertTrue(all(lam.data['b'] == [1, 2]))
+        data = self.execute("test('test', 1);")
+        self.assertTrue(data is not test)
+        self.assertTrue(all(data['a'] == ['test']))
+        self.assertTrue(all(data['b'] == [1]))
+        data = self.execute("test(['test', 'here'], [1, 2]);")
+        self.assertTrue(all(data['a'] == ['test', 'here']))
+        self.assertTrue(all(data['b'] == [1, 2]))
 
     def test_evaluate_assigned_columns_uneven(self):
         self.execute("test(a: String, b: Integer);")
@@ -109,12 +108,12 @@ class EvaluationTestCase(NormTestCase):
                      "     ;")
         test = self.execute("test;")
         self.assertTrue(test is not None)
-        lam = self.execute("test(['test', 'here'], b=1);")
-        self.assertTrue(all(lam.data['a'] == ['test', 'here']))
-        self.assertTrue(all(lam.data['b'] == [1, 1]))
-        lam = self.execute("test(b=1, a=['test', 'here']);")
-        self.assertTrue(all(lam.data['a'] == ['test', 'here']))
-        self.assertTrue(all(lam.data['b'] == [1, 1]))
+        data = self.execute("test(['test', 'here'], b=1);")
+        self.assertTrue(all(data['a'] == ['test', 'here']))
+        self.assertTrue(all(data['b'] == [1, 1]))
+        data = self.execute("test(b=1, a=['test', 'here']);")
+        self.assertTrue(all(data['a'] == ['test', 'here']))
+        self.assertTrue(all(data['b'] == [1, 1]))
 
     def test_evaluate_assigned_lambda_columns(self):
         self.execute("test2: String;")
@@ -123,9 +122,9 @@ class EvaluationTestCase(NormTestCase):
                      "      |  ('there')"
                      "      ;")
         self.execute("test(a: test2, b: Integer);")
-        lam = self.execute("test(a=test2(), b=1);")
-        self.assertTrue(all(lam.data['a'] == ['test', 'here', 'there']))
-        self.assertTrue(all(lam.data['b'] == [1, 1, 1]))
+        data = self.execute("test(a=test2(), b=1);")
+        self.assertTrue(all(data['a'] == ['test', 'here', 'there']))
+        self.assertTrue(all(data['b'] == [1, 1, 1]))
 
     def test_evaluate_projection(self):
         self.execute("test(a: String, b: Integer);")
@@ -133,10 +132,9 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('here', 2)"
                      "     |  ('there', 3)"
                      "     ;")
-        lam = self.execute("test(a?);")
-        self.assertTrue(lam is not None)
-        self.assertTrue(all(lam.data['a'] == ['test', 'here', 'there']))
-        self.assertTrue('b' not in lam.data.columns)
+        data = self.execute("test(a?);")
+        self.assertTrue(all(data['a'] == ['test', 'here', 'there']))
+        self.assertTrue('b' not in data.columns)
 
     def test_evaluate_equality_projection(self):
         self.execute("test(a: String, b: Integer);")
@@ -144,10 +142,9 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('here', 2)"
                      "     |  ('there', 3)"
                      "     ;")
-        lam = self.execute("test(a=='here', b?);")
-        self.assertTrue(lam is not None)
-        self.assertTrue(all(lam.data['b'] == [2]))
-        self.assertTrue('a' not in lam.data.columns)
+        data = self.execute("test(a=='here', b?);")
+        self.assertTrue(all(data['b'] == [2]))
+        self.assertTrue('a' not in data.columns)
 
     def test_evaluate_conditional_projection(self):
         self.execute("test(a: String, b: Integer);")
@@ -155,14 +152,12 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('here', 2)"
                      "     |  ('there', 3)"
                      "     ;")
-        lam = self.execute("test(a~'here', b?);")
-        self.assertTrue(lam is not None)
-        self.assertTrue(all(lam.data['b'] == [2, 3]))
-        self.assertTrue('a' not in lam.data.columns)
-        lam = self.execute("test(a~'here'?, b>2);")
-        self.assertTrue(lam is not None)
-        self.assertTrue(all(lam.data['a'] == ['there']))
-        self.assertTrue('b' not in lam.data.columns)
+        data = self.execute("test(a~'here', b?);")
+        self.assertTrue(all(data['b'] == [2, 3]))
+        self.assertTrue('a' not in data.columns)
+        data = self.execute("test(a~'here'?, b>2);")
+        self.assertTrue(all(data['a'] == ['there']))
+        self.assertTrue('b' not in data.columns)
 
     def test_chained_evaluation(self):
         self.execute("test(a: String, b: Integer);")
@@ -170,12 +165,10 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('here', 2)"
                      "     |  ('there', 3)"
                      "     ;")
-        lam = self.execute("test.a.max();")
-        self.assertTrue(lam is not None)
-        self.assertTrue(lam.data == 'there')
-        lam = self.execute("test.a.count();")
-        self.assertTrue(lam is not None)
-        self.assertTrue(lam.data == 3)
+        data = self.execute("test.a.max();")
+        self.assertTrue(data == 'there')
+        data = self.execute("test.a.count();")
+        self.assertTrue(data == 3)
 
     def test_chained_str_evaluation(self):
         self.execute("test(a: String, b: Integer);")
@@ -183,9 +176,9 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('here', 2)"
                      "     |  ('there', 3)"
                      "     ;")
-        lam = self.execute("test.a.capitalize();")
-        self.assertTrue(all(lam.data == ['Test', 'Here', 'There']))
-        lam = self.execute("test.a.len();")
-        self.assertTrue(all(lam.data == [4, 4, 5]))
-        lam = self.execute("test.a.findall('ere');")
-        self.assertTrue(all(lam.data == [[], ['ere'], ['ere']]))
+        data = self.execute("test.a.capitalize();")
+        self.assertTrue(all(data == ['Test', 'Here', 'There']))
+        data = self.execute("test.a.len();")
+        self.assertTrue(all(data == [4, 4, 5]))
+        data = self.execute("test.a.findall('ere');")
+        self.assertTrue(all(data == [[], ['ere'], ['ere']]))

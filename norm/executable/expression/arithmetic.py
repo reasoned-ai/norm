@@ -53,6 +53,10 @@ class ArithmeticExpr(NormExpression):
         self.data = context.scope.data
         df = self.data.eval(self._exprstr)
         if self.projection and self.projection.num > 0:
-            self.data = df.renames({old_name: new_var.name for old_name, new_var in
-                                    zip(df.columns, self.projection.variables)})
+            from pandas import DataFrame, Series
+            if isinstance(df, DataFrame):
+                self.data = df.renames({old_name: new_var.name for old_name, new_var in
+                                        zip(df.columns, self.projection.variables)})
+            elif isinstance(df, Series):
+                self.data = DataFrame({self.projection.variables[0].name: df})
         return self.data

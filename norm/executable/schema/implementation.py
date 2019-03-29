@@ -5,6 +5,7 @@ from norm.executable.schema import NormSchema
 from norm.executable.schema.declaration import TypeDeclaration
 from norm.executable.expression import NormExpression
 from norm.models import Lambda, Status, Variable
+from norm.utils import hash_df
 
 import logging
 logger = logging.getLogger(__name__)
@@ -58,8 +59,13 @@ class TypeImplementation(NormSchema):
             # Ensure the Lambda is a new implementation
             if len(lam.revisions) > 0:
                 lam.remove_revisions()
+            to_append = self.query.execute(context)
+            if isinstance(to_append, DataFrame):
+                lam.add_data(hash_df(to_append), to_append)
         elif self.op == ImplType.OR_DEF:
-            pass
+            to_append = self.query.execute(context)
+            if isinstance(to_append, DataFrame):
+                lam.add_data(hash_df(to_append), to_append)
         elif self.op == ImplType.AND_DEF:
             to_concat = self.query.execute(context)
             if isinstance(to_concat, DataFrame) and len(lam.data) == len(to_concat):
@@ -76,5 +82,4 @@ class TypeImplementation(NormSchema):
             any_type = lambdas.Any
             lam.add_variable([Variable(v.name, any_type) for v in self.query.projection.variables
                               if v.name not in lam])
-            return lam
         return lam

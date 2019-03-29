@@ -8,6 +8,7 @@ from textwrap import dedent
 from norm import config
 from norm.executable import NormExecutable, Projection
 from norm.executable.command import Command
+from norm.executable.constant import Constant
 from norm.executable.schema.declaration import *
 from norm.executable.expression.arithmetic import *
 from norm.executable.expression.evaluation import *
@@ -162,35 +163,35 @@ class NormCompiler(normListener):
                 self._push(expr)
 
     def exitNone(self, ctx:normParser.NoneContext):
-        self._push(Constant(ConstantType.NULL, None).compile(self))
+        self._push(Constant(ConstantType.NULL, None))
 
     def exitBool_c(self, ctx:normParser.Bool_cContext):
-        self._push(Constant(ConstantType.BOOL, ctx.getText().lower() == 'true').compile(self))
+        self._push(Constant(ConstantType.BOOL, ctx.getText().lower() == 'true'))
 
     def exitInteger_c(self, ctx:normParser.Integer_cContext):
-        self._push(Constant(ConstantType.INT, int(ctx.getText())).compile(self))
+        self._push(Constant(ConstantType.INT, int(ctx.getText())))
 
     def exitFloat_c(self, ctx:normParser.Float_cContext):
-        self._push(Constant(ConstantType.FLT, float(ctx.getText())).compile(self))
+        self._push(Constant(ConstantType.FLT, float(ctx.getText())))
 
     def exitString_c(self, ctx:normParser.String_cContext):
-        self._push(Constant(ConstantType.STR, str(ctx.getText()[1:-1])).compile(self))
+        self._push(Constant(ConstantType.STR, str(ctx.getText()[1:-1])))
 
     def exitPattern(self, ctx:normParser.PatternContext):
         try:
-            self._push(Constant(ConstantType.PTN, re.compile(str(ctx.getText()[2:-1]))).compile(self))
+            self._push(Constant(ConstantType.PTN, re.compile(str(ctx.getText()[2:-1]))))
         except:
             raise ParseError('Pattern constant {} is in wrong format, should be Python regex pattern'
                              .format(ctx.getText()))
 
     def exitUuid(self, ctx:normParser.UuidContext):
-        self._push(Constant(ConstantType.UID, str(ctx.getText()[2:-1])).compile(self))
+        self._push(Constant(ConstantType.UID, str(ctx.getText()[2:-1])))
 
     def exitUrl(self, ctx:normParser.UrlContext):
-        self._push(Constant(ConstantType.URL, str(ctx.getText()[2:-1])).compile(self))
+        self._push(Constant(ConstantType.URL, str(ctx.getText()[2:-1])))
 
     def exitDatetime(self, ctx:normParser.DatetimeContext):
-        self._push(Constant(ConstantType.DTM, dateparser.parse(ctx.getText()[2:-1], fuzzy=True)).compile(self))
+        self._push(Constant(ConstantType.DTM, dateparser.parse(ctx.getText()[2:-1], fuzzy=True)))
 
     def exitConstant(self, ctx:normParser.ConstantContext):
         if ctx.LSBR():
@@ -201,7 +202,7 @@ class NormCompiler(normListener):
                 type_ = ConstantType.ANY
             else:
                 type_ = types.pop()
-            self._push(ListConstant(type_, [constant.value for constant in constants]).compile(self))
+            self._push(ListConstant(type_, [constant.value for constant in constants]))
 
     def exitQueryProjection(self, ctx:normParser.QueryProjectionContext):
         variables = list(reversed([self._pop() for ch in ctx.children
@@ -239,7 +240,7 @@ class NormCompiler(normListener):
     def exitArgumentDeclaration(self, ctx:normParser.ArgumentDeclarationContext):
         type_name = self._pop()  # type: TypeName
         variable_name = self._pop()  # type: VariableName
-        self._push(ArgumentDeclaration(variable_name, type_name).compile(self))
+        self._push(ArgumentDeclaration(variable_name, type_name))
 
     def exitArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
         args = list(reversed([self._pop() for ch in ctx.children
@@ -249,7 +250,7 @@ class NormCompiler(normListener):
     def exitRename(self, ctx:normParser.RenameContext):
         new_name = self._pop()  # type: VariableName
         original_name = self._pop()  # type: VariableName
-        self._push(RenameArgument(original_name.name, new_name.name).compile(self))
+        self._push(RenameArgument(original_name.name, new_name.name))
 
     def exitRenames(self, ctx:normParser.RenamesContext):
         args = list(reversed([self._pop() for ch in ctx.children
@@ -285,7 +286,7 @@ class NormCompiler(normListener):
             if ctx.spacedConditionOperator() else None  # type: COP
         # = is treated as op is None
         variable = self._pop() if ctx.variable() else None  # type: VariableName
-        self._push(ArgumentExpr(variable, op, expr, projection).compile(self))
+        self._push(ArgumentExpr(variable, op, expr, projection))
 
     def exitArgumentExpressions(self, ctx:normParser.ArgumentExpressionsContext):
         args = list(reversed([self._pop() for ch in ctx.children

@@ -1,6 +1,7 @@
 from norm.models.norm import retrieve_type, Status, Lambda
 from norm.executable.schema import NormSchema
 
+from typing import Union
 import logging
 logger = logging.getLogger(__name__)
 
@@ -11,12 +12,13 @@ class VariableName(NormSchema):
         """
         The variable and its scope
         :param scope: the scope of the variable
-        :type scope: Union[VariableName, norm.executable.expression.evaluation.EvaluationExpr] or None
+        :type scope: Union[VariableName, EvaluationExpr]
         :param name: the name of the variable
         :type name: str
         """
         super().__init__()
-        self.scope: VariableName = scope
+        from norm.executable.expression.evaluation import EvaluationExpr
+        self.scope: Union[VariableName, EvaluationExpr] = scope
         self.name: str = name
 
     def __str__(self):
@@ -64,7 +66,7 @@ class VariableName(NormSchema):
                 assert(lam is not None)
                 self.lam = lam
                 from norm.executable.expression.argument import ArgumentExpr
-                arg = ArgumentExpr(None, None, self.scope, None)
+                arg = ArgumentExpr(expr=self.scope)
                 self.scope = None
                 from norm.executable.expression.evaluation import EvaluationExpr
                 return EvaluationExpr([arg], self)

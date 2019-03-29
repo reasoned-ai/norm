@@ -30,6 +30,9 @@ class Constant(object):
     def __repr__(self):
         return str(self)
 
+    def execute(self, context):
+        return self.value
+
 
 class ListConstant(Constant):
 

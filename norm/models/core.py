@@ -103,7 +103,7 @@ class ReadFileLambda(CoreLambda):
                   'and JSONL (.jsonl)'
             logger.error(msg)
             raise TypeError(msg)
-        return lam
+        return lam.data
 
 
 @Register()
@@ -140,10 +140,7 @@ class StringFormatterLambda(CoreLambda):
         else:
             assert(isinstance(formatter, str))
             data = variables.data.apply(lambda x: formatter.format(*[x[c] for c in v_cols]), axis=1)
-
-        lam = self.variables[-1].type_.clone()
-        lam.data = DataFrame(data=data)
-        return lam
+        return data
 
 
 @Register()
@@ -194,13 +191,9 @@ class ExtractPatternLambda(CoreLambda):
             pdata = pattern.data.loc[:, 0]
             sdata = string.data.loc[:, 0]
             df = DataFrame({'p': pdata, 's': sdata})
-            data = df.apply(lambda x: match(x.p, x.s), axis=1, result_type='expand')
+            data = df.apply(lambda x: match(x.p, x.s), axis=1, result_type='expand').drop(columns=['p', 's'])
         else:
             assert(isinstance(pattern.data, str))
             f = pattern.data
             data = string.data.apply(lambda x: match(f, x.s), axis=1, result_type='expand')
-
-        lam = self.variables[-1].type_.clone()
-        lam.data = DataFrame(data=data)
-        return lam
-
+        return data

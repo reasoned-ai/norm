@@ -75,7 +75,7 @@ class EvaluationExpr(NormExpression):
         keyword_arg = False
         inputs = {}
         from norm.models.norm import Variable
-        for ov, arg in zip(self.lam.variables, self.args):  # type: Variable, ArgumentExpr
+        for ov, arg in zip(lam.variables, self.args):  # type: Variable, ArgumentExpr
             if arg.expr is None:
                 continue
             if arg.op is None and arg.variable is not None:
@@ -155,13 +155,11 @@ class EvaluationExpr(NormExpression):
             inputs = self.inputs
         if self.is_to_add_data:
             cols = list(sorted(inputs.keys()))
-            df = DataFrame(data=inputs, columns=cols)
-            context.scope.add_data(hash_df(df), df)
-            return df
-        df = context.scope.query(inputs, self.outputs)
-        #  if self.projection and len(self.projection.variables) > 0 and isinstance(lam.df, DataFrame):
-        #    renames = {old_col: new_col.name for old_col, new_col in zip(lam.df.columns, self.projection.variables)}
-        #    lam.rename_variable(renames)
+            return DataFrame(data=inputs, columns=cols)
+        df = self.lam.query(inputs, self.outputs)
+
+        if len(self.outputs) > 0 and isinstance(df, DataFrame):
+            df = df[list(sorted(self.outputs.keys()))].rename(columns=self.outputs)
         return df
 
 

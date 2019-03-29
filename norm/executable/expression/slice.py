@@ -8,23 +8,24 @@ class SliceExpr(NormExpression):
         """
         Slice the expression results
         :param expr: the expression to evaluate
-        :type expr: NormExecutable
+        :type expr: NormExpression
         :param start: the start position
         :type start: int
         :param end: the end position
         :type end: int
         """
         super().__init__()
-        self.expr = expr
-        self.start = start
-        self.end = end
+        self.expr: NormExpression = expr
+        self.start: int = start
+        self.end: int = end
 
     def compile(self, context):
         self.expr = self.expr.compile(context)
+        from norm.executable.schema.variable import VariableName
+        from norm.executable.expression.evaluation import EvaluationExpr
+        if isinstance(self.expr, VariableName):
+            self.expr = EvaluationExpr(args=[], variable=self.expr).compile(context)
         return self
-
-    def serialize(self):
-        pass
 
     def execute(self, context):
         df = self.expr.execute(context)

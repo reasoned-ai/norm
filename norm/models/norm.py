@@ -733,15 +733,17 @@ class Lambda(Model, ParametrizedMixin):
         :rtype: DataFrame
         """
         list_inputs = {k: v for k, v in inputs.items() if isinstance(v, list)}
-        df_inputs = {k: v for k, v in inputs.items() if isinstance(v, Lambda) and isinstance(v.data, DataFrame)}
+        df_inputs = {k: v for k, v in inputs.items() if isinstance(v, DataFrame)}
         constant_inputs = {k: v for k, v in inputs.items() if k not in list_inputs.keys() and k not in df_inputs}
         to_concat = [DataFrame(list_inputs)]
         for k, v in df_inputs.items():
-            if len(v.data.columns) == 1:
-                renames = {col: k for col in v.data.columns}
+            if len(v.columns) == 1:
+                renames = {col: k for col in v.columns}
+            elif Lambda.VAR_OUTPUT in v.columns:
+                renames = {Lambda.VAR_OUTPUT: k}
             else:
-                renames = {col: '{}.{}'.format(k, col) for col in v.data.columns}
-            to_concat.append(v.data.rename(columns=renames))
+                renames = {col: '{}.{}'.format(k, col) for col in v.columns}
+            to_concat.append(v.rename(columns=renames))
         rt = pd.concat(to_concat, axis=1)
         if len(rt) == 0:
             for k, v in constant_inputs.items():
