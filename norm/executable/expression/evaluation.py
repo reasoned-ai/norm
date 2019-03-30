@@ -151,12 +151,17 @@ class EvaluationExpr(NormExpression):
     def execute(self, context):
         if isinstance(self.inputs, dict):
             inputs = dict((key, value.execute(context)) for key, value in self.inputs.items())
+            if len(inputs) == 0:
+                df = self.lam.data
+            elif self.is_to_add_data:
+                cols = list(sorted(inputs.keys()))
+                return DataFrame(data=inputs, columns=cols)
+            else:
+                # Simply creating new objects
+                # TODO: do we need oids for these?
+                df = self.unify(inputs)
         else:
-            inputs = self.inputs
-        if self.is_to_add_data:
-            cols = list(sorted(inputs.keys()))
-            return DataFrame(data=inputs, columns=cols)
-        df = self.lam.query(inputs, self.outputs)
+            df = self.lam.data.query(self.inputs, engine='python')
 
         if len(self.outputs) > 0 and isinstance(df, DataFrame):
             df = df[list(sorted(self.outputs.keys()))].rename(columns=self.outputs)

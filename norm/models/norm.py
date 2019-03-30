@@ -113,17 +113,6 @@ class Level(enum.IntEnum):
     ADAPTABLE = 2
 
 
-class Strategy(enum.Enum):
-    """
-    Strategy to unify inputs:
-        shortest: align the data and cut to the shortest length. If two inputs, one with a list of 10 objects, the
-                  other with a list of 2 objects. The unified data contains 2 objects.
-        longest: align the data to the longest length. Fill with n/a or type defaults.
-    """
-    SHORTEST = 'shortest'
-    LONGEST  = 'longest'
-
-
 def new_version():
     import time
     return '$' + hashids.encode(int(time.time() * 1000))
@@ -481,7 +470,6 @@ class Lambda(Model, ParametrizedMixin):
             df = pd.read_parquet(path)
         query = 'read("{}", {}, ext="parq")'.format(path, ', '.join('{}={}'.format(key, value)
                                                                     for key, value in params.items()))
-        logger.debug(query)
         self.add_data(query, df)
 
     @_check_draft_status
@@ -721,70 +709,6 @@ class Lambda(Model, ParametrizedMixin):
         :return:
         """
         pass
-
-    def unify(self, inputs, strategy=Strategy.LONGEST):
-        """
-        Unify multi-variates into one DataFrame.
-        :param inputs: the dictionary of the input values
-        :type inputs: Dict
-        :param strategy: the strategy to align inputs
-        :type strategy: Strategy
-        :return: the unified DataFrame
-        :rtype: DataFrame
-        """
-        list_inputs = {k: v for k, v in inputs.items() if isinstance(v, list)}
-        df_inputs = {k: v for k, v in inputs.items() if isinstance(v, DataFrame)}
-        constant_inputs = {k: v for k, v in inputs.items() if k not in list_inputs.keys() and k not in df_inputs}
-        to_concat = [DataFrame(list_inputs)]
-        for k, v in df_inputs.items():
-            if len(v.columns) == 1:
-                renames = {col: k for col in v.columns}
-            elif Lambda.VAR_OUTPUT in v.columns:
-                renames = {Lambda.VAR_OUTPUT: k}
-            else:
-                renames = {col: '{}.{}'.format(k, col) for col in v.columns}
-            to_concat.append(v.rename(columns=renames))
-        rt = pd.concat(to_concat, axis=1)
-        if len(rt) == 0:
-            for k, v in constant_inputs.items():
-                rt.loc[0, k] = v
-        else:
-            for k, v in constant_inputs.items():
-                rt[k] = v
-        return rt
-
-    def query(self, inputs, outputs):
-        """
-        Query the Lambda according to the inputs, and generate another Lambda projected to the outputs
-        :param inputs: the inputs for variable and value pairs, or a query string passed to DataFrame
-        :type inputs: Dict[str, Lambda] or str
-        :param outputs: the outputs
-        :type outputs: Dict[str, str]
-        :return: the resulting view of the data
-        :rtype: Lambda
-        """
-        assert(inputs is not None)
-        assert(outputs is not None)
-        # TODO: query string is built for DataFrame query API. A more generic way should be considered
-        assert(isinstance(inputs, dict) or isinstance(inputs, str))
-        assert(isinstance(outputs, dict))
-        if isinstance(inputs, str):
-            assert(self.level >= Level.QUERYABLE)
-            df = self.df.query(inputs, engine='python')
-        elif len(inputs) == 0:
-            df = self.df
-        else:
-            if len(outputs) == 0:
-                # Create objects
-                df = self.unify(inputs)
-            else:
-                # TODO: execute the correct revisions according to the inputs and outputs
-                df = self.df
-
-        if len(outputs) > 0:
-            # Project variables
-            df = df.rename(columns=outputs)
-        return df
 
 
 class GroupLambda(Lambda):
