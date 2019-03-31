@@ -36,11 +36,9 @@ class LambdaTestCase(NormTestCase):
         self.assertTrue(lam is not None)
         self.assertTrue(lam.version.startswith('$'))
         self.assertTrue(lam.status == Status.DRAFT)
-        self.assertTrue(lam.ttype == 'float32')
         self.assertTrue(len(lam.variables) == 3)
         self.assertTrue(all([v.type_ is not None for v in lam.variables]))
         self.assertTrue(lam.anchor)
-        self.assertTrue(lam.shape == [100])
         self.assertTrue(lam.dtype == 'object')
 
     def test_clone(self):
@@ -99,14 +97,12 @@ class LambdaTestCase(NormTestCase):
         lam.queryable = True
         df = lam.empty_data()
         self.assertTrue(all(df.columns == [lam.VAR_OID, lam.VAR_PROB, lam.VAR_LABEL,
-                                           lam.VAR_TIMESTAMP, lam.VAR_TOMBSTONE]
-                            + lam._tensor_columns + ['a', 'b', 'c']))
+                                           lam.VAR_TIMESTAMP, lam.VAR_TOMBSTONE] + ['a', 'b', 'c']))
         self.assertTrue(df.dtypes[lam.VAR_TOMBSTONE] == lam.VAR_TOMBSTONE_T)
         self.assertTrue(df.dtypes[lam.VAR_TIMESTAMP] == lam.VAR_TIMESTAMP_T)
         self.assertTrue(df.dtypes[lam.VAR_LABEL] == lam.VAR_LABEL_T)
         self.assertTrue(df.dtypes[lam.VAR_PROB] == lam.VAR_PROB_T)
         self.assertTrue(df.dtypes[lam.VAR_OID] == lam.VAR_OID_T)
-        self.assertTrue(all([df.dtypes[col] == lam.ttype for col in lam._tensor_columns]))
         self.assertTrue(df.dtypes['a'] == 'object')
         self.assertTrue(df.dtypes['b'] == 'int')
         self.assertTrue(df.dtypes['c'] == 'datetime64[ns]')

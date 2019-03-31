@@ -1,4 +1,6 @@
 """Unit tests for embedding Python code"""
+import datetime
+
 from pandas import DataFrame
 
 from tests.utils import NormTestCase
@@ -25,9 +27,9 @@ class PythonTestCase(NormTestCase):
         }};
         """
         self.execute(script)
-        lam = self.execute("test();")
-        self.assertTrue(lam is not None)
-        self.assertTrue(lam.data is not None)
+        result = self.execute("test();")
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, datetime.datetime))
 
     def test_python_query_on_data(self):
         script = """
@@ -44,9 +46,8 @@ class PythonTestCase(NormTestCase):
           ;
         """
         self.execute(script)
-        lam = self.execute("test(a);")
-        self.assertTrue(lam is not None)
-        self.assertTrue(lam.data is not None)
+        result = self.execute("test(a());")
+        self.assertTrue(result is not None)
 
     def test_python_custom_function(self):
         script = """
@@ -63,10 +64,9 @@ class PythonTestCase(NormTestCase):
                               ;
         """
         self.execute(script)
-        lam = self.execute("test(a);")
-        self.assertTrue(lam is not None)
-        self.assertTrue(lam.data is not None)
-        self.assertTrue(isinstance(lam.data, DataFrame))
+        result = self.execute("test(a());")
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, DataFrame))
 
     def test_python_function_projection(self):
         script = """

@@ -24,7 +24,6 @@ class CoreLambda(Lambda):
                          variables=variables,
                          dtype=dtype)
         self.status = Status.READY
-        self.shape = []
         self.atomic = True
 
 

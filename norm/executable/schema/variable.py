@@ -89,10 +89,7 @@ class ColumnVariable(VariableName):
         return self
 
     def execute(self, context):
-        from norm.models.norm import Variable
-        lam = Lambda(variables=[Variable(str(self), self.variable_type())])
-        lam.df = self.lam.df[[self.name]]
-        return lam
+        return self.lam.df[self.name]
 
 
 class JoinVariable(VariableName):
@@ -108,8 +105,5 @@ class JoinVariable(VariableName):
         return self
 
     def execute(self, context):
-        lam = self.scope.execute(context).clone()
-        from norm.models.norm import Variable
-        lam.variables.append(Variable(str(self), self.variable_type()))
-        lam.df = lam.data.join(self.lam.data[[self.name]].rename(columns={self.name: str(self)}), on=str(self.scope))
-        return lam
+        lam = self.scope.execute(context)
+        return lam.data.join(self.lam.data[[self.name]].rename(columns={self.name: str(self)}), on=str(self.scope))

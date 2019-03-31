@@ -95,7 +95,7 @@ from norm.models.python import PythonLambda
 from norm.models.native import (NativeLambda, TypeLambda, AnyLambda, ListLambda,
                                 BooleanLambda, IntegerLambda, StringLambda,
                                 PatternLambda, UUIDLambda, FloatLambda,
-                                URLLambda, DatetimeLambda, TensorLambda)
+                                URLLambda, DatetimeLambda)
 from norm.models.core import (CoreLambda, StringFormatterLambda, ExtractPatternLambda, ReadFileLambda)
 from norm.models.license import License
 

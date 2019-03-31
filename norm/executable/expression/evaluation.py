@@ -149,7 +149,10 @@ class EvaluationExpr(NormExpression):
         if isinstance(self.inputs, dict):
             inputs = dict((key, value.execute(context)) for key, value in self.inputs.items())
             if len(inputs) == 0:
-                df = self.lam.data
+                if self.lam.atomic:
+                    return self.lam()
+                else:
+                    df = self.lam.data
             elif self.is_to_add_data:
                 cols = list(sorted(inputs.keys()))
                 return DataFrame(data=inputs, columns=cols)

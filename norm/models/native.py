@@ -1,6 +1,6 @@
 """A collection of ORM sqlalchemy models for NativeLambda"""
 from norm.models import Register
-from norm.models.norm import Lambda, Variable, Status, retrieve_type
+from norm.models.norm import Lambda, Variable, Status
 
 import logging
 logger = logging.getLogger(__name__)
@@ -19,7 +19,6 @@ class NativeLambda(Lambda):
                          variables=variables,
                          dtype=dtype)
         self.status = Status.READY
-        self.shape = []
 
     def empty_data(self):
         return None
@@ -164,23 +163,6 @@ class DatetimeLambda(NativeLambda):
                          description='Datetime, t"2018-09-01"',
                          variables=[],
                          dtype='datetime64[ns]')
-
-
-@Register(dtype='float32', shape=[300])
-class TensorLambda(NativeLambda):
-    __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_tensor'
-    }
-
-    def __init__(self, dtype, shape):
-        super().__init__(name='Tensor[{}]{}'.format(dtype, str(tuple(shape))),
-                         description='Tensor, [2.2, 3.2]',
-                         variables=[],
-                         dtype=dtype)
-        assert(isinstance(shape, list) or isinstance(shape, tuple))
-        assert(all([isinstance(element, int) for element in shape]))
-        self.shape = list(shape)
-        self.ttype = dtype
 
 
 def get_type_by_dtype(dtype):

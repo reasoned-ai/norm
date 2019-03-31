@@ -5,7 +5,7 @@ from pandas import DataFrame, Series
 from sqlalchemy import Column, Text, orm
 
 from norm.executable import NormError
-from norm.models.norm import Lambda, Status, Variable, retrieve_type
+from norm.models.norm import Lambda, Status, Variable
 
 import logging
 logger = logging.getLogger(__name__)
@@ -37,9 +37,9 @@ class PythonLambda(Lambda):
         super().__init__(namespace=namespace,
                          name=name,
                          description=description,
-                         variables=[Variable.create(self.VAR_INPUTS, lambdas.Any)])
+                         variables=[Variable(self.VAR_INPUTS, lambdas.Any),
+                                    Variable(self.VAR_OUTPUT, lambdas.Any)])
         self.status = Status.READY
-        self.shape = []
         self.code = dedent(code)
         r = self.code.rfind('return')
         if r < 0:
@@ -74,12 +74,12 @@ class PythonLambda(Lambda):
             if inp is not None:
                 df = self._func(inp)
                 if isinstance(df, Series):
-                    df = DataFrame(df)
+                    df = DataFrame(df, columns=[self.name])
                 if isinstance(inp, DataFrame) and not isinstance(df, DataFrame):
                     raise NormError
             else:
                 df = self._func()
         except:
-            df = DataFrame(inp.apply(self._func, axis=1), columns=[self.VAR_OUTPUT])
+            df = DataFrame(inp.apply(self._func, axis=1), columns=[self.name])
         return df
 

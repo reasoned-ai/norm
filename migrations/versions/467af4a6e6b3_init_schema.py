@@ -44,8 +44,6 @@ def upgrade():
     sa.Column('namespace', sa.String(length=512), nullable=True),
     sa.Column('name', sa.String(length=256), nullable=False),
     sa.Column('dtype', sa.String(length=16), nullable=True),
-    sa.Column('ttype', sa.String(length=16), nullable=True),
-    sa.Column('shape', ARRAY(), nullable=True),
     sa.Column('adaptable', sa.Boolean(), nullable=True),
     sa.Column('atomic', sa.Boolean(), nullable=True),
     sa.Column('queryable', sa.Boolean(), nullable=True),

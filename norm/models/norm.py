@@ -184,7 +184,6 @@ class Lambda(Model, ParametrizedMixin):
     VAR_PROB_T = 'float'
     VAR_TIMESTAMP = 'timestamp'
     VAR_TIMESTAMP_T = 'datetime64[ns]'
-    VAR_TENSOR = 'tensor'
     VAR_TOMBSTONE = 'tombstone'
     VAR_TOMBSTONE_T = 'bool'
     VAR_ANONYMOUS_STUB = 'var'
@@ -195,9 +194,6 @@ class Lambda(Model, ParametrizedMixin):
     name = Column(String(256), nullable=False)
     # data type
     dtype = Column(String(16), default='object')
-    # tensor type and shape
-    ttype = Column(String(16), default='float32')
-    shape = Column(ARRAY(Integer), default=[100])
     # computational properties
     atomic = Column(Boolean, default=False)
     queryable = Column(Boolean, default=False)
@@ -233,8 +229,7 @@ class Lambda(Model, ParametrizedMixin):
 
     __table_args__ = tuple(UniqueConstraint('namespace', 'name', 'version', name='unique_lambda'))
 
-    def __init__(self, namespace='', name='', description='', params='{}', variables=None, dtype=None, ttype=None,
-                 shape=None, user=None):
+    def __init__(self, namespace='', name='', description='', params='{}', variables=None, dtype=None, user=None):
         self.id: int = None
         self.namespace: str = namespace
         self.name: str = name
@@ -249,8 +244,6 @@ class Lambda(Model, ParametrizedMixin):
         self.revisions: List[Revision] = []
         self.current_revision: int = -1
         self.dtype: str = dtype or 'object'
-        self.ttype: str = ttype or 'float32'
-        self.shape: List[int] = shape or [100]
         self.anchor: bool = True
         self.atomic: bool = False
         self.queryable: bool = False
@@ -266,10 +259,6 @@ class Lambda(Model, ParametrizedMixin):
     @hybrid_property
     def nargs(self):
         return len(self.variables)
-
-    @hybrid_property
-    def dim(self):
-        return len(self.shape)
 
     def __repr__(self):
         return str(self)
@@ -636,19 +625,14 @@ class Lambda(Model, ParametrizedMixin):
                 raise e
 
     @property
-    def _tensor_columns(self):
-        return ['{}_{}'.format(self.VAR_TENSOR, i) for i in range(int(np.prod(self.shape)))]
-
-    @property
     def _all_columns(self):
         return [self.VAR_OID, self.VAR_PROB, self.VAR_LABEL, self.VAR_TIMESTAMP,
-                self.VAR_TOMBSTONE] + self._tensor_columns + [v.name for v in self.variables]
+                self.VAR_TOMBSTONE] + [v.name for v in self.variables]
 
     @property
     def _all_column_types(self):
         return [self.VAR_OID_T, self.VAR_PROB_T, self.VAR_LABEL_T, self.VAR_TIMESTAMP_T,
-                self.VAR_TOMBSTONE_T] + [self.ttype] * len(self._tensor_columns) + \
-               [v.type_.dtype for v in self.variables]
+                self.VAR_TOMBSTONE_T] + [v.type_.dtype for v in self.variables]
 
     def empty_data(self):
         """
