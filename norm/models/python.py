@@ -48,6 +48,7 @@ class PythonLambda(Lambda):
             raise NormError(msg)
         self.code = '{}{} ={}'.format(self.code[:r], self.name, self.code[r+6:])
         self._load_func()
+        self.atomic = True
 
     def _load_func(self):
         try:
@@ -67,22 +68,18 @@ class PythonLambda(Lambda):
     def init_on_load(self):
         self._load_func()
 
-    def query(self, inputs, outputs):
-        inp = inputs.get(self.VAR_INPUTS)  # type: Lambda
-        out = Lambda()
+    def __call__(self, **inputs):
+        inp: DataFrame = inputs.get(self.VAR_INPUTS)
         try:
             if inp is not None:
-                out.df = self._func(inp.data)
-                if isinstance(out.df, Series):
-                    out.df = DataFrame(out.df)
-                if isinstance(inp.data, DataFrame) and not isinstance(out.df, DataFrame):
+                df = self._func(inp)
+                if isinstance(df, Series):
+                    df = DataFrame(df)
+                if isinstance(inp, DataFrame) and not isinstance(df, DataFrame):
                     raise NormError
             else:
-                out.df = self._func()
+                df = self._func()
         except:
-            out.df = DataFrame(inp.data.apply(self._func, axis=1), columns=[self.VAR_OUTPUT])
-        if isinstance(out.df, DataFrame):
-            from norm.models import lambdas
-            out.variables = [Variable.create(c, lambdas.Any) for c in out.df.columns]
-        return out
+            df = DataFrame(inp.apply(self._func, axis=1), columns=[self.VAR_OUTPUT])
+        return df
 

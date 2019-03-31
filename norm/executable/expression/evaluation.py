@@ -7,13 +7,10 @@ from norm.executable.expression.argument import ArgumentExpr
 from norm.executable.schema.variable import VariableName, ColumnVariable
 from norm.executable.expression import NormExpression
 
-from hashids import Hashids
 from typing import List, Dict
 
-from norm.utils import hash_df
 import logging
 logger = logging.getLogger(__name__)
-h = Hashids()
 
 
 class EvaluationExpr(NormExpression):
@@ -156,6 +153,8 @@ class EvaluationExpr(NormExpression):
             elif self.is_to_add_data:
                 cols = list(sorted(inputs.keys()))
                 return DataFrame(data=inputs, columns=cols)
+            elif self.lam.atomic:
+                df = self.lam(**inputs)
             else:
                 # Simply creating new objects
                 # TODO: do we need oids for these?

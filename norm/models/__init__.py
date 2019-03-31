@@ -58,7 +58,11 @@ class Register(object):
 class Store(object):
 
     def __init__(self):
-        self.items = Register.restore_lambdas()
+        try:
+            self.items = Register.restore_lambdas()
+        except:
+            msg = 'Norm database is not ready'
+            logger.warning(msg)
 
     def __dir__(self):
         return list(self.items.keys())

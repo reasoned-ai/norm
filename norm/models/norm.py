@@ -144,8 +144,10 @@ def _only_queryable(func):
     :rtype: Callable
     """
     def wrapper(self, *args, **kwargs):
-        if self.level < Level.QUERYABLE:
-            return
+        if not self.queryable:
+            msg = '{} is not Queryable. Need to add data.'.format(self)
+            logger.error(msg)
+            raise RuntimeError(msg)
         return func(self, *args, **kwargs)
     return wrapper
 
@@ -159,8 +161,10 @@ def _only_adaptable(func):
     :rtype: Callable
     """
     def wrapper(self, *args, **kwargs):
-        if self.level < Level.ADAPTABLE:
-            return
+        if not self.adaptable:
+            msg = '{} is not adaptable. Need to add probabilistic lambdas.'.format(self)
+            logger.error(msg)
+            raise RuntimeError(msg)
         return func(self, *args, **kwargs)
     return wrapper
 
@@ -194,8 +198,10 @@ class Lambda(Model, ParametrizedMixin):
     # tensor type and shape
     ttype = Column(String(16), default='float32')
     shape = Column(ARRAY(Integer), default=[100])
-    # complexity level
-    level = Column(Enum(Level), default=Level.COMPUTABLE)
+    # computational properties
+    atomic = Column(Boolean, default=False)
+    queryable = Column(Boolean, default=False)
+    adaptable = Column(Boolean, default=False)
     # owner
     created_by_id = Column(Integer, ForeignKey(User.id))
     owner = relationship(User, backref='lambdas', foreign_keys=[created_by_id])
@@ -229,25 +235,27 @@ class Lambda(Model, ParametrizedMixin):
 
     def __init__(self, namespace='', name='', description='', params='{}', variables=None, dtype=None, ttype=None,
                  shape=None, user=None):
-        self.id = None  # type: int
-        self.namespace = namespace  # type: str
-        self.name = name  # type: str
-        self.version = new_version()  # type: str
-        self.description = description   # type: str
-        self.params = params  # type: str
-        self.owner = user  # type: User
-        self.status = Status.DRAFT  # type: Status
-        self.merged_from_ids = []  # type: List[int]
-        self.variables = variables or []  # type: List[Variable]
+        self.id: int = None
+        self.namespace: str = namespace
+        self.name: str = name
+        self.version: str = new_version()
+        self.description: str = description
+        self.params: str = params
+        self.owner: User = user
+        self.status: Status = Status.DRAFT
+        self.merged_from_ids: List[int] = []
+        self.variables: List[Variable] = variables or []
         from norm.models.revision import Revision
-        self.revisions = []  # type: List[Revision]
-        self.current_revision = -1  # type: int
-        self.dtype = dtype or 'object'   # type: str
-        self.ttype = ttype or 'float32'  # type: str
-        self.shape = shape or [100]  # type: List[int]
-        self.anchor = True  # type: bool
-        self.level = Level.COMPUTABLE  # type: Level
-        self.df = None  # type: DataFrame
+        self.revisions: List[Revision] = []
+        self.current_revision: int = -1
+        self.dtype: str = dtype or 'object'
+        self.ttype: str = ttype or 'float32'
+        self.shape: List[int] = shape or [100]
+        self.anchor: bool = True
+        self.atomic: bool = False
+        self.queryable: bool = False
+        self.adaptable: bool = False
+        self.df: DataFrame = None
         self.modified_or_new = True
 
     @orm.reconstructor
@@ -294,6 +302,9 @@ class Lambda(Model, ParametrizedMixin):
             return item in self._all_columns
 
         return False
+
+    def __call__(self, **kwargs):
+        pass
 
     def _repr_html_(self):
         return self.data._repr_html_()
@@ -357,7 +368,9 @@ class Lambda(Model, ParametrizedMixin):
                              params=self.params, variables=self.variables)
         lam.cloned_from = self
         lam.anchor = False
-        lam.level = self.level
+        lam.atomic = self.atomic
+        lam.queryable = self.queryable
+        lam.adaptable = self.adaptable
         if self.df is not None:
             lam.df = self.df.copy(False)
         return lam
@@ -441,7 +454,7 @@ class Lambda(Model, ParametrizedMixin):
             base = hash(query)
             delta[self.VAR_OID] = [hashids.encode(base + i) for i in df.index]
         self._add_revision(DisjunctionRevision(query, 'add_data', self, delta))
-        self.level = Level.QUERYABLE
+        self.queryable = True
 
     @_check_draft_status
     def read_csv(self, path, params):
@@ -541,8 +554,10 @@ class Lambda(Model, ParametrizedMixin):
         """
         Save the current version
         """
-        self._save_data()
-        self._save_model()
+        if self.queryable:
+            self._save_data()
+        if self.adaptable:
+            self._save_model()
         self.modified_or_new = False
 
     def remove_revisions(self):

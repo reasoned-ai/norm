@@ -25,6 +25,7 @@ class CoreLambda(Lambda):
                          dtype=dtype)
         self.status = Status.READY
         self.shape = []
+        self.atomic = True
 
 
 def native_type(name):
@@ -61,7 +62,7 @@ class ReadFileLambda(CoreLambda):
                                     Variable.create(self.VAR_EXT, string_type),
                                     Variable.create(self.VAR_OUTPUT, lambda_type)])
 
-    def query(self, inputs, outputs):
+    def __call__(self, **inputs):
         lam = inputs.get(self.VAR_LAMBDA)
         path = inputs.get(self.VAR_PATH)
         params = inputs.get(self.VAR_PARM)
@@ -69,11 +70,11 @@ class ReadFileLambda(CoreLambda):
         if lam is None or path is None:
             return None
 
-        if isinstance(path, Lambda):
-            path = path.data.iloc[0][0]
+        if isinstance(path, DataFrame):
+            path = path.iloc[0][0]
         assert(isinstance(path, str))
-        if ext and isinstance(ext, Lambda):
-            ext = ext.data.iloc[0][0]
+        if ext and isinstance(ext, DataFrame):
+            ext = ext.iloc[0][0]
         if ext is None:
             last_path = path.split('.')[-1]
             if last_path == self.EXT_CSV:
@@ -86,8 +87,8 @@ class ReadFileLambda(CoreLambda):
                 ext = self.EXT_JSL
             else:
                 ext = self.EXT_CSV
-        if params is not None:
-            params = params.data.to_dict()[0]
+        if params and isinstance(params, DataFrame):
+            params = params.to_dict()[0]
 
         if ext == self.EXT_CSV:
             lam.read_csv(path, params)
@@ -125,21 +126,23 @@ class StringFormatterLambda(CoreLambda):
                          description='Format the strings with given inputs, the semantic is the same as Python format',
                          variables=[formatter, variables, output])
 
-    def query(self, inputs, outputs):
-        formatter = inputs.get(self.VAR_FORMATTER, None)  # type: Lambda
-        variables = inputs.get(self.VAR_VARIABLES, None)  # type: Lambda
+    def __call__(self, **inputs):
+        formatter = inputs.get(self.VAR_FORMATTER, None)
+        variables = inputs.get(self.VAR_VARIABLES, None)
         if variables is None or formatter is None:
             return None
 
-        v_cols = list(variables.data.columns)
-        if isinstance(formatter, Lambda):
-            assert(len(formatter.data) == len(variables.data))
-            f_col = formatter.data.columns[0]
-            df = formatter.data.reset_index().join(variables.data.reset_index())
-            data = df.apply(lambda x: x[f_col].format(*[x[c] for c in v_cols]), axis=1)
+        v_cols = list(variables.columns)
+        if isinstance(formatter, DataFrame):
+            assert(len(formatter) == len(variables))
+            f_col = formatter.columns[0]
+            df = formatter.reset_index().join(variables.reset_index())
+            data = DataFrame(df.apply(lambda x: x[f_col].format(*[x[c] for c in v_cols]), axis=1),
+                             columns=[self.VAR_OUTPUT])
         else:
             assert(isinstance(formatter, str))
-            data = variables.data.apply(lambda x: formatter.format(*[x[c] for c in v_cols]), axis=1)
+            data = DataFrame(variables.apply(lambda x: formatter.format(*[x[c] for c in v_cols]), axis=1),
+                             columns=[self.VAR_OUTPUT])
         return data
 
 
@@ -165,12 +168,12 @@ class ExtractPatternLambda(CoreLambda):
                                     Variable.create(self.VAR_FILLNA, any_type),
                                     Variable.create(self.VAR_OUTPUT, any_type)])
 
-    def query(self, inputs, outputs):
-        pattern = inputs.get(self.VAR_PATTERN, None)  # type: Lambda
-        string = inputs.get(self.VAR_STRING, None)  # type: Lambda
+    def __call__(self, **inputs):
+        pattern = inputs.get(self.VAR_PATTERN, None)
+        string = inputs.get(self.VAR_STRING, None)
         if pattern is None or string is None:
             return None
-        fill_na = inputs.get(self.VAR_FILLNA, None)  # type: Lambda
+        fill_na = inputs.get(self.VAR_FILLNA, None)
         if fill_na is not None:
             fill_na = fill_na.data
 
@@ -186,14 +189,14 @@ class ExtractPatternLambda(CoreLambda):
             else:
                 return fill_na
 
-        if isinstance(pattern.data, DataFrame):
-            assert(len(pattern.data) == len(string.data))
-            pdata = pattern.data.loc[:, 0]
-            sdata = string.data.loc[:, 0]
+        if isinstance(pattern, DataFrame):
+            assert(len(pattern) == len(string))
+            pdata = pattern.loc[:, 0]
+            sdata = string.loc[:, 0]
             df = DataFrame({'p': pdata, 's': sdata})
             data = df.apply(lambda x: match(x.p, x.s), axis=1, result_type='expand').drop(columns=['p', 's'])
         else:
-            assert(isinstance(pattern.data, str))
-            f = pattern.data
-            data = string.data.apply(lambda x: match(f, x.s), axis=1, result_type='expand')
+            assert(isinstance(pattern, str))
+            f = pattern
+            data = string.apply(lambda x: match(f, x.s), axis=1, result_type='expand')
         return data

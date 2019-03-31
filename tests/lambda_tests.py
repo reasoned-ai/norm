@@ -83,7 +83,7 @@ class LambdaTestCase(NormTestCase):
                      name='Test',
                      description='Test lambda'
                      )
-        lam.level = Level.QUERYABLE
+        lam.queryable = True
         self.assertTrue(lam.folder == 'data/norm/tmp/{}/Test/{}'.format(self.executor.context_id, lam.version))
         lam._create_folder()
         self.assertTrue(os.path.exists(lam.folder))
@@ -96,7 +96,7 @@ class LambdaTestCase(NormTestCase):
                                 Variable.create('b', lambdas.Integer),
                                 Variable.create('c', lambdas.Datetime)]
                      )
-        lam.level = Level.QUERYABLE
+        lam.queryable = True
         df = lam.empty_data()
         self.assertTrue(all(df.columns == [lam.VAR_OID, lam.VAR_PROB, lam.VAR_LABEL,
                                            lam.VAR_TIMESTAMP, lam.VAR_TOMBSTONE]

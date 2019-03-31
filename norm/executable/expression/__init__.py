@@ -34,11 +34,22 @@ class NormExpression(NormExecutable):
         :return: the unified DataFrame
         :rtype: DataFrame
         """
-        list_inputs = {k: v for k, v in inputs.items() if isinstance(v, list) or isinstance(v, Series)}
-        df_inputs = {k: v for k, v in inputs.items() if isinstance(v, DataFrame)}
-        constant_inputs = {k: v for k, v in inputs.items() if k not in list_inputs and k not in df_inputs}
+        from norm.models.norm import Lambda
+        lambda_inputs = {}
+        list_inputs = {}
+        dataframe_inputs = {}
+        constant_inputs = {}
+        for k, v in inputs.items():
+            if isinstance(v, Lambda):
+                lambda_inputs[k] = v
+            elif isinstance(v, (list, Series)):
+                list_inputs[k] = v
+            elif isinstance(v, DataFrame):
+                dataframe_inputs[k] = v
+            else:
+                constant_inputs[k] = v
         to_concat = [DataFrame(list_inputs)]
-        for k, v in df_inputs.items():
+        for k, v in dataframe_inputs.items():
             if len(v.columns) == 1:
                 renames = {col: k for col in v.columns}
             else:

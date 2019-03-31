@@ -17,7 +17,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(not lam.empty_revisions)
         self.assertTrue(data is not None)
         self.assertTrue(lam.current_revision == len(lam.revisions) - 1)
-        self.assertTrue(lam.level == Level.QUERYABLE)
+        self.assertTrue(lam.queryable)
         self.assertTrue(lam.status == Status.DRAFT)
         self.assertTrue(lam.nargs > 1)
         self.assertTrue(lam.folder == '{}/{}/{}/{}'.format(DATA_STORAGE_ROOT,
@@ -36,7 +36,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(data is not None)
         self.assertTrue(len(data) > 0)
         self.assertTrue(lam.current_revision == len(lam.revisions) - 1)
-        self.assertTrue(lam.level == Level.QUERYABLE)
+        self.assertTrue(lam.queryable)
         self.assertTrue(lam.status == Status.DRAFT)
         self.assertTrue(lam.nargs > 1)
         self.assertTrue(lam.folder == '{}/{}/{}/{}'.format(DATA_STORAGE_ROOT,
