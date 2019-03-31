@@ -74,12 +74,12 @@ class PythonLambda(Lambda):
             if inp is not None:
                 df = self._func(inp)
                 if isinstance(df, Series):
-                    df = DataFrame(df, columns=[self.name])
+                    df = DataFrame(df, columns=[self.VAR_OUTPUT])
                 if isinstance(inp, DataFrame) and not isinstance(df, DataFrame):
                     raise NormError
             else:
                 df = self._func()
         except:
-            df = DataFrame(inp.apply(self._func, axis=1), columns=[self.name])
+            df = DataFrame(inp.apply(self._func, axis=1), columns=[self.VAR_OUTPUT])
         return df
 

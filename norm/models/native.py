@@ -19,6 +19,7 @@ class NativeLambda(Lambda):
                          variables=variables,
                          dtype=dtype)
         self.status = Status.READY
+        self.atomic = True
 
     def empty_data(self):
         return None
@@ -59,7 +60,7 @@ class ListLambda(NativeLambda):
         :param type_: the intern type of the list
         :type type_: Lambda
         """
-        variable = Variable.create(self.INTERN, type_)
+        variable = Variable(self.INTERN, type_)
         super().__init__(name='List[{}]'.format(type_.signature),
                          description='A list of a certain type',
                          variables=[variable])

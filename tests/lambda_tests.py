@@ -2,7 +2,7 @@
 import os
 
 from tests.utils import NormTestCase
-from norm.models import Lambda, Variable, Status, Level, lambdas
+from norm.models import Lambda, Variable, Status, lambdas
 
 
 class LambdaTestCase(NormTestCase):
@@ -11,27 +11,27 @@ class LambdaTestCase(NormTestCase):
         lam1 = Lambda(namespace=self.executor.context_namespace,
                       name='Test',
                       description='Comment 1',
-                      variables=[Variable.create(Lambda.VAR_OUTPUT, lambdas.String)])
+                      variables=[Variable(Lambda.VAR_OUTPUT, lambdas.String)])
         self.session.add(lam1)
         self.assertTrue(Lambda.exists(self.session, lam1))
         lam2 = Lambda(namespace=self.executor.context_namespace,
                       name='Test',
                       description='Comment 2',
-                      variables=[Variable.create(Lambda.VAR_OUTPUT, lambdas.String)])
+                      variables=[Variable(Lambda.VAR_OUTPUT, lambdas.String)])
         self.assertTrue(not Lambda.exists(self.session, lam2))
         lam3 = Lambda(namespace=self.executor.context_namespace,
                       name='Test',
                       description='Comment 2',
-                      variables=[Variable.create(Lambda.VAR_OUTPUT, lambdas.Type)])
+                      variables=[Variable(Lambda.VAR_OUTPUT, lambdas.Type)])
         self.assertTrue(not Lambda.exists(self.session, lam3))
 
     def test_creation(self):
         lam = Lambda(namespace=self.executor.context_namespace,
                      name='Test',
                      description='Test lambda',
-                     variables=[Variable.create('a', lambdas.String),
-                                Variable.create('b', lambdas.Integer),
-                                Variable.create('c', lambdas.Datetime)]
+                     variables=[Variable('a', lambdas.String),
+                                Variable('b', lambdas.Integer),
+                                Variable('c', lambdas.Datetime)]
                      )
         self.assertTrue(lam is not None)
         self.assertTrue(lam.version.startswith('$'))
@@ -45,9 +45,9 @@ class LambdaTestCase(NormTestCase):
         lam = Lambda(namespace=self.executor.context_namespace,
                      name='Test',
                      description='Test lambda',
-                     variables=[Variable.create('a', lambdas.String),
-                                Variable.create('b', lambdas.Integer),
-                                Variable.create('c', lambdas.Datetime)]
+                     variables=[Variable('a', lambdas.String),
+                                Variable('b', lambdas.Integer),
+                                Variable('c', lambdas.Datetime)]
                      )
         lam.status = Status.READY
         cloned = lam.clone()
@@ -90,9 +90,9 @@ class LambdaTestCase(NormTestCase):
         lam = Lambda(namespace=self.executor.context_namespace,
                      name='Test',
                      description='Test lambda',
-                     variables=[Variable.create('a', lambdas.String),
-                                Variable.create('b', lambdas.Integer),
-                                Variable.create('c', lambdas.Datetime)]
+                     variables=[Variable('a', lambdas.String),
+                                Variable('b', lambdas.Integer),
+                                Variable('c', lambdas.Datetime)]
                      )
         lam.queryable = True
         df = lam.empty_data()

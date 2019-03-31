@@ -14,13 +14,11 @@ from sqlalchemy.ext.orderinglist import ordering_list
 import json
 import os
 import errno
-import uuid
 import enum
 
 from datetime import datetime
 from pandas import DataFrame
 import pandas as pd
-import numpy as np
 from hashids import Hashids
 
 from typing import List, Dict
@@ -41,20 +39,6 @@ class Variable(Model, ParametrizedMixin):
     name = Column(String(256), default='')
     type_id = Column(Integer, ForeignKey('lambdas.id'))
     type_ = relationship('Lambda', foreign_keys=[type_id])
-
-    @classmethod
-    def create(cls, name=None, type_=None):
-        if name is None or type_ is None:
-            return None
-        assert(isinstance(type_, Lambda))
-        name = str(name)
-        from norm.config import session
-        instance = session.query(Variable).filter(Variable.name == name,
-                                                  Variable.type_id == type_.id).first()
-        if instance is None:
-            instance = Variable(name, type_)
-            session.add(instance)
-        return instance
 
     def __init__(self, name, type_):
         """
@@ -97,20 +81,6 @@ class Status(enum.Enum):
     """
     DRAFT = 0
     READY = 1
-
-
-class Level(enum.IntEnum):
-    """
-    Different computational level for Lambda functions:
-        1. any function that can compute the outputs given inputs is at level computable.
-        2. any function that can record the input-output as data such that a query can search through data to provide
-           statistics and aggregations is at level queryable.
-        3. any function that can adapt the parameters by fitting the recorded input-output data with respect to a
-           certain objective function.
-    """
-    COMPUTABLE = 0
-    QUERYABLE = 1
-    ADAPTABLE = 2
 
 
 def new_version():
@@ -336,7 +306,7 @@ class Lambda(Model, ParametrizedMixin):
             if len(self.variables) > 0:
                 return self.df[[var.name for var in self.variables]]
             else:
-                return self.df.copy()
+                return self.df
         else:
             return self.df
 
@@ -432,7 +402,7 @@ class Lambda(Model, ParametrizedMixin):
         cols = {col: dtype for col, dtype in zip(df.columns, df.dtypes)}
         from norm.models.native import get_type_by_dtype
         current_variable_names = set(self._all_columns)
-        vars_to_add = [Variable.create(col, get_type_by_dtype(dtype)) for col, dtype in cols.items()
+        vars_to_add = [Variable(col, get_type_by_dtype(dtype)) for col, dtype in cols.items()
                        if col not in current_variable_names]
         if len(vars_to_add) > 0:
             from norm.models.revision import AddVariableRevision
@@ -660,7 +630,7 @@ class Lambda(Model, ParametrizedMixin):
             logger.error(msg)
             raise RuntimeError(msg)
         else:
-            self.df = self.cloned_from._load_data().copy(False)
+            self.df = self.cloned_from._load_data()
 
         from norm.models.revision import DeltaRevision
         for i in range(self.current_revision + 1):

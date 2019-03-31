@@ -55,11 +55,11 @@ class ReadFileLambda(CoreLambda):
                          description='Read data from files [.csv, .tsv, .parq, .jsonl], default to csv file'
                                      'your_lambda.read("path_to_the_file.csv", (sep="\t", skiprows=3))'
                                      'read(your_lambda, "path_to_the_file.csv", (sep="\t", skiprows=3))',
-                         variables=[Variable.create(self.VAR_LAMBDA, lambda_type),
-                                    Variable.create(self.VAR_PATH, string_type),
-                                    Variable.create(self.VAR_PARM, any_type),
-                                    Variable.create(self.VAR_EXT, string_type),
-                                    Variable.create(self.VAR_OUTPUT, lambda_type)])
+                         variables=[Variable(self.VAR_LAMBDA, lambda_type),
+                                    Variable(self.VAR_PATH, string_type),
+                                    Variable(self.VAR_PARM, any_type),
+                                    Variable(self.VAR_EXT, string_type),
+                                    Variable(self.VAR_OUTPUT, lambda_type)])
 
     def __call__(self, **inputs):
         lam = inputs.get(self.VAR_LAMBDA)
@@ -118,9 +118,9 @@ class StringFormatterLambda(CoreLambda):
     def __init__(self):
         string_type = native_type('String')
         any_type = native_type('Any')
-        formatter = Variable.create(self.VAR_FORMATTER, string_type)
-        variables = Variable.create(self.VAR_VARIABLES, any_type)
-        output = Variable.create(self.VAR_OUTPUT, string_type)
+        formatter = Variable(self.VAR_FORMATTER, string_type)
+        variables = Variable(self.VAR_VARIABLES, any_type)
+        output = Variable(self.VAR_OUTPUT, string_type)
         super().__init__(name='format',
                          description='Format the strings with given inputs, the semantic is the same as Python format',
                          variables=[formatter, variables, output])
@@ -162,10 +162,10 @@ class ExtractPatternLambda(CoreLambda):
                          description='Extract patterns from a string'
                                      '"(2014).*(6)".extract("2014-06") --> (2014, 6)/None'
                                      '"2014.*6".extract(s, fillna=False) --> True/False',
-                         variables=[Variable.create(self.VAR_PATTERN, string_type),
-                                    Variable.create(self.VAR_STRING, string_type),
-                                    Variable.create(self.VAR_FILLNA, any_type),
-                                    Variable.create(self.VAR_OUTPUT, any_type)])
+                         variables=[Variable(self.VAR_PATTERN, string_type),
+                                    Variable(self.VAR_STRING, string_type),
+                                    Variable(self.VAR_FILLNA, any_type),
+                                    Variable(self.VAR_OUTPUT, any_type)])
 
     def __call__(self, **inputs):
         pattern = inputs.get(self.VAR_PATTERN, None)
