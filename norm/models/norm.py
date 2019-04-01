@@ -331,7 +331,7 @@ class Lambda(Model, ParametrizedMixin):
         lam.queryable = self.queryable
         lam.adaptable = self.adaptable
         if self.df is not None:
-            lam.df = self.df.copy(False)
+            lam.df = self.df
         return lam
 
     def merge(self, others):

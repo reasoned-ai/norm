@@ -84,14 +84,10 @@ class TypeDeclaration(NormSchema):
             else:
                 self.argument_declarations.append(output_arg)
         if self.argument_declarations is None:
-            if lam is None:
-                lam = Lambda(namespace=context.context_namespace, name=self.type_name.name)
-                context.session.add(lam)
-            self.lam = lam
-            if context.scope is None:
-                context.scope = lam
-            return self
-        variables = [var_declaration.var for var_declaration in self.argument_declarations]
+            variables = []
+        else:
+            variables = [var_declaration.var for var_declaration in self.argument_declarations]
+
         if lam is None:
             #  Create a new Lambda
             lam = Lambda(namespace=context.context_namespace, name=self.type_name.name)
@@ -109,6 +105,7 @@ class TypeDeclaration(NormSchema):
                 # TODO: make a doc change revision
                 if self.description:
                     lam.description = self.description
+
         self.lam = lam
         # Set the context scope to this Lambda
         if context.scope is None:
