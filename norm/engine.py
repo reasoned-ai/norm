@@ -239,9 +239,11 @@ class NormCompiler(normListener):
         self._push(Command(op, type_).compile(self))
 
     def exitArgumentDeclaration(self, ctx:normParser.ArgumentDeclarationContext):
+        variable_property = ctx.argumentProperties().getText() if ctx.argumentProperties() else None
         type_name = self._pop()  # type: TypeName
         variable_name = self._pop()  # type: VariableName
-        self._push(ArgumentDeclaration(variable_name, type_name))
+        self._push(ArgumentDeclaration(variable_name, type_name,
+                                       variable_property is not None and variable_property.lower() == 'optional'))
 
     def exitArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
         args = list(reversed([self._pop() for ch in ctx.children

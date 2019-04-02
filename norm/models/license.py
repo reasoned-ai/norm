@@ -14,8 +14,8 @@ class License(Model):
 
 
 LICENSES = [
-    'Apache-2.0',
     'MIT',
+    'Apache-2.0',
     'CC-0',
     'BSD'
 ]

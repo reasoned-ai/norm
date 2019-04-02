@@ -10,18 +10,20 @@ logger = logging.getLogger(__name__)
 
 class ArgumentDeclaration(object):
 
-    def __init__(self, variable_name, variable_type):
+    def __init__(self, variable_name, variable_type, optional=False):
         """
         The argument declaration
         :param variable_name: the name of the variable
         :type variable_name: VariableName
         :param variable_type: the type of the variable
         :type variable_type: TypeName
+        :param optional: whether it is optional or not
+        :type optional: bool
         """
         assert(variable_type is not None)
         assert(variable_type.lam is not None)
         from norm.models import Variable
-        self.var = Variable(variable_name.name, variable_type.lam)
+        self.var = Variable(variable_name.name, variable_type.lam, not optional)
 
 
 class RenameArgument(object):
@@ -96,7 +98,8 @@ class TypeDeclaration(NormSchema):
             context.session.add(lam)
         else:
             assert(lam.status == Status.DRAFT)
-            if sorted(lam.variables, key=lambda v: v.name) != sorted(variables, key=lambda v: v.name):
+            if len(variables) > 0 and \
+                    sorted(lam.variables, key=lambda v: v.name) != sorted(variables, key=lambda v: v.name):
                 # Revise the existing schema
                 new_variables = {v.name: v.type_ for v in variables}
                 current_variables = {v.name: v.type_ for v in lam.variables}

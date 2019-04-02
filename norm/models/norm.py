@@ -1,6 +1,9 @@
 """A collection of ORM sqlalchemy models for Lambda"""
+import sys
+import zlib
+
 import norm.config as config
-from norm.models.mixins import lazy_property, ParametrizedMixin, ARRAY
+from norm.models.mixins import ParametrizedMixin, ARRAY
 from norm.models.license import License
 from norm.models.user import User
 from norm.models import Model
@@ -37,20 +40,24 @@ class Variable(Model, ParametrizedMixin):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(256), default='')
+    primary = Column(Boolean, default=False)
     type_id = Column(Integer, ForeignKey('lambdas.id'))
     type_ = relationship('Lambda', foreign_keys=[type_id])
 
-    def __init__(self, name, type_):
+    def __init__(self, name, type_, primary=False):
         """
         Construct the variable
         :param name: the full name of the variable
         :type name: str
         :param type_: the type of the variable
         :type type_: Lambda
+        :param primary: whether the variable is a primary for an Lambda
+        :type primary: bool
         """
         self.id = None
         self.name = name
         self.type_ = type_
+        self.primary = primary
 
     def __hash__(self):
         return hash(self.name) + hash(self.type_)
@@ -220,6 +227,7 @@ class Lambda(Model, ParametrizedMixin):
         self.adaptable: bool = False
         self.df: DataFrame = None
         self.modified_or_new = True
+        self.license_id = 0
 
     @orm.reconstructor
     def init_on_load(self):
@@ -390,6 +398,15 @@ class Lambda(Model, ParametrizedMixin):
         revision = FitRevision('', '', self)
         self._add_revision(revision)
 
+    def generate_oid(self, df):
+        if self.VAR_OID not in df.columns:
+            cols = [v.name for v in self.variables if v.primary and v.name in df.columns]
+
+            def encode(x):
+                return hashids.encode(zlib.adler32(str.encode(x.to_string(), 'utf-8')))
+            df[self.VAR_OID] = df[cols].apply(encode, axis=1)
+        return df
+
     def add_data(self, query, df):
         # If the query already exists, the revision is skipped
         if any((rev.query == query for rev in self.revisions)):
@@ -408,10 +425,7 @@ class Lambda(Model, ParametrizedMixin):
             from norm.models.revision import AddVariableRevision
             self._add_revision(AddVariableRevision(vars_to_add, self))
         from norm.models.revision import DisjunctionRevision
-        delta = df
-        if self.VAR_OID not in cols.keys():
-            base = hash(query)
-            delta[self.VAR_OID] = [hashids.encode(base + i) for i in df.index]
+        delta = self.generate_oid(df)
         self._add_revision(DisjunctionRevision(query, 'add_data', self, delta))
         self.queryable = True
 

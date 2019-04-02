@@ -152,7 +152,7 @@ class EvaluationExpr(NormExpression):
                 if self.lam.atomic:
                     return self.lam()
                 else:
-                    df = self.lam.data
+                    df = self.lam.df
             elif self.is_to_add_data:
                 cols = list(sorted(inputs.keys()))
                 return DataFrame(data=inputs, columns=cols)
@@ -165,8 +165,11 @@ class EvaluationExpr(NormExpression):
         else:
             df = self.lam.data.query(self.inputs, engine='python')
 
-        if len(self.outputs) > 0 and isinstance(df, DataFrame):
-            df = df[list(sorted(self.outputs.keys()))].rename(columns=self.outputs)
+        if isinstance(df, DataFrame):
+            if len(self.outputs) > 0:
+                df = df[list(sorted(self.outputs.keys()))].rename(columns=self.outputs)
+            else:
+                df = df[list(sorted(v.name for v in self.lam.variables))]
         return df
 
 

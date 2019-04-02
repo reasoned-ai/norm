@@ -71,6 +71,27 @@ class EvaluationTestCase(NormTestCase):
         lam = self.execute("wikisql;")
         self.assertTrue(os.path.exists(lam.folder))
 
+    def test_evaluate_oid_generation(self):
+        self.execute("test(a: String, b: Integer);")
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3)"
+                     "     ;")
+        oids = self.execute("test(oid?);")
+        self.assertTrue(oids is not None)
+        self.assertTrue(all(oids['oid'] == ['lxoJvk6', 'mOg19j0', '83505Jo']))
+
+    def test_evaluate_oid_generation_ignore_optional_variables(self):
+        self.execute("test(a: String, b: Integer, c: String: optional);")
+        self.execute("test := ('test', 1, 'tt')"
+                     "     |  ('here', 2, 'gg')"
+                     "     |  ('there', 3, 'hh')"
+                     "     ;")
+        oids = self.execute("test(oid?, c?);")
+        self.assertTrue(oids is not None)
+        self.assertTrue(all(oids['oid'] == ['lxoJvk6', 'mOg19j0', '83505Jo']))
+        self.assertTrue(all(oids['c'] == ['tt', 'gg', 'hh']))
+
     def test_evaluate_empty(self):
         self.execute("test(a: String, b: Integer);")
         test = self.execute("test;")
@@ -86,10 +107,6 @@ class EvaluationTestCase(NormTestCase):
 
     def test_evaluate_assigned_columns(self):
         self.execute("test(a: String, b: Integer);")
-        self.execute("test := ('test', 1)"
-                     "     |  ('here', 2)"
-                     "     |  ('there', 3)"
-                     "     ;")
         test = self.execute("test;")
         self.assertTrue(test is not None)
         data = self.execute("test('test', 1);")

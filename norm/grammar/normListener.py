@@ -62,6 +62,15 @@ class normListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by normParser#argumentProperties.
+    def enterArgumentProperties(self, ctx:normParser.ArgumentPropertiesContext):
+        pass
+
+    # Exit a parse tree produced by normParser#argumentProperties.
+    def exitArgumentProperties(self, ctx:normParser.ArgumentPropertiesContext):
+        pass
+
+
     # Enter a parse tree produced by normParser#argumentDeclaration.
     def enterArgumentDeclaration(self, ctx:normParser.ArgumentDeclarationContext):
         pass
