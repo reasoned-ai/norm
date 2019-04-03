@@ -169,7 +169,7 @@ class EvaluationExpr(NormExpression):
             if len(self.outputs) > 0:
                 df = df[list(sorted(self.outputs.keys()))].rename(columns=self.outputs)
             else:
-                df = df[list(sorted(v.name for v in self.lam.variables))]
+                df = df[[v.name for v in self.lam.variables if v.name in df.columns]]
         return df
 
 

@@ -79,7 +79,7 @@ class EvaluationTestCase(NormTestCase):
                      "     ;")
         oids = self.execute("test(oid?);")
         self.assertTrue(oids is not None)
-        self.assertTrue(all(oids['oid'] == ['lxoJvk6', 'mOg19j0', '83505Jo']))
+        self.assertTrue(all(oids['oid'] == [73204161, 68944293, 107020825]))
 
     def test_evaluate_oid_generation_ignore_optional_variables(self):
         self.execute("test(a: String, b: Integer, c: String: optional);")
@@ -89,7 +89,7 @@ class EvaluationTestCase(NormTestCase):
                      "     ;")
         oids = self.execute("test(oid?, c?);")
         self.assertTrue(oids is not None)
-        self.assertTrue(all(oids['oid'] == ['lxoJvk6', 'mOg19j0', '83505Jo']))
+        self.assertTrue(all(oids['oid'] == [73204161, 68944293, 107020825]))
         self.assertTrue(all(oids['c'] == ['tt', 'gg', 'hh']))
 
     def test_evaluate_empty(self):

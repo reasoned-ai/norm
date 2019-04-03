@@ -1,5 +1,4 @@
 """A collection of ORM sqlalchemy models for Lambda"""
-import sys
 import zlib
 
 import norm.config as config
@@ -152,11 +151,11 @@ class Lambda(Model, ParametrizedMixin):
     category = Column(String(128))
 
     VAR_OUTPUT = 'output'
-    # OUTPUT default to boolean, but can be overriden to any other types
+    # OUTPUT default to boolean, but can be overridden to any other types
     VAR_LABEL = 'label'
     VAR_LABEL_T = 'float'
     VAR_OID = 'oid'
-    VAR_OID_T = 'object'
+    VAR_OID_T = 'int64'
     VAR_PROB = 'prob'
     VAR_PROB_T = 'float'
     VAR_TIMESTAMP = 'timestamp'
@@ -401,10 +400,13 @@ class Lambda(Model, ParametrizedMixin):
     def generate_oid(self, df):
         if self.VAR_OID not in df.columns:
             cols = [v.name for v in self.variables if v.primary and v.name in df.columns]
-
-            def encode(x):
-                return hashids.encode(zlib.adler32(str.encode(x.to_string(), 'utf-8')))
-            df[self.VAR_OID] = df[cols].apply(encode, axis=1)
+            c = None
+            for col in cols:
+                if c is None:
+                    c = df[col].astype(str)
+                else:
+                    c.str.cat(df[col].astype(str))
+            df[self.VAR_OID] = c.astype('bytes').apply(zlib.adler32).astype('int64')
         return df
 
     def add_data(self, query, df):
