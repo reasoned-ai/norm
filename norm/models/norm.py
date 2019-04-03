@@ -32,7 +32,7 @@ metadata = Model.metadata
 hashids = Hashids(min_length=config.VERSION_MIN_LENGTH)
 
 
-class Variable(Model, ParametrizedMixin):
+class Variable(Model):
     """Variable placeholder"""
 
     __tablename__ = 'variables'
@@ -40,6 +40,7 @@ class Variable(Model, ParametrizedMixin):
     id = Column(Integer, primary_key=True)
     name = Column(String(256), default='')
     primary = Column(Boolean, default=False)
+    position = Column(Integer)
     type_id = Column(Integer, ForeignKey('lambdas.id'))
     type_ = relationship('Lambda', foreign_keys=[type_id])
 
@@ -182,7 +183,8 @@ class Lambda(Model, ParametrizedMixin):
     changed_on = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     # schema
     description = Column(Text, default='')
-    variables = relationship(Variable, secondary=lambda_variable)
+    variables = relationship(Variable, order_by=Variable.position, collection_class=ordering_list('position'),
+                             secondary=lambda_variable)
     # version
     anchor = Column(Boolean, default=True)
     cloned_from_id = Column(Integer, ForeignKey('lambdas.id'))
