@@ -32,10 +32,25 @@ utcnow := {{
 test &= utcnow()?t2;
 
 // evaluate and query data
+// create an empty object
 test();
+// create an object
 test('aa', 6);
+// same as the above
 test('aa', b=6);
+// query the data where b==6
+test('aa', b==6);
+// same as the above
+test('aa', b==6)?;
+// same as the above
+test('aa', b=6)?;
+// query all data
+test?;
+// same as the above
+test()?;
+// query for a in all data
 test(a?);
+// query for a and b in all data
 test(a?, b?);
 test(a='sfs', b?);
 test(a~'s'?, b>3);

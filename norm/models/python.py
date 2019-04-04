@@ -55,7 +55,7 @@ class PythonLambda(Lambda):
             d = {}
             exec(self.code, d)
             self._func = d.get(self.name)
-        except:
+        except Exception:
             msg = 'Execution errors: \n{}'.format(self.code)
             logger.error(msg)
             raise NormError(msg)
@@ -79,7 +79,7 @@ class PythonLambda(Lambda):
                     raise NormError
             else:
                 df = self._func()
-        except:
+        except Exception:
             df = DataFrame(inp.apply(self._func, axis=1), columns=[self.VAR_OUTPUT])
         return df
 

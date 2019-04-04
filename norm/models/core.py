@@ -2,7 +2,7 @@
 from pandas import DataFrame
 
 from norm.models import Register
-from norm.models.norm import Lambda, Variable, Status, retrieve_type
+from norm.models.norm import Lambda, Variable, Status
 
 import logging
 logger = logging.getLogger(__name__)
@@ -27,10 +27,6 @@ class CoreLambda(Lambda):
         self.atomic = True
 
 
-def native_type(name):
-    return retrieve_type('norm.native', name)
-
-
 @Register()
 class ReadFileLambda(CoreLambda):
     __mapper_args__ = {
@@ -48,18 +44,16 @@ class ReadFileLambda(CoreLambda):
     EXT_JSL = 'jsonl'
 
     def __init__(self):
-        string_type = native_type('String')
-        lambda_type = native_type('Type')
-        any_type = native_type('Any')
+        from norm.models import lambdas
         super().__init__(name='read',
                          description='Read data from files [.csv, .tsv, .parq, .jsonl], default to csv file'
                                      'your_lambda.read("path_to_the_file.csv", (sep="\t", skiprows=3))'
                                      'read(your_lambda, "path_to_the_file.csv", (sep="\t", skiprows=3))',
-                         variables=[Variable(self.VAR_LAMBDA, lambda_type),
-                                    Variable(self.VAR_PATH, string_type),
-                                    Variable(self.VAR_PARM, any_type),
-                                    Variable(self.VAR_EXT, string_type),
-                                    Variable(self.VAR_OUTPUT, lambda_type)])
+                         variables=[Variable(self.VAR_LAMBDA, lambdas.Type),
+                                    Variable(self.VAR_PATH, lambdas.String),
+                                    Variable(self.VAR_PARM, lambdas.Any),
+                                    Variable(self.VAR_EXT, lambdas.String),
+                                    Variable(self.VAR_OUTPUT, lambdas.Type)])
 
     def __call__(self, **inputs):
         lam = inputs.get(self.VAR_LAMBDA)
@@ -116,11 +110,10 @@ class StringFormatterLambda(CoreLambda):
     VAR_VARIABLES = 'variables'
 
     def __init__(self):
-        string_type = native_type('String')
-        any_type = native_type('Any')
-        formatter = Variable(self.VAR_FORMATTER, string_type)
-        variables = Variable(self.VAR_VARIABLES, any_type)
-        output = Variable(self.VAR_OUTPUT, string_type)
+        from norm.models import lambdas
+        formatter = Variable(self.VAR_FORMATTER, lambdas.String)
+        variables = Variable(self.VAR_VARIABLES, lambdas.Any)
+        output = Variable(self.VAR_OUTPUT, lambdas.String)
         super().__init__(name='format',
                          description='Format the strings with given inputs, the semantic is the same as Python format',
                          variables=[formatter, variables, output])
@@ -156,16 +149,15 @@ class ExtractPatternLambda(CoreLambda):
     VAR_FILLNA = 'fillna'
 
     def __init__(self):
-        string_type = native_type('String')
-        any_type = native_type('Any')
+        from norm.models import lambdas
         super().__init__(name='extract',
                          description='Extract patterns from a string'
                                      '"(2014).*(6)".extract("2014-06") --> (2014, 6)/None'
                                      '"2014.*6".extract(s, fillna=False) --> True/False',
-                         variables=[Variable(self.VAR_PATTERN, string_type),
-                                    Variable(self.VAR_STRING, string_type),
-                                    Variable(self.VAR_FILLNA, any_type),
-                                    Variable(self.VAR_OUTPUT, any_type)])
+                         variables=[Variable(self.VAR_PATTERN, lambdas.String),
+                                    Variable(self.VAR_STRING, lambdas.String),
+                                    Variable(self.VAR_FILLNA, lambdas.Any),
+                                    Variable(self.VAR_OUTPUT, lambdas.Any)])
 
     def __call__(self, **inputs):
         pattern = inputs.get(self.VAR_PATTERN, None)

@@ -21,9 +21,6 @@ class NativeLambda(Lambda):
         self.status = Status.READY
         self.atomic = True
 
-    def empty_data(self):
-        return None
-
 
 @Register()
 class TypeLambda(NativeLambda):

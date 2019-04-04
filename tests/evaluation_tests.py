@@ -105,6 +105,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(all(data['a'] == ['test', 'here', 'there']))
         self.assertTrue(all(data['b'] == [1, 2, 3]))
 
+
     def test_evaluate_assigned_columns(self):
         self.execute("test(a: String, b: Integer);")
         test = self.execute("test;")
