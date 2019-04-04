@@ -41,12 +41,6 @@ class PythonLambda(Lambda):
                                     Variable(self.VAR_OUTPUT, lambdas.Any)])
         self.status = Status.READY
         self.code = dedent(code)
-        r = self.code.rfind('return')
-        if r < 0:
-            msg = 'Need to return the function in the script'
-            logger.error(msg)
-            raise NormError(msg)
-        self.code = '{}{} ={}'.format(self.code[:r], self.name, self.code[r+6:])
         self._load_func()
         self.atomic = True
 

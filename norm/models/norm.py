@@ -408,7 +408,8 @@ class Lambda(Model, ParametrizedMixin):
                     c = df[col].astype(str)
                 else:
                     c.str.cat(df[col].astype(str))
-            df[self.VAR_OID] = c.astype('bytes').apply(zlib.adler32).astype('int64')
+            if c is not None:
+                df[self.VAR_OID] = c.astype('bytes').apply(zlib.adler32).astype('int64')
         return df
 
     def add_data(self, query, df):

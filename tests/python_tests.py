@@ -11,8 +11,8 @@ class PythonTestCase(NormTestCase):
     def test_python_declaration(self):
         script = """
         test := {{
-            import datetime
-            return datetime.datetime.utcnow
+            from datetime import datetime
+            test = datetime.utcnow
         }};
         """
         self.execute(script)
@@ -22,8 +22,8 @@ class PythonTestCase(NormTestCase):
     def test_python_query(self):
         script = """
         test := {{
-            import datetime
-            return datetime.datetime.utcnow
+            from datetime import datetime
+            test = datetime.utcnow
         }};
         """
         self.execute(script)
@@ -35,7 +35,7 @@ class PythonTestCase(NormTestCase):
         script = """
         test := {{
             import numpy as np
-            return np.sin
+            test = np.sin
         }};
         """
         self.execute(script)
@@ -52,9 +52,8 @@ class PythonTestCase(NormTestCase):
     def test_python_custom_function(self):
         script = """
         test := {{
-            def combine(x):
+            def test(x):
                 return '{}-{}'.format(x.b, x.c)
-            return combine
         }};
         """
         self.execute(script)
@@ -71,8 +70,8 @@ class PythonTestCase(NormTestCase):
     def test_python_function_projection(self):
         script = """
         utcnow := {{
-            import datetime
-            return datetime.datetime.utcnow
+            from datetime import datetime
+            utcnow = datetime.utcnow
         }};
         """
         self.execute(script)
@@ -93,7 +92,6 @@ class PythonTestCase(NormTestCase):
             import numpy as np
             def gaussian(v):
                 return np.exp(-v*v / 2)/np.sqrt(2*np.pi)
-            return gaussian
         }};
         """
         self.execute(script)
