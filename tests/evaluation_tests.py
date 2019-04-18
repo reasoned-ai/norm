@@ -101,10 +101,8 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('there', 3)"
                      "     ;")
         data = self.execute("test();")
-        self.assertTrue(data is not test)
-        self.assertTrue(all(data['a'] == ['test', 'here', 'there']))
-        self.assertTrue(all(data['b'] == [1, 2, 3]))
-
+        # TODO: change the default for primaries
+        self.assertTrue(data is None)
 
     def test_evaluate_assigned_columns(self):
         self.execute("test(a: String, b: Integer);")
@@ -140,7 +138,7 @@ class EvaluationTestCase(NormTestCase):
                      "      |  ('there')"
                      "      ;")
         self.execute("test(a: test2, b: Integer);")
-        data = self.execute("test(a=test2(), b=1);")
+        data = self.execute("test(a=test2?, b=1);")
         self.assertTrue(all(data['a'] == ['test', 'here', 'there']))
         self.assertTrue(all(data['b'] == [1, 1, 1]))
 

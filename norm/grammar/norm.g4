@@ -110,9 +110,9 @@ argumentExpressions
 
 evaluationExpression
     : constant
-    | variable
+    | variable WS? queryProjection?
     | argumentExpressions
-    | variable argumentExpressions
+    | variable argumentExpressions WS? queryProjection?
     | evaluationExpression (WS|NS)? DOT (WS|NS)? evaluationExpression
     ;
 

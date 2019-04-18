@@ -1,8 +1,8 @@
-from pandas import DataFrame
+from norm.utils import hash_df
+from pandas import DataFrame, Series
 
 from norm.grammar.literals import COP
-
-from norm.executable import NormError
+from norm.executable import NormError, Projection
 from norm.executable.expression.argument import ArgumentExpr
 from norm.executable.schema.variable import VariableName, ColumnVariable
 from norm.executable.expression import NormExpression
@@ -15,22 +15,23 @@ logger = logging.getLogger(__name__)
 
 class EvaluationExpr(NormExpression):
 
-    def __init__(self, args, variable=None):
+    def __init__(self, args, variable=None, projection=None):
         """
         The evaluation of an expression either led by a variable name
         :param args: the arguments provided
         :type args: List[ArgumentExpr]
         :param variable: the variable name to evaluate
         :type variable: VariableName
+        :type projection: Projection
         """
         super().__init__()
         self.variable: VariableName = variable
         self.args: List[ArgumentExpr] = args
         self.inputs: Dict[str, DataFrame] = None
         self.outputs: Dict[str, str] = None
-        self.is_to_add_data: bool = False
         from norm.models.norm import Lambda
         self.lam: Lambda = None
+        self.projection: Projection = projection
 
     @property
     def is_constant_arguments(self):
@@ -75,6 +76,7 @@ class EvaluationExpr(NormExpression):
         for ov, arg in zip(lam.variables, self.args):  # type: Variable, ArgumentExpr
             if arg.expr is None:
                 continue
+
             if arg.op is None and arg.variable is not None:
                 keyword_arg = True
             if not keyword_arg:
@@ -106,12 +108,14 @@ class EvaluationExpr(NormExpression):
         :return: a dictionary mapping from the original variable to the new variable
         :rtype: Dict
         """
+        from norm.models.norm import Lambda
+        assert(isinstance(lam, Lambda))
         outputs = {}
         from norm.models.norm import Variable
         for ov, arg in zip(lam.variables, self.args):  # type: Variable, ArgumentExpr
             if arg.projection is not None:
-                assert (len(arg.projection.variables) <= 1)
-                assert (not arg.projection.to_evaluate)
+                assert(len(arg.projection.variables) <= 1)
+                assert(not arg.projection.to_evaluate)
                 if arg.variable is None:
                     outputs[ov.name] = arg.projection.variables[0].name
                 else:
@@ -119,7 +123,32 @@ class EvaluationExpr(NormExpression):
                         outputs[arg.variable.name] = arg.variable.name
                     else:
                         outputs[arg.variable.name] = arg.projection.variables[0].name
+        if self.projection is not None:
+            assert(len(self.projection.variables) <= 1)
+            assert(not self.projection.to_evaluate)
+            if self.projection.num == 1:
+                new_lambda_name = self.projection.variables[0].name
+            else:
+                new_lambda_name = lam.name
+            outputs = {key: new_lambda_name + '.' + value for key, value in outputs.items()}
+            if lam.is_functional:
+                outputs[lam.VAR_OUTPUT] = new_lambda_name
+            else:
+                outputs[lam.VAR_OID] = new_lambda_name
         return outputs
+
+    @property
+    def primary(self):
+        if self.projection is not None:
+            if self.projection.num == 1:
+                return self.projection.variables[0].name
+            else:
+                return self.lam.name
+        else:
+            if self.lam.is_functional:
+                return self.lam.VAR_OUTPUT
+            else:
+                return self.lam.VAR_OID
 
     def compile(self, context):
         if self.variable is None:
@@ -129,9 +158,9 @@ class EvaluationExpr(NormExpression):
             lam = context.scope
             # constructing new objects
             assert(self.check_assignment_arguments())
-            self.is_to_add_data = True
             self.inputs = self.build_assignment_inputs(lam)
             self.outputs = None
+            is_to_add_data = True
         else:
             lam = self.variable.lam
             if lam is None:
@@ -139,25 +168,26 @@ class EvaluationExpr(NormExpression):
                 return self
             if self.check_assignment_arguments():
                 self.inputs = self.build_assignment_inputs(lam)
+                is_to_add_data = not lam.atomic
             else:
                 self.inputs = self.build_conditional_inputs()
+                is_to_add_data = False
             self.outputs = self.build_outputs(lam)
-        self.lam = lam
-        return self
+            is_to_add_data &= len(self.outputs) == 0
+
+        if is_to_add_data:
+            return AddDataEvaluationExpr(lam, self.inputs, self.variable is None)
+        else:
+            self.lam = lam
+            return self
 
     def execute(self, context):
         if isinstance(self.inputs, dict):
             inputs = dict((key, value.execute(context)) for key, value in self.inputs.items())
-            if len(inputs) == 0:
-                if self.lam.atomic:
-                    return self.lam()
-                else:
-                    df = self.lam.df
-            elif self.is_to_add_data:
-                cols = list(sorted(inputs.keys()))
-                return DataFrame(data=inputs, columns=cols)
-            elif self.lam.atomic:
+            if self.lam.atomic:
                 df = self.lam(**inputs)
+            elif len(inputs) == 0:
+                df = self.lam.df
             else:
                 # Simply creating new objects
                 # TODO: do we need oids for these?
@@ -170,6 +200,75 @@ class EvaluationExpr(NormExpression):
                 df = df[list(sorted(self.outputs.keys()))].rename(columns=self.outputs)
             else:
                 df = df[[v.name for v in self.lam.variables if v.name in df.columns]]
+        return df
+
+
+class AddDataEvaluationExpr(NormExpression):
+
+    def __init__(self, lam, data, delayed=False):
+        """
+        Add data to a Lambda. If the lambda is not the current scope, revision occurs immediately. Otherwise,
+        revision is delayed to TypeImplementation
+        :param lam: the Lambda to add data
+        :type lam: norm.model.norm.Lambda
+        :param data: the data to add
+        :type data: Dict
+        :param delayed: whether to revise Lambda now or later
+        :type delayed: bool
+        """
+        super().__init__()
+        from norm.models.norm import Lambda
+        self.lam: Lambda = lam
+        self.data: Dict = data
+        self.delayed: bool = delayed
+
+    def compile(self, context):
+        return self
+
+    def list_value(self, value, context):
+        result = value.execute(context)
+        if isinstance(result, DataFrame):
+            assert(isinstance(value, EvaluationExpr))
+            return result[value.primary]
+        elif isinstance(result, (list, Series)):
+            return result
+        else:
+            return [result]
+
+    def align_data(self, data):
+        max_len = 0
+        for key, value in data.items():
+            if isinstance(value, (list, Series)) and max_len < len(value):
+                max_len = len(value)
+        for key, value in data.items():
+            if isinstance(value, (list, Series)):
+                if len(value) < max_len:
+                    if len(value) == 1:
+                        data[key] = value * max_len
+                    else:
+                        # TODO: fill na with default value
+                        value.extend([None] * (max_len - len(value)))
+                        data[key] = value
+            else:
+                data[key] = [value] * max_len
+        return data
+
+    def execute(self, context):
+        if len(self.data) == 0:
+            return self.lam.default
+
+        data = dict((key, self.list_value(value, context)) for key, value in self.data.items())
+        data = self.align_data(data)
+        df = DataFrame(data=data)
+        cols = df.columns
+        for v in self.lam.variables:
+            if v.name not in cols:
+                df[v.name] = v.type_.default
+        vs = {v.name for v in self.lam.variables}
+        cols = [v.name for v in self.lam.variables] + [col for col in cols if col not in vs]
+        df = self.lam.generate_oid(df[cols])
+        if not self.delayed:
+            self.lam.add_data(hash_df(df), df)
         return df
 
 

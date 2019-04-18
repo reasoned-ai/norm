@@ -1,9 +1,9 @@
 from norm.executable import NormError
-from norm.executable.constant import ListConstant
+from norm.executable.constant import ListConstant, Constant
 from norm.executable.expression import NormExpression
 from norm.executable.expression.argument import ArgumentExpr
 from norm.executable.expression.condition import ConditionExpr, CombinedConditionExpr
-from norm.executable.expression.evaluation import EvaluationExpr
+from norm.executable.expression.evaluation import EvaluationExpr, AddDataEvaluationExpr
 from norm.grammar.literals import LOP
 
 import logging
@@ -27,56 +27,49 @@ class QueryExpr(NormExpression):
         self.expr1 = expr1
         self.expr2 = expr2
 
-    @staticmethod
-    def __pad_arguments(args, length, fill_value=None):
-        """
-        Pad the argument values with fill_value
-        :param args: the list of argument values
-        :type args: List
-        :param length: the length of the argument to fill
-        :type length: int
-        :param fill_value: the fill value
-        :type fill_value: Any
-        :return: the filled list
-        :rtype: List
-        """
-        if len(args) >= length:
-            return args
-        elif len(args) < length:
-            return args + [fill_value] * (length - len(args))
+    def __combine_value(self, value1, value2):
+        if value1 is None or value2 is None:
+            return None
+        elif isinstance(value1, ListConstant) and isinstance(value2, ListConstant):
+            value1.value.extend(value2.value)
+            return value1
+        elif isinstance(value1, ListConstant) and isinstance(value2, Constant):
+            value1.value.append(value2.value)
+            return value1
+        elif isinstance(value1, Constant) and isinstance(value2, ListConstant):
+            value2.value.append(value1.value)
+            return value2
+        elif isinstance(value1, Constant) and isinstance(value2, Constant):
+            return ListConstant(value1.type_, [value1.value, value2.value])
+        elif isinstance(value1, AddDataEvaluationExpr) and isinstance(value2, AddDataEvaluationExpr):
+            # pushdown the combine operation
+            if value1.lam is value2.lam and value1.delayed == value2.delayed:
+                combined = self.__combine_data(value1.data, value2.data)
+                if combined is not None:
+                    value1.data = combined
+                    return value1
+        return None
 
-    @staticmethod
-    def __combine_args(arg1, arg2):
-        if isinstance(arg1.expr, ListConstant):
-            if isinstance(arg2.expr, ListConstant):
-                arg1.expr.value.extend(arg2.expr.value)
+    def __combine_data(self, data1, data2):
+        cols = set(data1.keys()).union(data2.keys())
+        data = {}
+        for col in cols:
+            combined = self.__combine_value(data1.get(col), data2.get(col))
+            if combined is None:
+                return None
             else:
-                arg1.expr.value.append(arg2.expr.value)
-            return arg1.expr
-        else:
-            if isinstance(arg2.expr, ListConstant):
-                arg1.expr.value = [arg1.expr.value] + arg2.expr.value
-                return arg1.expr
-            else:
-                return ListConstant(arg1.expr.type_, [arg1.expr.value, arg2.expr.value])
+                data[col] = combined
+        return data
 
     def compile(self, context):
-        if isinstance(self.expr1, EvaluationExpr) and self.expr1.is_to_add_data\
-                and isinstance(self.expr2, EvaluationExpr) and self.expr2.is_to_add_data:
+        if isinstance(self.expr1, AddDataEvaluationExpr) and isinstance(self.expr2, AddDataEvaluationExpr)\
+                and self.expr1.lam is self.expr2.lam and self.expr1.delayed == self.expr2.delayed:
             # Combine the constant arguments for adding data
             # ensure that all arguments are constants
-            if self.expr1.is_constant_arguments and self.expr2.is_constant_arguments:
-                # Assuming the first constant type is respected, if the following types are different,
-                #     they will be converted
-                # If two arguments are of different length, the missing values will be filled with N/A
-                length = max(len(self.expr1.args), len(self.expr2.args))
-                args = [ArgumentExpr(expr=self.__combine_args(arg1, arg2))
-                        for arg1, arg2 in zip(self.__pad_arguments(self.expr1.args, length),
-                                              self.__pad_arguments(self.expr2.args, length))]
-                return EvaluationExpr(args).compile(context)
-            else:
-                # TODO: combine expressions instead of just constants
-                pass
+            combined = self.__combine_data(self.expr1.data, self.expr2.data)
+            if combined is not None:
+                self.expr1.data = combined
+                return self.expr1
         if isinstance(self.expr1, ConditionExpr) and isinstance(self.expr2, ConditionExpr):
             return CombinedConditionExpr(self.op, self.expr1, self.expr2).compile(context)
         return self

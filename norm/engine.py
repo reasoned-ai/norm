@@ -289,7 +289,12 @@ class NormCompiler(normListener):
             if ctx.spacedConditionOperator() else None  # type: COP
         # = is treated as op is None
         variable = self._pop() if ctx.variable() else None  # type: VariableName
-        self._push(ArgumentExpr(variable, op, expr, projection))
+        if variable is None and projection is None and op is None and expr is not None \
+                and isinstance(expr, EvaluationExpr) and isinstance(expr.variable, ColumnVariable) \
+                and len(expr.args) == 0 and expr.projection is not None:
+            self._push(ArgumentExpr(expr.variable, op, None, expr.projection).compile(self))
+        else:
+            self._push(ArgumentExpr(variable, op, expr, projection).compile(self))
 
     def exitArgumentExpressions(self, ctx:normParser.ArgumentExpressionsContext):
         args = list(reversed([self._pop() for ch in ctx.children
@@ -382,10 +387,11 @@ class NormCompiler(normListener):
             rexpr = self._pop()
             lexpr = self._pop()
             self._push(ChainedEvaluationExpr(lexpr, rexpr).compile(self))
-        elif ctx.argumentExpressions():
-            args = self._pop()  # type: List[ArgumentExpr]
+        elif ctx.argumentExpressions() or ctx.queryProjection():
+            projection = self._pop() if ctx.queryProjection() else None
+            args = self._pop() if ctx.argumentExpressions() else []  # type: List[ArgumentExpr]
             variable = self._pop() if ctx.variable() else None  # type: VariableName
-            self._push(EvaluationExpr(args, variable).compile(self))
+            self._push(EvaluationExpr(args, variable, projection).compile(self))
 
     def exitCodeExpression(self, ctx:normParser.CodeExpressionContext):
         self._push(ctx.code().getText())

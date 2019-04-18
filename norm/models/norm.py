@@ -294,6 +294,21 @@ class Lambda(Model, ParametrizedMixin):
                            .all()
         return any(in_store.variables == obj.variables for in_store in in_stores)
 
+    @property
+    def default(self):
+        """
+        The default value for the Lambda
+        """
+        return None
+
+    @property
+    def is_functional(self):
+        """
+        Whether the Lambda is in the relational or functional format
+        :rtype: bool
+        """
+        return len(self.variables) >= 0 and self.variables[-1].name == self.VAR_OUTPUT
+
     def get_type(self, variable_name):
         """
         Get the type of the variable by the name
