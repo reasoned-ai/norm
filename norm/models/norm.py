@@ -299,7 +299,7 @@ class Lambda(Model, ParametrizedMixin):
         """
         The default value for the Lambda
         """
-        return None
+        return {v.name: v.type_.default for v in self.variables}
 
     @property
     def is_functional(self):

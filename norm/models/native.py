@@ -2,6 +2,9 @@
 from norm.models import Register
 from norm.models.norm import Lambda, Variable, Status
 
+from datetime import datetime
+import numpy as np
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -62,6 +65,10 @@ class ListLambda(NativeLambda):
                          description='A list of a certain type',
                          variables=[variable])
 
+    @property
+    def default(self):
+        return []
+
 
 @Register()
 class BooleanLambda(NativeLambda):
@@ -74,6 +81,10 @@ class BooleanLambda(NativeLambda):
                          description='Boolean, true/false',
                          variables=[],
                          dtype='bool')
+
+    @property
+    def default(self):
+        return False
 
 
 @Register()
@@ -88,6 +99,10 @@ class FloatLambda(NativeLambda):
                          variables=[],
                          dtype='float')
 
+    @property
+    def default(self):
+        return 0.0
+
 
 @Register()
 class IntegerLambda(NativeLambda):
@@ -101,6 +116,10 @@ class IntegerLambda(NativeLambda):
                          variables=[],
                          dtype='int')
 
+    @property
+    def default(self):
+        return 0
+
 
 @Register()
 class StringLambda(NativeLambda):
@@ -112,6 +131,10 @@ class StringLambda(NativeLambda):
         super().__init__(name='String',
                          description='String, "blahbalh"',
                          variables=[])
+
+    @property
+    def default(self):
+        return ''
 
 
 @Register()
@@ -125,6 +148,10 @@ class PatternLambda(NativeLambda):
                          description='Pattern, r"^test[0-9]+"',
                          variables=[])
 
+    @property
+    def default(self):
+        return ''
+
 
 @Register()
 class UUIDLambda(NativeLambda):
@@ -136,6 +163,10 @@ class UUIDLambda(NativeLambda):
         super().__init__(name='UUID',
                          description='UUID, $"sfsfsfsf"',
                          variables=[])
+
+    @property
+    def default(self):
+        return ''
 
 
 @Register()
@@ -149,6 +180,10 @@ class URLLambda(NativeLambda):
                          description='URL, l"http://example.com"',
                          variables=[])
 
+    @property
+    def default(self):
+        return 'http://'
+
 
 @Register()
 class DatetimeLambda(NativeLambda):
@@ -161,6 +196,10 @@ class DatetimeLambda(NativeLambda):
                          description='Datetime, t"2018-09-01"',
                          variables=[],
                          dtype='datetime64[ns]')
+
+    @property
+    def default(self):
+        return np.datetime64(datetime.utcnow())
 
 
 def get_type_by_dtype(dtype):

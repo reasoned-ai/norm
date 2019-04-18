@@ -255,7 +255,7 @@ class AddDataEvaluationExpr(NormExpression):
 
     def execute(self, context):
         if len(self.data) == 0:
-            return self.lam.default
+            return DataFrame(data=[self.lam.default])
 
         data = dict((key, self.list_value(value, context)) for key, value in self.data.items())
         data = self.align_data(data)

@@ -92,7 +92,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(all(oids['oid'] == [73204161, 68944293, 107020825]))
         self.assertTrue(all(oids['c'] == ['tt', 'gg', 'hh']))
 
-    def test_evaluate_empty(self):
+    def test_evaluate_empty_as_default(self):
         self.execute("test(a: String, b: Integer);")
         test = self.execute("test;")
         self.assertTrue(test is not None)
@@ -101,8 +101,8 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('there', 3)"
                      "     ;")
         data = self.execute("test();")
-        # TODO: change the default for primaries
-        self.assertTrue(data is None)
+        self.assertTrue(all(data['a'] == ['']))
+        self.assertTrue(all(data['b'] == [0]))
 
     def test_evaluate_assigned_columns(self):
         self.execute("test(a: String, b: Integer);")
