@@ -226,13 +226,13 @@ class Lambda(Model, ParametrizedMixin):
         self.atomic: bool = False
         self.queryable: bool = False
         self.adaptable: bool = False
-        self.df: DataFrame = None
+        self._data: DataFrame = None
         self.modified_or_new = True
         self.license_id = 0
 
     @orm.reconstructor
     def init_on_load(self):
-        self.df = None
+        self._data = None
         self.modified_or_new = False
 
     @hybrid_property
@@ -324,15 +324,16 @@ class Lambda(Model, ParametrizedMixin):
 
     @property
     def data(self):
-        if self.df is None:
-            self.df = self.empty_data()
-        if isinstance(self.df, DataFrame):
-            if len(self.variables) > 0:
-                return self.df[[var.name for var in self.variables]]
-            else:
-                return self.df
+        if self._data is None:
+            self._data = self.empty_data()
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        if value is None:
+            self._data = self.empty_data()
         else:
-            return self.df
+            self._data = value
 
     @property
     def signature(self):
@@ -354,8 +355,8 @@ class Lambda(Model, ParametrizedMixin):
         lam.atomic = self.atomic
         lam.queryable = self.queryable
         lam.adaptable = self.adaptable
-        if self.df is not None:
-            lam.df = self.df
+        if self._data is not None:
+            lam._data = self._data
         return lam
 
     def merge(self, others):
@@ -654,17 +655,17 @@ class Lambda(Model, ParametrizedMixin):
         :return: the combined data
         :rtype: DataFrame
         """
-        if self.df is not None:
-            return self.df
+        if self._data is not None:
+            return self._data
 
         if self.anchor:
-            self.df = self.empty_data()
+            self._data = self.empty_data()
         elif self.cloned_from is None:
             msg = "Failed to find the anchor version. The chain is broken for {}".format(self)
             logger.error(msg)
             raise RuntimeError(msg)
         else:
-            self.df = self.cloned_from._load_data()
+            self._data = self.cloned_from._load_data()
 
         from norm.models.revision import DeltaRevision
         for i in range(self.current_revision + 1):
@@ -673,8 +674,8 @@ class Lambda(Model, ParametrizedMixin):
                 revision.redo()
 
         # Choose the rows still alive and the columns specified in schema
-        self.df = self.df[self._all_columns][~self.df[self.VAR_TOMBSTONE]]
-        return self.df
+        self._data = self._data[self._all_columns][~self._data[self.VAR_TOMBSTONE]]
+        return self._data
 
     @_only_queryable
     def _save_data(self):

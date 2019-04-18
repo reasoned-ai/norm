@@ -187,7 +187,7 @@ class EvaluationExpr(NormExpression):
             if self.lam.atomic:
                 df = self.lam(**inputs)
             elif len(inputs) == 0:
-                df = self.lam.df
+                df = self.lam.data
             else:
                 # Simply creating new objects
                 # TODO: do we need oids for these?

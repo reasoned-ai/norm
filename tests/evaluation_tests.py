@@ -52,7 +52,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(len(lam.revisions) == 2)
         data2 = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
         self.assertTrue(len(data) == len(data2))
-        self.assertTrue(len(lam.df[lam.VAR_OID]) > 0)
+        self.assertTrue(len(lam.data[lam.VAR_OID]) > 0)
 
     def test_recognize_repeated_declaration_within_the_same_session(self):
         script = """

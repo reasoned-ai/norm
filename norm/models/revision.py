@@ -128,7 +128,7 @@ class RenameVariableRevision(SchemaRevision):
 
     def apply(self):
         if self.lam and self.lam.data is not None:
-            self.lam.df = self.lam.data.rename(columns=self.renames, inplace=True)
+            self.lam._data = self.lam.data.rename(columns=self.renames, inplace=True)
         for v in self.lam.variables:
             new_name = self.renames.get(v.name)
             if new_name is not None:
@@ -137,7 +137,7 @@ class RenameVariableRevision(SchemaRevision):
     def undo(self):
         renames_r = self.renames_r
         if self.lam and self.lam.data is not None:
-            self.lam.df = self.lam.data.rename(columns=renames_r, inplace=True)
+            self.lam._data = self.lam.data.rename(columns=renames_r, inplace=True)
         for v in self.lam.variables:
             old_name = renames_r.get(v.name)
             if old_name is not None:
@@ -209,7 +209,7 @@ class DeltaRevision(Revision):
     def __init__(self, query, description, lam, delta=None):
         super().__init__(query, description, lam)
         self._delta = delta
-        self.orig_df = None
+        self.orig_data = None
 
     @orm.reconstructor
     def init_on_load(self):
@@ -293,14 +293,14 @@ class DisjunctionRevision(DeltaRevision):
         super().__init__(query, description, lam, delta)
 
     def apply(self):
-        self.orig_df = self.lam.df
-        if self.lam.df is not None:
-            self.lam.df = self.lam.df.append(self.delta)
+        self.orig_df = self.lam._data
+        if self.lam._data is not None:
+            self.lam._data.append(self.delta)
         else:
-            self.lam.df = self.delta
+            self.lam._data = self.delta
 
     def undo(self):
-        self.lam.df = self.orig_df
+        self.lam._data = self.orig_df
 
     def redo(self):
         self.apply()

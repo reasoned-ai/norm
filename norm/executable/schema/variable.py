@@ -89,7 +89,7 @@ class ColumnVariable(VariableName):
         return self
 
     def execute(self, context):
-        return self.lam.df[self.name]
+        return self.lam.data[self.name]
 
 
 class JoinVariable(VariableName):

@@ -69,13 +69,13 @@ class TypeImplementation(NormSchema):
         elif self.op == ImplType.AND_DEF:
             to_concat = self.query.execute(context)
             if isinstance(to_concat, DataFrame) and len(lam.data) == len(to_concat):
-                lam.df = pd.concat([lam.df, to_concat], axis=1)
+                lam.data = pd.concat([lam.data, to_concat], axis=1)
             else:
                 if len(self.query.projection.variables) == 1:
-                    lam.df[self.query.projection.variables[0].name] = to_concat
+                    lam.data[self.query.projection.variables[0].name] = to_concat
                 else:
                     for i, v in enumerate(self.query.projection.variables):
-                        lam.df[v.name] = to_concat[i]
+                        lam.data[v.name] = to_concat[i]
             # Add new variables automatically
             # TODO: need a better type inference
             from norm.models import lambdas
