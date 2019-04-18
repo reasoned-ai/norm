@@ -22,6 +22,7 @@ from datetime import datetime
 from pandas import DataFrame
 import pandas as pd
 from hashids import Hashids
+import numpy as np
 
 from typing import List, Dict
 
@@ -415,7 +416,7 @@ class Lambda(Model, ParametrizedMixin):
         revision = FitRevision('', '', self)
         self._add_revision(revision)
 
-    def generate_oid(self, df):
+    def fill_oid(self, df):
         if self.VAR_OID not in df.columns:
             cols = [v.name for v in self.variables if v.primary and v.name in df.columns]
             c = None
@@ -428,6 +429,26 @@ class Lambda(Model, ParametrizedMixin):
                 df[self.VAR_OID] = c.astype('bytes').apply(zlib.adler32).astype('int64')
         return df
 
+    def fill_time(self, df):
+        if self.VAR_TIMESTAMP not in df.columns:
+            df[self.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
+        return df
+
+    def fill_label(self, df):
+        if self.VAR_LABEL not in df.columns:
+            df[self.VAR_LABEL] = 1.0
+        return df
+
+    def fill_prob(self, df):
+        if self.VAR_PROB not in df.columns:
+            df[self.VAR_PROB] = 1.0
+        return df
+
+    def fill_tombstone(self, df):
+        if self.VAR_TOMBSTONE not in df.columns:
+            df[self.VAR_TOMBSTONE] = False
+        return df
+
     def add_data(self, query, df):
         # If the query already exists, the revision is skipped
         if any((rev.query == query for rev in self.revisions)):
@@ -437,16 +458,19 @@ class Lambda(Model, ParametrizedMixin):
         if not isinstance(df.index, pd.RangeIndex):
             df = df.reset_index()
 
-        cols = {col: dtype for col, dtype in zip(df.columns, df.dtypes)}
         from norm.models.native import get_type_by_dtype
         current_variable_names = set(self._all_columns)
-        vars_to_add = [Variable(col, get_type_by_dtype(dtype)) for col, dtype in cols.items()
+        vars_to_add = [Variable(col, get_type_by_dtype(dtype)) for col, dtype in zip(df.columns, df.dtypes)
                        if col not in current_variable_names]
         if len(vars_to_add) > 0:
             from norm.models.revision import AddVariableRevision
             self._add_revision(AddVariableRevision(vars_to_add, self))
         from norm.models.revision import DisjunctionRevision
-        delta = self.generate_oid(df)
+        delta = self.fill_oid(df)
+        delta = self.fill_label(delta)
+        delta = self.fill_prob(delta)
+        delta = self.fill_time(delta)
+        delta = self.fill_tombstone(delta)
         self._add_revision(DisjunctionRevision(query, 'add_data', self, delta))
         self.queryable = True
 

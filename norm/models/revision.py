@@ -293,14 +293,14 @@ class DisjunctionRevision(DeltaRevision):
         super().__init__(query, description, lam, delta)
 
     def apply(self):
-        self.orig_df = self.lam._data
-        if self.lam._data is not None:
-            self.lam._data.append(self.delta)
+        self.orig_data = self.lam.data
+        if self.lam.data is not None:
+            self.lam.data = self.lam.data.append(self.delta)
         else:
-            self.lam._data = self.delta
+            self.lam.data = self.delta
 
     def undo(self):
-        self.lam._data = self.orig_df
+        self.lam.data = self.orig_data
 
     def redo(self):
         self.apply()

@@ -7,7 +7,9 @@ from norm.executable.expression.argument import ArgumentExpr
 from norm.executable.schema.variable import VariableName, ColumnVariable
 from norm.executable.expression import NormExpression
 
-from typing import List, Dict
+from collections import OrderedDict
+
+from typing import List, Dict, Tuple
 
 import logging
 logger = logging.getLogger(__name__)
@@ -71,7 +73,7 @@ class EvaluationExpr(NormExpression):
                     for i, arg in enumerate(self.args)}
 
         keyword_arg = False
-        inputs = {}
+        inputs = OrderedDict()
         from norm.models.norm import Variable
         for ov, arg in zip(lam.variables, self.args):  # type: Variable, ArgumentExpr
             if arg.expr is None:
@@ -110,7 +112,7 @@ class EvaluationExpr(NormExpression):
         """
         from norm.models.norm import Lambda
         assert(isinstance(lam, Lambda))
-        outputs = {}
+        outputs = OrderedDict()
         from norm.models.norm import Variable
         for ov, arg in zip(lam.variables, self.args):  # type: Variable, ArgumentExpr
             if arg.projection is not None:
@@ -197,7 +199,7 @@ class EvaluationExpr(NormExpression):
 
         if isinstance(df, DataFrame):
             if len(self.outputs) > 0:
-                df = df[list(sorted(self.outputs.keys()))].rename(columns=self.outputs)
+                df = df[list(self.outputs.keys())].rename(columns=self.outputs)
             else:
                 df = df[[v.name for v in self.lam.variables if v.name in df.columns]]
         return df
@@ -257,16 +259,16 @@ class AddDataEvaluationExpr(NormExpression):
         if len(self.data) == 0:
             return DataFrame(data=[self.lam.default])
 
-        data = dict((key, self.list_value(value, context)) for key, value in self.data.items())
+        data = OrderedDict((key, self.list_value(value, context)) for key, value in self.data.items())
         data = self.align_data(data)
-        df = DataFrame(data=data)
+        df = DataFrame(data=data, columns=data.keys())
         cols = df.columns
         for v in self.lam.variables:
             if v.name not in cols:
                 df[v.name] = v.type_.default
-        vs = {v.name for v in self.lam.variables}
-        cols = [v.name for v in self.lam.variables] + [col for col in cols if col not in vs]
-        df = self.lam.generate_oid(df[cols])
+        # vs = {v.name for v in self.lam.variables}
+        # cols = [v.name for v in self.lam.variables] + [col for col in cols if col not in vs]
+        # df = self.lam.generate_oid(df[cols])
         if not self.delayed:
             self.lam.add_data(hash_df(df), df)
         return df
