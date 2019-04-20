@@ -110,9 +110,6 @@ class TypeDeclaration(NormSchema):
                     lam.description = self.description
 
         self.lam = lam
-        # Set the context scope to this Lambda
-        if context.scope is None:
-            context.scope = lam
         return self
 
 

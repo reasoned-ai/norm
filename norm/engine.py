@@ -46,7 +46,7 @@ class NormCompiler(normListener):
 
     def __init__(self, context_id, user, session=None):
         self.context_id = context_id
-        self.scope = None  # type: Lambda
+        self.scopes = []
         self.stack = []
         self.session = session
         self.user = user
@@ -69,7 +69,15 @@ class NormCompiler(normListener):
         For a unnamed query, we assign a temporary type for the scope.
         For a named query, i.e., type implementation, the scope is the type.
         """
-        self.scope = Lambda(self.context_namespace, self.TMP_VARIABLE_STUB + str(uuid.uuid4()))
+        self.scopes.append((Lambda(self.context_namespace, self.TMP_VARIABLE_STUB + str(uuid.uuid4())), 'temp'))
+
+    @property
+    def scope(self):
+        return self.scopes[-1][0] if len(self.scopes) > 0 else None
+
+    @property
+    def scope_lex(self):
+        return self.scopes[-1][1] if len(self.scopes) > 0 else None
 
     def _push(self, exe):
         self.stack.append(exe)
@@ -84,7 +92,7 @@ class NormCompiler(normListener):
         """
         :rtype: NormExecutable
         """
-        return self.stack[-1]
+        return self.stack[-1] if len(self.stack) > 0 else None
 
     def optimize(self, exe):
         """
@@ -117,6 +125,8 @@ class NormCompiler(normListener):
         return
 
     def execute(self, script):
+        self.stack = []
+        self.scopes = []
         self.compile(dedent(script))
         results = None
         while len(self.stack) > 0:
@@ -245,10 +255,17 @@ class NormCompiler(normListener):
         self._push(ArgumentDeclaration(variable_name, type_name,
                                        variable_property is not None and variable_property.lower() == 'optional'))
 
+    def enterArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
+        type_name = self._peek()
+        if type_name is not None and isinstance(type_name, TypeName) and type_name.lam is not None:
+            self.scopes.append((type_name.lam, 'argument_declarations'))
+
     def exitArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
         args = list(reversed([self._pop() for ch in ctx.children
                              if isinstance(ch, normParser.ArgumentDeclarationContext)]))
         self._push(args)
+        if self.scope_lex == 'argument_declarations':
+            self.scopes.pop()
 
     def exitRename(self, ctx:normParser.RenameContext):
         new_name = self._pop()  # type: VariableName
@@ -259,6 +276,13 @@ class NormCompiler(normListener):
         args = list(reversed([self._pop() for ch in ctx.children
                               if isinstance(ch, normParser.RenameContext)]))
         self._push(args)
+        if self.scope_lex == 'renames':
+            self.scopes.pop()
+
+    def enterRenames(self, ctx:normParser.RenamesContext):
+        type_name = self._peek()
+        if type_name is not None and isinstance(type_name, TypeName) and type_name.lam is not None:
+            self.scopes.append((type_name.lam, 'renames'))
 
     def exitTypeDeclaration(self, ctx:normParser.TypeDeclarationContext):
         output_type_name = self._pop() if ctx.typeName(1) else None  # type: TypeName
@@ -296,10 +320,23 @@ class NormCompiler(normListener):
         else:
             self._push(ArgumentExpr(variable, op, expr, projection).compile(self))
 
+    def enterArgumentExpressions(self, ctx:normParser.ArgumentExpressionsContext):
+        expr = self._peek()
+        if expr is not None and isinstance(expr, (VariableName, EvaluationExpr)) and expr.lam is not None:
+            self.scopes.append((expr.lam, 'argument_expressions'))
+
     def exitArgumentExpressions(self, ctx:normParser.ArgumentExpressionsContext):
         args = list(reversed([self._pop() for ch in ctx.children
                              if isinstance(ch, normParser.ArgumentExpressionContext)]))
         self._push(args)
+        if self.scope_lex == 'argument_expressions':
+            self.scopes.pop()
+
+    def enterMultiLineExpression(self, ctx:normParser.MultiLineExpressionContext):
+        type_declaration = self._peek()
+        if type_declaration is not None and isinstance(type_declaration, TypeDeclaration) \
+                and type_declaration.lam is not None:
+            self.scopes.append((type_declaration.lam, 'multiline'))
 
     def exitMultiLineExpression(self, ctx:normParser.MultiLineExpressionContext):
         if ctx.newlineLogicalOperator():
@@ -307,6 +344,8 @@ class NormCompiler(normListener):
             expr1 = self._pop()  # type: NormExpression
             op = LOP.parse(ctx.newlineLogicalOperator().logicalOperator().getText())
             self._push(QueryExpr(op, expr1, expr2).compile(self))
+        if self.scope_lex == 'multiline':
+            self.scopes.pop()
 
     def exitOneLineExpression(self, ctx:normParser.OneLineExpressionContext):
         if ctx.queryProjection():

@@ -48,8 +48,6 @@ class TypeImplementation(NormSchema):
         if self.description is not None or self.description.strip() != '':
             self.query.description = self.description
         self.lam = lam
-        if context.scope is None:
-            context.scope = lam
         return self
 
     def execute(self, context):

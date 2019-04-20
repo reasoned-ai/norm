@@ -77,9 +77,9 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('here', 2)"
                      "     |  ('there', 3)"
                      "     ;")
-        oids = self.execute("test(oid?);")
-        self.assertTrue(oids is not None)
-        self.assertTrue(all(oids['oid'] == [73204161, 68944293, 107020825]))
+        results = self.execute("test?;")
+        self.assertTrue(results is not None)
+        self.assertTrue(all(results['test'] == [73204161, 68944293, 107020825]))
 
     def test_evaluate_oid_generation_ignore_optional_variables(self):
         self.execute("test(a: String, b: Integer, c: String: optional);")
@@ -87,10 +87,10 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('here', 2, 'gg')"
                      "     |  ('there', 3, 'hh')"
                      "     ;")
-        oids = self.execute("test(oid?, c?);")
-        self.assertTrue(oids is not None)
-        self.assertTrue(all(oids['oid'] == [73204161, 68944293, 107020825]))
-        self.assertTrue(all(oids['c'] == ['tt', 'gg', 'hh']))
+        results = self.execute("test(c?)?;")
+        self.assertTrue(results is not None)
+        self.assertTrue(all(results['test'] == [73204161, 68944293, 107020825]))
+        self.assertTrue(all(results['test.c'] == ['tt', 'gg', 'hh']))
 
     def test_evaluate_empty_as_default(self):
         self.execute("test(a: String, b: Integer);")

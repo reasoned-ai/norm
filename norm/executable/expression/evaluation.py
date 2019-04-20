@@ -224,13 +224,20 @@ class AddDataEvaluationExpr(NormExpression):
         self.data: Dict = data
         self.delayed: bool = delayed
 
+    @property
+    def primary(self):
+        if self.lam.is_functional:
+            return self.lam.VAR_OUTPUT
+        else:
+            return self.lam.VAR_OID
+
     def compile(self, context):
         return self
 
     def list_value(self, value, context):
         result = value.execute(context)
         if isinstance(result, DataFrame):
-            assert(isinstance(value, EvaluationExpr))
+            assert(isinstance(value, (EvaluationExpr, AddDataEvaluationExpr)))
             return result[value.primary]
         elif isinstance(result, (list, Series)):
             return result

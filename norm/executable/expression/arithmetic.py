@@ -47,10 +47,10 @@ class ArithmeticExpr(NormExpression):
             self._exprstr = '-({})'.format(self.expr2)
         else:
             self._exprstr = '({}) {} ({})'.format(self.expr1, self.op, self.expr2)
+        self.data = context.scope.data
         return self
 
     def execute(self, context):
-        self.data = context.scope.data
         df = self.data.eval(self._exprstr)
         if self.projection and self.projection.num > 0:
             from pandas import DataFrame, Series

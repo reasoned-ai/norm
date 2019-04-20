@@ -49,7 +49,7 @@ UNDO: 'undo'|'Undo'|'UNDO';
 REDO: 'redo'|'Redo'|'REDO';
 DELETE: 'del'|'Del'|'DEL';
 
-argumentProperties: 'optional' | 'primary';
+argumentProperties: 'optional' | 'primary' | 'oid' | 'time';
 
 argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName ((WS|NS)? COLON (WS|NS)? argumentProperties)?;
 
