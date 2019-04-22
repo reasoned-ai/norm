@@ -4,12 +4,12 @@ from pandas import DataFrame, Series
 from norm.grammar.literals import COP
 from norm.executable import NormError, Projection
 from norm.executable.expression.argument import ArgumentExpr
-from norm.executable.schema.variable import VariableName, ColumnVariable
+from norm.executable.schema.variable import VariableName, ColumnVariable, JoinVariable
 from norm.executable.expression import NormExpression
 
 from collections import OrderedDict
 
-from typing import List, Dict, Tuple
+from typing import List, Dict
 
 import logging
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ class EvaluationExpr(NormExpression):
         self.args: List[ArgumentExpr] = args
         self.inputs: Dict[str, DataFrame] = None
         self.outputs: Dict[str, str] = None
+        self.joins: List[JoinVariable] = []
         from norm.models.norm import Lambda
         self.lam: Lambda = None
         self.projection: Projection = projection
@@ -97,6 +98,8 @@ class EvaluationExpr(NormExpression):
         for arg in self.args:
             if arg.op is None or arg.expr is None:
                 continue
+            if isinstance(arg.variable, JoinVariable):
+                self.joins.append(arg.variable)
             if arg.op == COP.LK:
                 condition = '{}.str.contains({})'.format(arg.variable, arg.expr)
             else:
@@ -132,7 +135,7 @@ class EvaluationExpr(NormExpression):
                 new_lambda_name = self.projection.variables[0].name
             else:
                 new_lambda_name = lam.name
-            outputs = {key: new_lambda_name + '.' + value for key, value in outputs.items()}
+            outputs = {key: self.VARIABLE_SEPARATOR.join([new_lambda_name, value]) for key, value in outputs.items()}
             if lam.is_functional:
                 outputs[lam.VAR_OUTPUT] = new_lambda_name
             else:
@@ -195,6 +198,8 @@ class EvaluationExpr(NormExpression):
                 # TODO: do we need oids for these?
                 df = self.unify(inputs)
         else:
+            for jv in self.joins:
+                jv.execute(context)
             df = self.lam.data.query(self.inputs, engine='python')
 
         if isinstance(df, DataFrame):
@@ -273,9 +278,6 @@ class AddDataEvaluationExpr(NormExpression):
         for v in self.lam.variables:
             if v.name not in cols:
                 df[v.name] = v.type_.default
-        # vs = {v.name for v in self.lam.variables}
-        # cols = [v.name for v in self.lam.variables] + [col for col in cols if col not in vs]
-        # df = self.lam.generate_oid(df[cols])
         if not self.delayed:
             self.lam.add_data(hash_df(df), df)
         return df

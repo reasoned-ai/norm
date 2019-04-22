@@ -23,7 +23,7 @@ class VariableName(NormSchema):
 
     def __str__(self):
         if self.scope is not None:
-            return '{}.{}'.format(self.scope, self.name)
+            return '{}{}{}'.format(self.scope, self.VARIABLE_SEPARATOR, self.name)
         else:
             return self.name
 
@@ -44,9 +44,9 @@ class VariableName(NormSchema):
                 self.lam = lam
                 return self
         else:
-            if isinstance(self.scope, ColumnVariable) and self.scope.name + '.' + self.name in self.scope.lam:
+            if isinstance(self.scope, ColumnVariable) and str(self) in self.scope.lam:
                 # Already joined
-                self.scope.name += '.' + self.name
+                self.scope.name = str(self)
                 return self.scope
 
             lam = self.scope.variable_type()
@@ -105,5 +105,11 @@ class JoinVariable(VariableName):
         return self
 
     def execute(self, context):
-        lam = self.scope.execute(context)
-        return lam.data.join(self.lam.data[[self.name]].rename(columns={self.name: str(self)}), on=str(self.scope))
+        lam = self.scope.lam
+        joiner = self.lam
+        if str(self) not in lam.data.columns:
+            to_join = joiner.data[[joiner.VAR_OID, self.name]].rename(columns={self.name: str(self)})\
+                .set_index([joiner.VAR_OID])
+            lam.data = lam.data.join(to_join, on=str(self.scope))
+        return lam.data
+

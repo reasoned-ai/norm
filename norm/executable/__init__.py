@@ -4,6 +4,8 @@ class NormError(RuntimeError):
 
 class NormExecutable(object):
 
+    VARIABLE_SEPARATOR = '__dot__'
+
     def compile(self, context):
         """
         Compile the command with the given context

@@ -16,4 +16,4 @@ class JoinLambdaTestCase(NormTestCase):
                      "      ;")
         results = self.execute("teach(teacher?, class.name=='mathematics');")
         self.assertTrue(results is not None)
-        self.assertTrue(all(results['teacher'] == ['joe', 'alice']))
+        self.assertTrue(all(results['teacher'] == [42205503, 100663807]))

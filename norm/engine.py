@@ -136,6 +136,12 @@ class NormCompiler(normListener):
             else:
                 # TODO: shouldn't be here
                 results = exe
+        if isinstance(results, DataFrame):
+            fix_dot_columns = OrderedDict()
+            for col in results.columns:
+                if col.find(NormExecutable.VARIABLE_SEPARATOR) >= 0:
+                    fix_dot_columns[col] = col.replace(NormExecutable.VARIABLE_SEPARATOR, '.')
+            results = results.rename(columns=fix_dot_columns)
         return results
 
     def exitStatement(self, ctx:normParser.StatementContext):
