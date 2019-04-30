@@ -1,11 +1,7 @@
-import pandas as pd
-from pandas import DataFrame
-
 from norm.executable.schema import NormSchema
 from norm.executable.schema.declaration import TypeDeclaration
 from norm.executable.expression import NormExpression
 from norm.models import Lambda, Status, Variable
-from norm.utils import hash_df
 
 import logging
 logger = logging.getLogger(__name__)
@@ -35,8 +31,7 @@ class TypeImplementation(NormSchema):
     def compile(self, context):
         """
         Three types of implementations
-            * new implementation (:=) implies an anchor version
-              if the existing one is cloned or has at least one revision.
+            * new implementation (:=) removes all revisions from this version
             * conjunctive implementation (&=)
             * disjunctive implementation (|=)
         """
@@ -45,39 +40,36 @@ class TypeImplementation(NormSchema):
             logger.info('Lambda: {} is not in DRAFT mode. Import first'.format(lam))
             lam = Lambda(namespace=context.context_namespace, name=lam.name, description=lam.description,
                          variables=lam.variables, user=context.user)
-        if self.description is not None or self.description.strip() != '':
+        if self.description is not None and self.description.strip() != '':
             self.query.description = self.description
         self.lam = lam
         return self
 
     def execute(self, context):
         from norm.engine import ImplType
+        from norm.models.norm import RevisionType
         lam = self.lam
+        delta = self.query.execute(context)
+        if delta.index.name != lam.VAR_OID:
+            delta = lam.fill_primary(delta)
+            delta = lam.fill_time(delta)
+            delta = lam.fill_oid(delta)
+            if lam.VAR_OID in delta.columns:
+                delta = delta.set_index(lam.VAR_OID)
+            else:
+                delta.index.rename(lam.VAR_OID, inplace=True)
+        qs = str(self.query)
         if self.op == ImplType.DEF:
+            # If the query already exists, the revision is skipped
+            if any((rev.query == qs for rev in lam.revisions)):
+                return lam
+
             # Ensure the Lambda is a new implementation
             if len(lam.revisions) > 0:
                 lam.remove_revisions()
-            to_append = self.query.execute(context)
-            if isinstance(to_append, DataFrame):
-                lam.add_data(hash_df(to_append), to_append)
+            lam.revise(qs, self.description, delta, RevisionType.DISJUNCTION)
         elif self.op == ImplType.OR_DEF:
-            to_append = self.query.execute(context)
-            if isinstance(to_append, DataFrame):
-                lam.add_data(hash_df(to_append), to_append)
+            lam.revise(qs, self.description, delta, RevisionType.DISJUNCTION)
         elif self.op == ImplType.AND_DEF:
-            to_concat = self.query.execute(context)
-            if isinstance(to_concat, DataFrame) and len(lam.data) == len(to_concat):
-                lam.data = pd.concat([lam.data, to_concat], axis=1)
-            else:
-                if len(self.query.projection.variables) == 1:
-                    lam.data[self.query.projection.variables[0].name] = to_concat
-                else:
-                    for i, v in enumerate(self.query.projection.variables):
-                        lam.data[v.name] = to_concat[i]
-            # Add new variables automatically
-            # TODO: need a better type inference
-            from norm.models import lambdas
-            any_type = lambdas.Any
-            lam.add_variable([Variable(v.name, any_type) for v in self.query.projection.variables
-                              if v.name not in lam])
+            lam.revise(qs, self.description, delta, RevisionType.CONJUNCTION)
         return lam

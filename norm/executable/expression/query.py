@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from norm.executable import NormError
 from norm.executable.constant import ListConstant, Constant
 from norm.executable.expression import NormExpression
@@ -43,7 +45,7 @@ class QueryExpr(NormExpression):
             return ListConstant(value1.type_, [value1.value, value2.value])
         elif isinstance(value1, AddDataEvaluationExpr) and isinstance(value2, AddDataEvaluationExpr):
             # pushdown the combine operation
-            if value1.lam is value2.lam and value1.delayed == value2.delayed:
+            if value1.lam is value2.lam:
                 combined = self.__combine_data(value1.data, value2.data)
                 if combined is not None:
                     value1.data = combined
@@ -51,8 +53,9 @@ class QueryExpr(NormExpression):
         return None
 
     def __combine_data(self, data1, data2):
-        cols = set(data1.keys()).union(data2.keys())
-        data = {}
+        cols = list(data1.keys())
+        cols.extend(col for col in data2.keys() if col not in data1.keys())
+        data = OrderedDict()
         for col in cols:
             combined = self.__combine_value(data1.get(col), data2.get(col))
             if combined is None:
@@ -63,7 +66,7 @@ class QueryExpr(NormExpression):
 
     def compile(self, context):
         if isinstance(self.expr1, AddDataEvaluationExpr) and isinstance(self.expr2, AddDataEvaluationExpr)\
-                and self.expr1.lam is self.expr2.lam and self.expr1.delayed == self.expr2.delayed:
+                and self.expr1.lam is self.expr2.lam:
             # Combine the constant arguments for adding data
             # ensure that all arguments are constants
             combined = self.__combine_data(self.expr1.data, self.expr2.data)

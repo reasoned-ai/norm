@@ -1,0 +1,39 @@
+Output Schema
+==============
+
+Norm encourages a strong schema with certain flexibilities. The outputs of a Lambda can be of the following cases:
+
+    * The Lambda itself (the default one)
+    * Another derived Lambda
+    * An atomic Lambda
+    * Any (the flexible type)
+    * Type (the higher order function)
+
+How do we specify the output format from these schema? Additional columns are joined into the data for the computation,
+do we carry them to the downstream computation? If we do, the schema of the Lambda will be potentially different than
+the data computed. For example,
+
+.. code-block::
+
+      teach(teacher: Teacher, class: Class);
+      teach(teacher?, class.name=='mathematics');
+
+The query joins the ``teach`` with ``Class.name`` first before search. After the query, we can discard the joined columns,
+or kept intact for later reuse. Which is a better choice?
+
+All derived Lambda has ``oid``, but the atomic Lambdas don't. If we don't have the ``oid``, how to refer the values?
+``Any`` type represents an unknown Lambda which has no ``oid`` either. How do we present the output?
+
+For higher order function with ``Type`` as the output, how do we represent output?
+
+Proposal
+---------
+If the output type is an atomic Lambda, returns the output column.
+
+If the output type is ``Any``, returns the direct output DataFrame. It is very likely from a Python code.
+
+If the output type is a derived Lambda, returns the column as the index for later reference.
+
+If the output type is itself, returns the index of the current data.
+
+If the output type is ``Type``, returns the Lambda object directly in list or single object depending on the inputs.

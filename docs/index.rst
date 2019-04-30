@@ -60,7 +60,7 @@ Contents
     interaction
     application
     grammar
-
+    notes/*
 
 Indices and tables
 ------------------

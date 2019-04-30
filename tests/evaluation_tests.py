@@ -9,7 +9,7 @@ class EvaluationTestCase(NormTestCase):
 
     def test_read_jsonl(self):
         self.execute("wikisql(phase:Integer);")
-        data = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
+        data = self.execute("wikisql := read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
         lam = self.execute("wikisql;")
         self.assertTrue(lam is not None)
         self.assertTrue(len(lam.revisions) == 2)
@@ -27,14 +27,13 @@ class EvaluationTestCase(NormTestCase):
 
     def test_read_parquet(self):
         self.execute("alarms(event:String);")
-        data = self.execute("alarms.read('./data/norm/packed_alarms.parquet', ext='parq');")
-        lam = self.execute("alarms;")
+        lam = self.execute("alarms := read('./data/norm/packed_alarms.parquet', ext='parq');")
         self.assertTrue(lam is not None)
         self.assertTrue(len(lam.revisions) == 2)
         self.assertTrue(lam.end_of_revisions)
         self.assertTrue(not lam.empty_revisions)
-        self.assertTrue(data is not None)
-        self.assertTrue(len(data) > 0)
+        self.assertTrue(lam.data is not None)
+        self.assertTrue(len(lam.data) > 0)
         self.assertTrue(lam.current_revision == len(lam.revisions) - 1)
         self.assertTrue(lam.queryable)
         self.assertTrue(lam.status == Status.DRAFT)
@@ -46,13 +45,10 @@ class EvaluationTestCase(NormTestCase):
 
     def test_ignore_same_revision(self):
         self.execute("wikisql(phase: Integer);")
-        data = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
-        lam = self.execute("wikisql;")
+        lam = self.execute("wikisql := read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
+        lam = self.execute("wikisql := read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
         self.assertTrue(lam is not None)
         self.assertTrue(len(lam.revisions) == 2)
-        data2 = self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
-        self.assertTrue(len(data) == len(data2))
-        self.assertTrue(len(lam.data[lam.VAR_OID]) > 0)
 
     def test_recognize_repeated_declaration_within_the_same_session(self):
         script = """
@@ -66,7 +62,7 @@ class EvaluationTestCase(NormTestCase):
 
     def test_save_lambda_with_data_after_commit(self):
         self.execute("wikisql(phase:Integer);")
-        self.execute("wikisql.read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
+        self.execute("wikisql := read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
         self.session.commit()
         lam = self.execute("wikisql;")
         self.assertTrue(os.path.exists(lam.folder))
@@ -79,7 +75,7 @@ class EvaluationTestCase(NormTestCase):
                      "     ;")
         results = self.execute("test?;")
         self.assertTrue(results is not None)
-        self.assertTrue(all(results['test'] == [105841138, 99811799, 145556044]))
+        self.assertTrue(all(results.index == [105841138, 99811799, 145556044]))
 
     def test_evaluate_oid_generation_ignore_optional_variables(self):
         self.execute("test(a: String, b: Integer, c: String: optional);")
@@ -89,7 +85,8 @@ class EvaluationTestCase(NormTestCase):
                      "     ;")
         results = self.execute("test(c?)?;")
         self.assertTrue(results is not None)
-        self.assertTrue(all(results['test'] == [105841138, 99811799, 145556044]))
+        self.assertTrue(results.index.name == 'test')
+        self.assertTrue(all(results.index == [105841138, 99811799, 145556044]))
         self.assertTrue(all(results['test.c'] == ['tt', 'gg', 'hh']))
 
     def test_evaluate_empty_as_default(self):

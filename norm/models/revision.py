@@ -36,9 +36,9 @@ class Revision(Model, ParametrizedMixin):
     }
 
     def __init__(self, query, description, lam):
-        self.query = query
-        self.description = description
-        self.lam = lam  # type: Lambda
+        self.query: str = query
+        self.description: str = description
+        self.lam: Lambda = lam
 
     def save(self):
         """
@@ -208,8 +208,8 @@ class DeltaRevision(Revision):
 
     def __init__(self, query, description, lam, delta=None):
         super().__init__(query, description, lam)
-        self._delta = delta
-        self.orig_data = None
+        self._delta: DataFrame = delta
+        self.orig_data: DataFrame = None
 
     @orm.reconstructor
     def init_on_load(self):
@@ -265,6 +265,12 @@ class DeltaRevision(Revision):
 
 
 class ConjunctionRevision(DeltaRevision):
+    """
+    Revise with conjunction (AND):
+        *  If the delta have not been stored (checked by oid), they are appended.
+        *  If the delta have been stored as positives (by label), they are overwritten.
+        *  If the delta have been stored as negatives, they are ignored.
+    """
 
     __mapper_args__ = {
         'polymorphic_identity': 'revision_delta_conjunction'
@@ -274,16 +280,39 @@ class ConjunctionRevision(DeltaRevision):
         super().__init__(query, description, lam, delta)
 
     def apply(self):
-        pass
+        self.orig_data = self.lam.data
+
+        oid_col = self.lam.VAR_OID
+        label_col = self.lam.VAR_LABEL
+        assert(self.lam.data.index.name == oid_col)
+        data = self.lam.data
+        delta = self.delta
+        unstored = delta.index.difference(data.index, sort=False)
+        stored = delta.index.intersection(data.index, sort=False)
+        if len(unstored) > 0:
+            data = data.append(delta.loc[unstored])
+        if len(stored) > 0:
+            overwrites = data.loc[stored][data[label_col] > 0].index
+            data.loc[overwrites, delta.columns] = delta.loc[overwrites]
+            if label_col not in delta.columns:
+                data.loc[overwrites, label_col] = 1.0
+
+        self.lam.data = self.lam.fill_na(data)
 
     def undo(self):
-        pass
+        self.lam.data = self.orig_data
 
     def redo(self):
-        pass
+        self.apply()
 
 
 class DisjunctionRevision(DeltaRevision):
+    """
+    Revise with disjunction (OR):
+        *  If the delta have not been stored (checked by oid), they are appended.
+        *  If the delta have been stored as positives (by label), they are ignored.
+        *  If the delta have been stored as negatives, they are overwritten.
+    """
 
     __mapper_args__ = {
         'polymorphic_identity': 'revision_delta_disjunction'
@@ -294,10 +323,23 @@ class DisjunctionRevision(DeltaRevision):
 
     def apply(self):
         self.orig_data = self.lam.data
-        if self.lam.data is not None:
-            self.lam.data = self.lam.data.append(self.delta)
-        else:
-            self.lam.data = self.delta
+
+        oid_col = self.lam.VAR_OID
+        label_col = self.lam.VAR_LABEL
+        assert(self.lam.data.index.name == oid_col)
+        data = self.lam.data
+        delta = self.delta
+        unstored = delta.index.difference(data.index, sort=False)
+        stored = delta.index.intersection(data.index, sort=False)
+        if len(unstored) > 0:
+            data = data.append(delta.loc[unstored])
+        if len(stored) > 0:
+            overwrites = data.loc[stored][data[label_col] < 1].index
+            data.loc[overwrites, delta.columns] = delta.loc[overwrites]
+            if label_col not in delta.columns:
+                data.loc[overwrites, label_col] = 1.0
+
+        self.lam.data = self.lam.fill_na(data)
 
     def undo(self):
         self.lam.data = self.orig_data

@@ -47,7 +47,7 @@ class ImplementationTestCase(NormTestCase):
                              'b': ['sf', 'sfs', 'fs']},
                        columns=['a', 'b'])[['a', 'b']]
         self.assertTrue(len(lam.revisions) == 1)
-        #self.assertTrue(lam.revisions[0].query == hash_df(df))
+        self.assertTrue(lam.revisions[0].query == hash_df(df))
 
     def test_appending_data(self):
         self.execute("test(a: Integer, b: String);")
@@ -61,12 +61,8 @@ class ImplementationTestCase(NormTestCase):
                            "     |  (4, 'fs')"
                            "     ;")
         self.assertTrue(len(lam.revisions) == 2)
-        df = DataFrame(data={'a': [1, 2, 4],
-                             'b': ['sf', 'sfs', 'fs']},
-                       columns=['a', 'b'])[['a', 'b']]
-        #self.assertTrue(lam.revisions[1].query == hash_df(df))
-        self.assertTrue(len(lam.data) == 5)
-        self.assertTrue(all(lam.data['a'] == [1, 4, 1, 2, 4]))
+        self.assertTrue(len(lam.data) == 3)
+        self.assertTrue(all(lam.data['a'] == [1, 4, 2]))
 
     def test_add_variables(self):
         self.execute("test(a: Integer, b: String);")

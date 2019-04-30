@@ -134,8 +134,10 @@ class NormCompiler(normListener):
             if isinstance(exe, NormExecutable):
                 results = exe.execute(self)
             else:
-                # TODO: shouldn't be here
+                # TODO: shouldn't be here?
                 results = exe
+            if isinstance(results, Index) and isinstance(exe, NormExpression) and exe.output_lam is not None:
+                results = exe.output_lam.data.loc[results]
         if isinstance(results, DataFrame):
             fix_dot_columns = OrderedDict()
             for col in results.columns:
@@ -313,6 +315,9 @@ class NormCompiler(normListener):
         self._push(VariableName(scope, name).compile(self))
 
     def exitArgumentExpression(self, ctx:normParser.ArgumentExpressionContext):
+        if isinstance(self._peek(), ArgumentExpr):
+            return
+
         projection = self._pop() if ctx.queryProjection() else None  # type: Projection
         expr = self._pop() if ctx.arithmeticExpression() else None  # type: ArithmeticExpr
         op = COP(ctx.spacedConditionOperator().conditionOperator().getText().lower()) \

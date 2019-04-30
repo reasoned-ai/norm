@@ -96,13 +96,12 @@ class LambdaTestCase(NormTestCase):
                      )
         lam.queryable = True
         df = lam.empty_data()
-        self.assertTrue(all(df.columns == [lam.VAR_OID, lam.VAR_PROB, lam.VAR_LABEL,
-                                           lam.VAR_TIMESTAMP, lam.VAR_TOMBSTONE] + ['a', 'b', 'c']))
+        self.assertTrue(all(df.columns == [lam.VAR_PROB, lam.VAR_LABEL, lam.VAR_TIMESTAMP, lam.VAR_TOMBSTONE] +
+                            ['a', 'b', 'c']))
         self.assertTrue(df.dtypes[lam.VAR_TOMBSTONE] == lam.VAR_TOMBSTONE_T)
         self.assertTrue(df.dtypes[lam.VAR_TIMESTAMP] == lam.VAR_TIMESTAMP_T)
         self.assertTrue(df.dtypes[lam.VAR_LABEL] == lam.VAR_LABEL_T)
         self.assertTrue(df.dtypes[lam.VAR_PROB] == lam.VAR_PROB_T)
-        self.assertTrue(df.dtypes[lam.VAR_OID] == lam.VAR_OID_T)
         self.assertTrue(df.dtypes['a'] == 'object')
         self.assertTrue(df.dtypes['b'] == 'int')
         self.assertTrue(df.dtypes['c'] == 'datetime64[ns]')

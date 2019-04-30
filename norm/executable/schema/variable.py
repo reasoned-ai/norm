@@ -108,8 +108,7 @@ class JoinVariable(VariableName):
         lam = self.scope.lam
         joiner = self.lam
         if str(self) not in lam.data.columns:
-            to_join = joiner.data[[joiner.VAR_OID, self.name]].rename(columns={self.name: str(self)})\
-                .set_index([joiner.VAR_OID])
+            to_join = joiner.data[[self.name]].rename(columns={self.name: str(self)})
             lam.data = lam.data.join(to_join, on=str(self.scope))
         return lam.data
 

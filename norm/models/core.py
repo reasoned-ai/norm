@@ -1,4 +1,7 @@
 """A collection of ORM sqlalchemy models for CoreLambda"""
+import json
+
+import pandas as pd
 from pandas import DataFrame
 
 from norm.models import Register
@@ -33,7 +36,6 @@ class ReadFileLambda(CoreLambda):
         'polymorphic_identity': 'lambda_core_read_file'
     }
 
-    VAR_LAMBDA = 'lambda'
     VAR_PATH = 'path'
     VAR_PARM = 'parameters'
     VAR_EXT = 'ext'
@@ -49,18 +51,16 @@ class ReadFileLambda(CoreLambda):
                          description='Read data from files [.csv, .tsv, .parq, .jsonl], default to csv file'
                                      'your_lambda.read("path_to_the_file.csv", (sep="\t", skiprows=3))'
                                      'read(your_lambda, "path_to_the_file.csv", (sep="\t", skiprows=3))',
-                         variables=[Variable(self.VAR_LAMBDA, lambdas.Type),
-                                    Variable(self.VAR_PATH, lambdas.String),
+                         variables=[Variable(self.VAR_PATH, lambdas.String),
                                     Variable(self.VAR_PARM, lambdas.Any),
                                     Variable(self.VAR_EXT, lambdas.String),
-                                    Variable(self.VAR_OUTPUT, lambdas.Type)])
+                                    Variable(self.VAR_OUTPUT, lambdas.Any)])
 
     def __call__(self, **inputs):
-        lam = inputs.get(self.VAR_LAMBDA)
         path = inputs.get(self.VAR_PATH)
         params = inputs.get(self.VAR_PARM)
         ext = inputs.get(self.VAR_EXT)
-        if lam is None or path is None:
+        if path is None:
             return None
 
         if isinstance(path, DataFrame):
@@ -80,24 +80,35 @@ class ReadFileLambda(CoreLambda):
                 ext = self.EXT_JSL
             else:
                 ext = self.EXT_CSV
-        if params and isinstance(params, DataFrame):
+        if params is not None and isinstance(params, DataFrame):
             params = params.to_dict()[0]
+        else:
+            params = {}
 
         if ext == self.EXT_CSV:
-            lam.read_csv(path, params)
+            return self.read_csv(path, params)
         elif ext == self.EXT_TSV:
             params['sep'] = '\t'
-            lam.read_csv(path, params)
+            return self.read_csv(path, params)
         elif ext == self.EXT_PAR:
-            lam.read_parquet(path, params)
+            return self.read_parquet(path, params)
         elif ext == self.EXT_JSL:
-            lam.read_jsonl(path)
+            return self.read_jsonl(path)
         else:
             msg = 'Currently supported file formats: CSV (.csv), TSV (.tsv), Parquet (.parq) ' \
                   'and JSONL (.jsonl)'
             logger.error(msg)
             raise TypeError(msg)
-        return lam.data
+
+    def read_csv(self, path, params):
+        return pd.read_csv(path, **params)
+
+    def read_parquet(self, path, params):
+        return pd.read_parquet(path, **params)
+
+    def read_jsonl(self, path):
+        with open(path) as f:
+            return DataFrame([json.loads(line) for line in f])
 
 
 @Register()

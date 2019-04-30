@@ -2,7 +2,7 @@ import enum
 
 from norm.executable import NormExecutable
 from norm.executable import Projection
-from pandas import DataFrame, Series, concat
+from pandas import DataFrame, Series, concat, Index
 
 
 class Strategy(enum.Enum):
@@ -23,6 +23,8 @@ class NormExpression(NormExecutable):
         self.projection: Projection = None
         self.data: DataFrame = None
         self.description: str = None
+        from norm.models.norm import Lambda
+        self.output_lam: Lambda = None
 
     def unify(self, inputs, strategy=Strategy.LONGEST):
         """
@@ -42,19 +44,35 @@ class NormExpression(NormExecutable):
         for k, v in inputs.items():
             if isinstance(v, Lambda):
                 lambda_inputs[k] = v
-            elif isinstance(v, (list, Series)):
+            elif isinstance(v, list):
                 list_inputs[k] = v
+            elif isinstance(v, (Series, Index)):
+                list_inputs[k] = v.values
             elif isinstance(v, DataFrame):
                 dataframe_inputs[k] = v
             else:
                 constant_inputs[k] = v
+
+        # fill list inputs with None
+        if len(list_inputs) > 0:
+            max_len = max(len(v) for k, v in list_inputs.items())
+            for k, v in list_inputs.items():
+                if len(v) < max_len:
+                    if not isinstance(v, list):
+                        v = list(v)
+                        list_inputs[k] = v
+                    v.extend([None] * (max_len - len(v)))
+
+        # concat dataframe inputs
         to_concat = [DataFrame(list_inputs)]
         for k, v in dataframe_inputs.items():
             if len(v.columns) == 1:
                 renames = {col: k for col in v.columns}
             else:
-                renames = {col: '{}.{}'.format(k, col) for col in v.columns}
+                renames = {col: '{}{}{}'.format(k, self.VARIABLE_SEPARATOR, col) for col in v.columns}
             to_concat.append(v.rename(columns=renames))
+
+        # concat constant inputs
         rt = concat(to_concat, axis=1)
         if len(rt) == 0:
             for k, v in constant_inputs.items():

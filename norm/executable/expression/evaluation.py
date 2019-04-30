@@ -1,5 +1,7 @@
+from time import sleep
+
 from norm.utils import hash_df
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Index
 
 from norm.grammar.literals import COP
 from norm.executable import NormError, Projection
@@ -70,8 +72,8 @@ class EvaluationExpr(NormExpression):
         if lam.nargs == 0:
             # Lambda is anonymously created
             from norm.models.norm import Lambda
-            return {arg.variable.name if arg.variable else '{}{}'.format(Lambda.VAR_ANONYMOUS_STUB, i): arg.expr
-                    for i, arg in enumerate(self.args)}
+            return OrderedDict((arg.variable.name if arg.variable else '{}{}'.format(Lambda.VAR_ANONYMOUS_STUB, i),
+                                arg.expr) for i, arg in enumerate(self.args))
 
         keyword_arg = False
         inputs = OrderedDict()
@@ -135,25 +137,13 @@ class EvaluationExpr(NormExpression):
                 new_lambda_name = self.projection.variables[0].name
             else:
                 new_lambda_name = lam.name
-            outputs = {key: self.VARIABLE_SEPARATOR.join([new_lambda_name, value]) for key, value in outputs.items()}
+            outputs = OrderedDict((key, self.VARIABLE_SEPARATOR.join([new_lambda_name, value])) for key, value
+                                  in outputs.items())
             if lam.is_functional:
                 outputs[lam.VAR_OUTPUT] = new_lambda_name
             else:
                 outputs[lam.VAR_OID] = new_lambda_name
         return outputs
-
-    @property
-    def primary(self):
-        if self.projection is not None:
-            if self.projection.num == 1:
-                return self.projection.variables[0].name
-            else:
-                return self.lam.name
-        else:
-            if self.lam.is_functional:
-                return self.lam.VAR_OUTPUT
-            else:
-                return self.lam.VAR_OID
 
     def compile(self, context):
         if self.variable is None:
@@ -181,38 +171,153 @@ class EvaluationExpr(NormExpression):
             is_to_add_data &= len(self.outputs) == 0
 
         if is_to_add_data:
-            return AddDataEvaluationExpr(lam, self.inputs, self.variable is None)
-        else:
-            self.lam = lam
-            return self
+            return AddDataEvaluationExpr(lam, self.inputs, self.variable is not None)
+        elif isinstance(self.inputs, dict):
+            if self.projection is not None and self.projection.num == 1:
+                output_projection = self.projection.variables[0].name
+            else:
+                output_projection = None
+            if lam.atomic:
+                return AtomicEvaluationExpr(lam, self.inputs, output_projection).compile(context)
+            elif len(self.inputs) == 0:
+                if isinstance(self.variable, ColumnVariable):
+                    return ArgumentExpr(self.variable, None, None, self.projection).compile(context)
+                elif self.projection is not None and len(self.outputs) == 1:
+                    return RetrieveAllDataExpr(lam, output_projection).compile(context)
+                else:
+                    return RetrievePartialDataExpr(lam, self.outputs).compile(context)
+        self.lam = lam
+        return self
 
     def execute(self, context):
-        if isinstance(self.inputs, dict):
-            inputs = dict((key, value.execute(context)) for key, value in self.inputs.items())
-            if self.lam.atomic:
-                df = self.lam(**inputs)
-            elif len(inputs) == 0:
-                df = self.lam.data
-            else:
-                # Simply creating new objects
-                # TODO: do we need oids for these?
-                df = self.unify(inputs)
-        else:
-            for jv in self.joins:
-                jv.execute(context)
-            df = self.lam.data.query(self.inputs, engine='python')
+        for jv in self.joins:
+            jv.execute(context)
+        df = self.lam.data.query(self.inputs, engine='python')
 
-        if isinstance(df, DataFrame):
-            if len(self.outputs) > 0:
-                df = df[list(self.outputs.keys())].rename(columns=self.outputs)
-            else:
-                df = df[[v.name for v in self.lam.variables if v.name in df.columns]]
+        if isinstance(df, DataFrame) and len(self.outputs) > 0:
+            df = df[self.outputs.keys()].rename(columns=self.outputs)
+
         return df
+
+
+class AtomicEvaluationExpr(NormExpression):
+
+    def __init__(self, lam, inputs, output_projection=None):
+        """
+        Evaluate the atomic function
+        :param lam: the function to evaluate
+        :param inputs: the input values
+        :param output_projection: the output projection
+        """
+        super().__init__()
+        from norm.models.norm import Lambda
+        assert(lam is not None)
+        assert(isinstance(lam, Lambda))
+        assert(isinstance(inputs, dict))
+        self.lam: Lambda = lam
+        self.output_lam: Lambda = self.lam.output_type
+        self.inputs: Dict = inputs
+        self.output_projection: str = output_projection
+
+    def __str__(self):
+        return '{}({})'.format(self.lam.signature, ', '.join('{}={}'.format(key, value) for key, value
+                                                             in self.inputs.items()))
+
+    def compile(self, context):
+        return self
+
+    def execute(self, context):
+        inputs = dict((key, value.execute(context)) for key, value in self.inputs.items())
+        result = self.lam(**inputs)
+        if self.output_projection is not None:
+            if isinstance(result, (Series, Index)):
+                return result.rename(self.output_projection)
+            elif isinstance(result, DataFrame):
+                cols = {col: '{}{}{}'.format(self.output_projection, self.VARIABLE_SEPARATOR, col)
+                        for col in result.columns}
+                return result.loc[result.index.rename(self.output_projection)].rename(columns=cols)
+        return result
+
+
+class RetrievePartialDataExpr(NormExpression):
+
+    def __init__(self, lam, outputs):
+        """
+        Retrieve all data from the given Lambda
+        :param lam: the given Lambda
+        :param outputs: the output projections
+        """
+        super().__init__()
+        from norm.models.norm import Lambda
+        assert(lam is not None)
+        assert(isinstance(lam, Lambda))
+        assert(not lam.atomic)
+        self.lam: Lambda = lam
+        self.output_lam: Lambda = self.lam.output_type
+        self.outputs: Dict = outputs
+
+    def __str__(self):
+        oid = self.lam.VAR_OID
+        out = self.lam.VAR_OUTPUT
+        return '{}({}){}'.format(self.lam.signature,
+                                 ', '.join(('{}?'.format(c) for c in self.outputs.keys() if c != oid and c != out)),
+                                 '?' if self.outputs.get(oid) or self.outputs.get(out) else '')
+
+    def compile(self, context):
+        return self
+
+    def execute(self, context):
+        output_col = self.outputs.get(self.lam.VAR_OID) or self.outputs.get(self.lam.VAR_OUTPUT)
+        if not self.lam.is_functional and output_col is not None:
+            result = self.lam.data.reset_index()
+        else:
+            result = self.lam.data
+
+        result = result[self.outputs.keys()].rename(columns=self.outputs)
+
+        if output_col is not None:
+            result = result.set_index(output_col)
+
+        return result
+
+
+class RetrieveAllDataExpr(NormExpression):
+
+    def __init__(self, lam, output_projection=None):
+        """
+        Retrieve all data from the given Lambda
+        :param lam: the given Lambda
+        :param output_projection: the output projection variable name
+        """
+        super().__init__()
+        from norm.models.norm import Lambda
+        assert(lam is not None)
+        assert(isinstance(lam, Lambda))
+        assert(not lam.atomic)
+        self.lam: Lambda = lam
+        self.output_lam: Lambda = self.lam.output_type
+        self.output_projection: str = output_projection
+
+    def __str__(self):
+        return '{}?'.format(self.lam.signature)
+
+    def compile(self, context):
+        return self
+
+    def execute(self, context):
+        if self.lam.is_functional:
+            result = self.lam.data[self.lam.VAR_OUTPUT]
+        else:
+            result = self.lam.data.index
+        if self.output_projection is not None:
+            return result.rename(self.output_projection)
+        else:
+            return result
 
 
 class AddDataEvaluationExpr(NormExpression):
 
-    def __init__(self, lam, data, delayed=False):
+    def __init__(self, lam, data, immediately=True):
         """
         Add data to a Lambda. If the lambda is not the current scope, revision occurs immediately. Otherwise,
         revision is delayed to TypeImplementation
@@ -220,66 +325,51 @@ class AddDataEvaluationExpr(NormExpression):
         :type lam: norm.model.norm.Lambda
         :param data: the data to add
         :type data: Dict
-        :param delayed: whether to revise Lambda now or later
-        :type delayed: bool
+        :param immediately: whether to revise Lambda as a disjunction immediately, default to True
+        :type immediately: bool
         """
         super().__init__()
         from norm.models.norm import Lambda
         self.lam: Lambda = lam
+        self.output_lam: Lambda = self.lam.output_type
         self.data: Dict = data
-        self.delayed: bool = delayed
+        self.immediately: bool = immediately
+        self.description: str = 'add data'
+        self._query_str: str = None
 
-    @property
-    def primary(self):
-        if self.lam.is_functional:
-            return self.lam.VAR_OUTPUT
-        else:
-            return self.lam.VAR_OID
+    def __str__(self):
+        if self._query_str is None:
+            msg = "Need to execute first!"
+            logger.error(msg)
+            raise NormError(msg)
+        return self._query_str
 
     def compile(self, context):
         return self
-
-    def list_value(self, value, context):
-        result = value.execute(context)
-        if isinstance(result, DataFrame):
-            assert(isinstance(value, (EvaluationExpr, AddDataEvaluationExpr)))
-            return result[value.primary]
-        elif isinstance(result, (list, Series)):
-            return result
-        else:
-            return [result]
-
-    def align_data(self, data):
-        max_len = 0
-        for key, value in data.items():
-            if isinstance(value, (list, Series)) and max_len < len(value):
-                max_len = len(value)
-        for key, value in data.items():
-            if isinstance(value, (list, Series)):
-                if len(value) < max_len:
-                    if len(value) == 1:
-                        data[key] = value * max_len
-                    else:
-                        # TODO: fill na with default value
-                        value.extend([None] * (max_len - len(value)))
-                        data[key] = value
-            else:
-                data[key] = [value] * max_len
-        return data
 
     def execute(self, context):
         if len(self.data) == 0:
             return DataFrame(data=[self.lam.default])
 
-        data = OrderedDict((key, self.list_value(value, context)) for key, value in self.data.items())
-        data = self.align_data(data)
+        data = OrderedDict((key, value.execute(context)) for key, value in self.data.items())
+        data = self.unify(data)
         df = DataFrame(data=data, columns=data.keys())
-        cols = df.columns
-        for v in self.lam.variables:
-            if v.name not in cols:
-                df[v.name] = v.type_.default
-        if not self.delayed:
-            self.lam.add_data(hash_df(df), df)
+        query_str = hash_df(df)
+        self._query_str = query_str
+        df = self.lam.fill_primary(df)
+        df = self.lam.fill_time(df)
+        df = self.lam.fill_oid(df)
+        if self.lam.VAR_OID in df.columns:
+            df = df.set_index(self.lam.VAR_OID)
+        else:
+            df.index.rename(self.lam.VAR_OID, inplace=True)
+        if self.immediately:
+            from norm.models.norm import RevisionType
+            df = self.lam.revise(query_str, self.description, df, RevisionType.DISJUNCTION)
+            if self.lam.is_functional:
+                return df[self.lam.VAR_OUTPUT]
+            else:
+                return df.index
         return df
 
 
@@ -343,6 +433,7 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
 
     def execute(self, context):
         col = self.column_variable.scope.lam.data[self.column_variable.name]
+        print(self.column_variable.scope.lam)
         args = []
         kwargs = {}
         for arg in self.expr.args:  # type: ArgumentExpr
@@ -356,5 +447,8 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
         try:
             df = getattr(col, func)(*args, **kwargs)
         except:
+            print('error on {}'.format(col))
             df = getattr(col.str, func)(*args, **kwargs)
+            print(args, kwargs)
+            print(df)
         return df

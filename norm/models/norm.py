@@ -91,6 +91,14 @@ class Status(enum.Enum):
     READY = 1
 
 
+class RevisionType(enum.Enum):
+    """
+    Revision type
+    """
+    DISJUNCTION = 0
+    CONJUNCTION = 1
+
+
 def new_version():
     import time
     return '$' + hashids.encode(int(time.time() * 1000))
@@ -153,7 +161,7 @@ class Lambda(Model, ParametrizedMixin):
     category = Column(String(128))
 
     VAR_OUTPUT = 'output'
-    # OUTPUT default to boolean, but can be overridden to any other types
+    # OUTPUT default to the OID, hence the type is integer
     VAR_LABEL = 'label'
     VAR_LABEL_T = 'float'
     VAR_OID = 'oid'
@@ -308,7 +316,19 @@ class Lambda(Model, ParametrizedMixin):
         Whether the Lambda is in the relational or functional format
         :rtype: bool
         """
-        return len(self.variables) >= 0 and self.variables[-1].name == self.VAR_OUTPUT
+        return len(self.variables) > 0 and self.variables[-1].name == self.VAR_OUTPUT
+
+    @property
+    def output_type(self):
+        """
+        Return the output type. If no output variable defined, return itself
+        :return: the output type
+        :rtype: Lambda
+        """
+        if self.is_functional:
+            return self.variables[-1].type_
+        else:
+            return self
 
     def get_type(self, variable_name):
         """
@@ -387,77 +407,7 @@ class Lambda(Model, ParametrizedMixin):
         """
         pass
 
-    @_check_draft_status
-    def conjunction(self):
-        """
-        Revise with conjunction (AND)
-        """
-        from norm.models.revision import ConjunctionRevision
-        # TODO: implement the query
-        revision = ConjunctionRevision('', '', self)
-        self._add_revision(revision)
-
-    @_check_draft_status
-    def disjunction(self):
-        """
-        Revise with disjunction (OR)
-        """
-        from norm.models.revision import DisjunctionRevision
-        # TODO: implement the query
-        revision = DisjunctionRevision('', '', self)
-        self._add_revision(revision)
-
-    def fit(self):
-        """
-        Fit the model with all the existing data
-        """
-        from norm.models.revision import FitRevision
-        # TODO: implement the query
-        revision = FitRevision('', '', self)
-        self._add_revision(revision)
-
-    def fill_oid(self, df):
-        if self.VAR_OID not in df.columns:
-            cols = [v.name for v in self.variables if v.primary and v.name in df.columns]
-            c = None
-            for col in cols:
-                if c is None:
-                    c = df[col].astype(str)
-                else:
-                    c = c.str.cat(df[col].astype(str))
-            if c is not None:
-                df[self.VAR_OID] = c.astype('bytes').apply(zlib.adler32).astype('int64')
-        return df
-
-    def fill_time(self, df):
-        if self.VAR_TIMESTAMP not in df.columns:
-            df[self.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
-        return df
-
-    def fill_label(self, df):
-        if self.VAR_LABEL not in df.columns:
-            df[self.VAR_LABEL] = 1.0
-        return df
-
-    def fill_prob(self, df):
-        if self.VAR_PROB not in df.columns:
-            df[self.VAR_PROB] = 1.0
-        return df
-
-    def fill_tombstone(self, df):
-        if self.VAR_TOMBSTONE not in df.columns:
-            df[self.VAR_TOMBSTONE] = False
-        return df
-
-    def add_data(self, query, df):
-        # If the query already exists, the revision is skipped
-        if any((rev.query == query for rev in self.revisions)):
-            return
-
-        # Reset index of the dataframe if it is not a RangeIndex
-        if not isinstance(df.index, pd.RangeIndex):
-            df = df.reset_index()
-
+    def _add_optional_variables(self, df):
         from norm.models.native import get_type_by_dtype
         current_variable_names = set(self._all_columns)
         vars_to_add = [Variable(col, get_type_by_dtype(dtype)) for col, dtype in zip(df.columns, df.dtypes)
@@ -465,50 +415,130 @@ class Lambda(Model, ParametrizedMixin):
         if len(vars_to_add) > 0:
             from norm.models.revision import AddVariableRevision
             self._add_revision(AddVariableRevision(vars_to_add, self))
-        from norm.models.revision import DisjunctionRevision
-        delta = self.fill_oid(df)
-        delta = self.fill_label(delta)
-        delta = self.fill_prob(delta)
-        delta = self.fill_time(delta)
-        delta = self.fill_tombstone(delta)
-        self._add_revision(DisjunctionRevision(query, 'add_data', self, delta))
-        self.queryable = True
 
     @_check_draft_status
-    def read_csv(self, path, params):
+    def revise(self, query, description, df, op):
         """
-        Read data from a file
-        :param path: the path to the data file
-        :type path: str
-        :param params: the parameters for reading csv
-        :type params: Dict
+        Revise the Lambda by a given query and its result. If the query is an action, result is None.
+        :param query: the given query string grounded with specific versions
+        :type query: str
+        :param description: the comment on the revision
+        :type description: str
+        :param df: the result data
+        :type df: DataFrame
+        :param op: the type of revision, conjunction or disjunction
+        :type op: RevisionType
+        :return: revised data or None
+        :rtype: DataFrame
         """
-        if params is not None and isinstance(params, dict):
-            df = pd.read_csv(path, **params)
+        # If the query already exists, the revision is skipped
+        if any((rev.query == query for rev in self.revisions)):
+            return self.data.loc[df.index] if df is not None else None
+
+        if df is not None and isinstance(df, DataFrame):
+            assert(df.index.name == self.VAR_OID)
+            assert(self.VAR_TIMESTAMP in df.columns)
+
+            # Add new optional variables if the data contains variables that are not declared in this Lambda
+            self._add_optional_variables(df)
+
+            # Drop duplicated rows by the index
+            delta = df[~df.index.duplicated(keep='first')]
         else:
-            params = {}
-            df = pd.read_csv(path)
-        query = 'read("{}", {}, ext="csv")'.format(path, ', '.join('{}={}'.format(key, value)
-                                                                   for key, value in params.items()))
-        self.add_data(query, df)
+            delta = None
+
+        # Apply corresponding revisions
+        from norm.models.revision import ConjunctionRevision, DisjunctionRevision
+        if op == RevisionType.DISJUNCTION:
+            self._add_revision(DisjunctionRevision(query, description, self, delta))
+        elif op == RevisionType.CONJUNCTION:
+            self._add_revision(ConjunctionRevision(query, description, self, delta))
+        else:
+            msg = 'Revision {} has not been implemented yet'.format(op)
+            logger.error(msg)
+            raise NotImplementedError(msg)
+
+        # Enable queryable
+        if not self.queryable:
+            self.queryable = True
+
+        return self.data.loc[df.index] if delta is not None else None
 
     @_check_draft_status
-    def read_parquet(self, path, params):
-        if params is not None and isinstance(params, dict):
-            df = pd.read_parquet(path, **params)
-        else:
-            params = {}
-            df = pd.read_parquet(path)
-        query = 'read("{}", {}, ext="parq")'.format(path, ', '.join('{}={}'.format(key, value)
-                                                                    for key, value in params.items()))
-        self.add_data(query, df)
+    @_only_adaptable
+    def fit(self):
+        """
+        Fit the model with all the existing data or given data
+        """
+        from norm.models.revision import FitRevision
+        # TODO: implement the query
+        revision = FitRevision('', '', self)
+        self._add_revision(revision)
 
-    @_check_draft_status
-    def read_jsonl(self, path):
-        with open(path) as f:
-            df = DataFrame([json.loads(line) for line in f])
-        query = 'read("{}", ext="jsonl")'.format(path)
-        self.add_data(query, df)
+    def fill_na(self, df):
+        """
+        Fill the null data with default values
+        :param df: the data
+        :type df: DataFrame
+        :return: the filled DataFrame
+        :rtype: DataFrame
+        """
+        df = self._fill_label(df)
+        df = self._fill_prob(df)
+        df = self._fill_tombstone(df)
+        return df
+
+    def fill_primary(self, df):
+        for var in self.variables:
+            if var.primary:
+                if var.name in df.columns:
+                    df.loc[:, var.name] = df[var.name].fillna(var.type_.default)
+                else:
+                    df[var.name] = var.type_.default
+        return df
+
+    def fill_oid(self, df):
+        if self.VAR_OID in df.columns or df.index.name == self.VAR_OID:
+            return df
+
+        cols = [v.name for v in self.variables if v.primary and v.name in df.columns]
+        c = None
+        for col in cols:
+            if c is None:
+                c = df[col].astype(str)
+            else:
+                c = c.str.cat(df[col].astype(str))
+        if c is not None:
+            df[self.VAR_OID] = c.astype('bytes').apply(zlib.adler32).astype('int64')
+        return df
+
+    def fill_time(self, df):
+        if self.VAR_TIMESTAMP not in df.columns:
+            df[self.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
+        else:
+            df[self.VAR_TIMESTAMP].fillna(np.datetime64(datetime.utcnow()), inplace=True)
+        return df
+
+    def _fill_label(self, df):
+        if self.VAR_LABEL not in df.columns:
+            df[self.VAR_LABEL] = 1.0
+        else:
+            df[self.VAR_LABEL].fillna(1.0, inplace=True)
+        return df
+
+    def _fill_prob(self, df):
+        if self.VAR_PROB not in df.columns:
+            df[self.VAR_PROB] = 1.0
+        else:
+            df[self.VAR_PROB].fillna(1.0, inplace=True)
+        return df
+
+    def _fill_tombstone(self, df):
+        if self.VAR_TOMBSTONE not in df.columns:
+            df[self.VAR_TOMBSTONE] = False
+        else:
+            df[self.VAR_TOMBSTONE].fillna(False, inplace=True)
+        return df
 
     @_check_draft_status
     def add_variable(self, variables):
@@ -578,6 +608,7 @@ class Lambda(Model, ParametrizedMixin):
             self._save_model()
         self.modified_or_new = False
 
+    @_check_draft_status
     def remove_revisions(self):
         self.current_revision = -1
         self.revisions = []
@@ -670,7 +701,7 @@ class Lambda(Model, ParametrizedMixin):
         :rtype: DataFrame
         """
         df = DataFrame(columns=self._all_columns)
-        return df.astype(dict(zip(self._all_columns, self._all_column_types)))
+        return df.astype(dict(zip(self._all_columns, self._all_column_types))).set_index(self.VAR_OID)
 
     @_only_queryable
     def _load_data(self):
