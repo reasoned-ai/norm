@@ -11,6 +11,13 @@ class DeclarationTestCase(NormTestCase):
         lam = self.execute(script)
         self.assertTrue(lam is not None)
 
+    def test_commit_declaration(self):
+        script = """
+        Company(name: String, description: String, founders: [String], founded_at: Datetime);
+        """
+        lam = self.execute(script)
+        self.assertTrue(lam is not None)
+
     def test_recognize_repeated_declaration_within_the_same_session(self):
         script = """
         Company(name: String, mission: String, founders: [String], founded_at: Datetime);

@@ -4,6 +4,8 @@ from datetime import datetime
 import os
 
 # Default namespace stubs
+from sqlalchemy.pool import StaticPool
+
 CONTEXT_NAMESPACE_STUB = 'norm.tmp'
 USER_NAMESPACE_STUB = 'norm.user'
 
@@ -27,10 +29,12 @@ PUBLIC_USER = dict(first_name='norm',
                    username='norm',
                    email='norm@reasoned.ai')
 
+Session = sessionmaker()
+
 # Create database session
 try:
-    engine = create_engine('sqlite:///{}'.format(DB_PATH))
-    Session = sessionmaker(bind=engine)
+    engine = create_engine('sqlite:///{}'.format(DB_PATH), poolclass=StaticPool)
+    Session.configure(bind=engine)
     session = Session()
 except:
     engine = None

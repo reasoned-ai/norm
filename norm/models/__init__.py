@@ -38,7 +38,6 @@ class Register(object):
             logger.error('Type registration failed')
             logger.debug(traceback.print_exc())
             session.rollback()
-            session.close()
 
     @classmethod
     def restore_lambda(cls, item):
@@ -81,7 +80,7 @@ class Store(object):
             # reload in case there are more lambdas just got registered
             lam = self.__restore(item)
             if lam is None:
-                msg = 'Can not find {}'.format(lam)
+                msg = 'Can not find {}'.format(item)
                 logger.warning(msg)
 
         if lam is not None:

@@ -10,7 +10,7 @@ __all__ = ['user_tester', 'NormTestCase']
 os.environ['NORM_DATA_STORAGE_ROOT'] = 'data'
 os.environ['NORM_DB_PATH'] = 'norm/db/norm.db'
 
-from norm import session
+from norm.config import session
 
 
 def user_tester():
