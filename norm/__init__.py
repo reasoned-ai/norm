@@ -1,5 +1,6 @@
 from datetime import datetime
 from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.pool import StaticPool
 
 from norm.engine import NormCompiler, NormError
@@ -66,8 +67,9 @@ if get_ipython() is not None:
 
             config.session.commit()
             return result
-        except:
+        except SQLAlchemyError as e:
             config.session.rollback()
             msg = 'Session commit failed on {}'.format(config.engine)
             logger.error(msg)
+            logger.error(e)
             raise NormError(msg)

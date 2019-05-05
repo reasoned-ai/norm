@@ -45,7 +45,7 @@ class EvaluationTestCase(NormTestCase):
 
     def test_ignore_same_revision(self):
         self.execute("wikisql(phase: Integer);")
-        lam = self.execute("wikisql := read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
+        self.execute("wikisql := read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
         lam = self.execute("wikisql := read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
         self.assertTrue(lam is not None)
         self.assertTrue(len(lam.revisions) == 2)

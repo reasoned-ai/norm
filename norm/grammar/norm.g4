@@ -42,16 +42,28 @@ IMPORT: 'import'|'Import'|'IMPORT';
 
 commands: SPACED_COMMAND typeName;
 
-SPACED_COMMAND: REVISIONS|VERSIONS|UNDO|REDO|DELETE [ \t]*;
-REVISIONS: 'revisions'|'Revisions'|'REVISIONS';
-VERSIONS: 'versions'|'Versions'|'VERSIONS';
-UNDO: 'undo'|'Undo'|'UNDO';
-REDO: 'redo'|'Redo'|'REDO';
-DELETE: 'del'|'Del'|'DEL';
+SPACED_COMMAND: COMMAND [ \t]+;
+fragment HISTORY: 'history'|'History'|'HISTORY';
+fragment UNDO: 'undo'|'Undo'|'UNDO';
+fragment REDO: 'redo'|'Redo'|'REDO';
+fragment DELETE: 'del'|'Del'|'DEL';
+fragment DESCRIBE: 'describe'|'Describe'|'DESCRIBE';
 
-argumentProperties: 'optional' | 'primary' | 'oid' | 'time';
+COMMAND: HISTORY|UNDO|REDO|DELETE|DESCRIBE;
+ARGOPT:  'optional' | 'primary' | 'oid' | 'time';
 
-argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName ((WS|NS)? COLON (WS|NS)? argumentProperties)?;
+typeName
+    : VARNAME version?
+    | LSBR typeName RSBR;
+
+variable
+    : VARNAME | COMMAND | ARGOPT
+    | variable DOT (VARNAME | COMMAND | ARGOPT)
+    ;
+
+argumentProperty: (WS|NS)? COLON (WS|NS)? ARGOPT;
+
+argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName argumentProperty?;
 
 argumentDeclarations: argumentDeclaration ((WS|NS)? COMMA (WS|NS)? argumentDeclaration)*;
 
@@ -62,15 +74,6 @@ renames: rename ((WS|NS)? COMMA (WS|NS)? rename)*;
 typeDeclaration: typeName (LBR argumentDeclarations RBR)? ((WS|NS)? COLON (WS|NS)? typeName)?;
 
 version: UUID | '$latest' | '$best';
-
-typeName
-    : VARNAME version?
-    | LSBR typeName RSBR;
-
-variable
-    : VARNAME
-    | variable DOT VARNAME
-    ;
 
 queryProjection
     : '?' variable?
@@ -227,6 +230,7 @@ PYTHON_BLOCK : '{{' WS? [\r\n]?;
 BLOCK_END : (WS|NS)? '}}';
 
 VARNAME: [a-zA-Z][a-zA-Z0-9_]*;
+
 
 fragment DIGIT:      [0] | NONZERO;
 fragment NONZERO:    [1-9];

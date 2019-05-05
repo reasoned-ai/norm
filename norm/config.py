@@ -19,7 +19,7 @@ UNICODE = 'utf-8'
 VERSION_MIN_LENGTH = 6
 
 # Where the data is stored, e.g., s3://datalake, gs://datalake
-NORM_HOME = os.environ.get('NORM_HOME', '~/.norm')
+NORM_HOME = os.environ.get('NORM_HOME', os.path.expanduser('~/.norm'))
 DATA_STORAGE_ROOT = os.environ.get('NORM_DATA_STORAGE_ROOT', os.path.join(NORM_HOME, 'data'))
 DB_PATH = os.environ.get('NORM_DB_PATH', os.path.join(NORM_HOME, 'db/norm.db'))
 

@@ -62,12 +62,30 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#argumentProperties.
-    def enterArgumentProperties(self, ctx:normParser.ArgumentPropertiesContext):
+    # Enter a parse tree produced by normParser#typeName.
+    def enterTypeName(self, ctx:normParser.TypeNameContext):
         pass
 
-    # Exit a parse tree produced by normParser#argumentProperties.
-    def exitArgumentProperties(self, ctx:normParser.ArgumentPropertiesContext):
+    # Exit a parse tree produced by normParser#typeName.
+    def exitTypeName(self, ctx:normParser.TypeNameContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#variable.
+    def enterVariable(self, ctx:normParser.VariableContext):
+        pass
+
+    # Exit a parse tree produced by normParser#variable.
+    def exitVariable(self, ctx:normParser.VariableContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#argumentProperty.
+    def enterArgumentProperty(self, ctx:normParser.ArgumentPropertyContext):
+        pass
+
+    # Exit a parse tree produced by normParser#argumentProperty.
+    def exitArgumentProperty(self, ctx:normParser.ArgumentPropertyContext):
         pass
 
 
@@ -122,24 +140,6 @@ class normListener(ParseTreeListener):
 
     # Exit a parse tree produced by normParser#version.
     def exitVersion(self, ctx:normParser.VersionContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#typeName.
-    def enterTypeName(self, ctx:normParser.TypeNameContext):
-        pass
-
-    # Exit a parse tree produced by normParser#typeName.
-    def exitTypeName(self, ctx:normParser.TypeNameContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#variable.
-    def enterVariable(self, ctx:normParser.VariableContext):
-        pass
-
-    # Exit a parse tree produced by normParser#variable.
-    def exitVariable(self, ctx:normParser.VariableContext):
         pass
 
 

@@ -310,7 +310,13 @@ class NormCompiler(normListener):
             raise ParseError('Not a valid type name definition')
 
     def exitVariable(self, ctx:normParser.VariableContext):
-        name = ctx.VARNAME().getText()  # type: str
+        name: str = ''
+        if ctx.VARNAME():
+            name = ctx.VARNAME().getText()
+        elif ctx.COMMAND():
+            name = ctx.COMMAND().getText()
+        elif ctx.ARGOPT():
+            name = ctx.ARGOPT().getText()
         scope = self._pop() if ctx.variable() else None  # type: VariableName
         self._push(VariableName(scope, name).compile(self))
 
