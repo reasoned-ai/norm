@@ -47,8 +47,11 @@ class Command(NormExecutable):
                               self.lam.data[col].max(), self.lam.data[col].drop_duplicates().count()]
             for col in self.lam.data.columns:
                 d.loc[col, 'type'] = str(self.lam.get_type(col)) or 'Any'
+            d['tag'] = ''
+            norm_cols = [self.lam.VAR_LABEL, self.lam.VAR_TOMBSTONE, self.lam.VAR_TIMESTAMP, self.lam.VAR_PROB]
+            d.loc[norm_cols, 'tag'] = 'reserved'
             d['count'] = d['count'].astype('int')
             d['unique'] = d['unique'].astype('int')
-            return d.loc[self.lam.data.columns, ['type', 'count', 'unique', 'min', 'max', 'mean', 'std', '25%', '50%',
-                                                 '75%']]
+            return d.loc[self.lam.data.columns, ['tag', 'type', 'count', 'unique', 'min', 'max', 'mean', 'std', '25%',
+                                                 '50%', '75%']]
         return None

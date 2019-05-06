@@ -258,10 +258,10 @@ class NormCompiler(normListener):
 
     def exitArgumentDeclaration(self, ctx:normParser.ArgumentDeclarationContext):
         variable_property = ctx.argumentProperty().getText() if ctx.argumentProperty() else None
+        optional = variable_property is not None and variable_property.lower().find('optional') > 0
         type_name: TypeName = self._pop()
         variable_name: VariableName = self._pop()
-        self._push(ArgumentDeclaration(variable_name, type_name,
-                                       variable_property is not None and variable_property.lower() == 'optional'))
+        self._push(ArgumentDeclaration(variable_name, type_name, optional))
 
     def enterArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
         type_name = self._peek()

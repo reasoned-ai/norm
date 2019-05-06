@@ -50,6 +50,10 @@ class TypeImplementation(NormSchema):
         from norm.models.norm import RevisionType
         lam = self.lam
         delta = self.query.execute(context)
+        if self.query.output_lam is not self.lam:
+            # reset the index name if the output lambda is not the lambda to be revised
+            delta.index.name = ''
+
         if delta.index.name != lam.VAR_OID:
             delta = lam.fill_primary(delta)
             delta = lam.fill_time(delta)

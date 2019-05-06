@@ -43,6 +43,24 @@ class EvaluationTestCase(NormTestCase):
                                                            lam.name,
                                                            lam.version))
 
+    def test_select_columns(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        lam = self.execute("alarms(event:String, ip:String, time:Datetime) := tmp(event?, ip?, time?, summary?);")
+        self.assertTrue(lam is not None)
+        self.assertTrue(len(lam.revisions) == 2)
+        self.assertTrue(lam.end_of_revisions)
+        self.assertTrue(not lam.empty_revisions)
+        self.assertTrue(lam.data is not None)
+        self.assertTrue(len(lam.data) > 0)
+        self.assertTrue(lam.current_revision == len(lam.revisions) - 1)
+        self.assertTrue(lam.queryable)
+        self.assertTrue(lam.status == Status.DRAFT)
+        self.assertTrue(lam.nargs > 1)
+        self.assertTrue(lam.folder == '{}/{}/{}/{}'.format(DATA_STORAGE_ROOT,
+                                                           lam.namespace.replace('.', '/'),
+                                                           lam.name,
+                                                           lam.version))
+
     def test_ignore_same_revision(self):
         self.execute("wikisql(phase: Integer);")
         self.execute("wikisql := read('./data/norm/wikisql/train.jsonl', ext='jsonl');")

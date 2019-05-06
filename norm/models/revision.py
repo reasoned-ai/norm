@@ -290,7 +290,7 @@ class ConjunctionRevision(DeltaRevision):
         unstored = delta.index.difference(data.index, sort=False)
         stored = delta.index.intersection(data.index, sort=False)
         if len(unstored) > 0:
-            data = data.append(delta.loc[unstored])
+            data = data.append(delta.loc[unstored], sort=False)
         if len(stored) > 0:
             overwrites = data.loc[stored][data[label_col] > 0].index
             data.loc[overwrites, delta.columns] = delta.loc[overwrites]
@@ -332,7 +332,7 @@ class DisjunctionRevision(DeltaRevision):
         unstored = delta.index.difference(data.index, sort=False)
         stored = delta.index.intersection(data.index, sort=False)
         if len(unstored) > 0:
-            data = data.append(delta.loc[unstored])
+            data = data.append(delta.loc[unstored], sort=False)
         if len(stored) > 0:
             overwrites = data.loc[stored][data[label_col] < 1].index
             data.loc[overwrites, delta.columns] = delta.loc[overwrites]
