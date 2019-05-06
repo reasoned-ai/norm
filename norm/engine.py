@@ -240,26 +240,26 @@ class NormCompiler(normListener):
         self._push(cmt)
 
     def exitImports(self, ctx:normParser.ImportsContext):
-        type_ = self._pop() if ctx.typeName() else None   # type: TypeName
+        type_: TypeName = self._pop() if ctx.typeName() else None
         namespace = [str(v) for v in ctx.VARNAME()]
         variable = namespace.pop() if ctx.AS() else None
         self._push(Import('.'.join(namespace), type_, variable).compile(self))
 
     def exitExports(self, ctx:normParser.ExportsContext):
-        type_ = self._pop()  # type: TypeName
+        type_: TypeName = self._pop()
         namespace = [str(v) for v in ctx.VARNAME()]
         variable = namespace.pop() if ctx.AS() else None
         self._push(Export('.'.join(namespace), type_, variable).compile(self))
 
     def exitCommands(self, ctx:normParser.CommandsContext):
-        type_ = self._pop()  # type: TypeName
+        type_: TypeName = self._pop()
         op = MOP(ctx.SPACED_COMMAND().getText().strip().lower())
         self._push(Command(op, type_).compile(self))
 
     def exitArgumentDeclaration(self, ctx:normParser.ArgumentDeclarationContext):
-        variable_property = ctx.argumentProperties().getText() if ctx.argumentProperties() else None
-        type_name = self._pop()  # type: TypeName
-        variable_name = self._pop()  # type: VariableName
+        variable_property = ctx.argumentProperty().getText() if ctx.argumentProperty() else None
+        type_name: TypeName = self._pop()
+        variable_name: VariableName = self._pop()
         self._push(ArgumentDeclaration(variable_name, type_name,
                                        variable_property is not None and variable_property.lower() == 'optional'))
 
@@ -276,8 +276,8 @@ class NormCompiler(normListener):
             self.scopes.pop()
 
     def exitRename(self, ctx:normParser.RenameContext):
-        new_name = self._pop()  # type: VariableName
-        original_name = self._pop()  # type: VariableName
+        new_name: VariableName = self._pop()
+        original_name: VariableName = self._pop()
         self._push(RenameArgument(original_name.name, new_name.name))
 
     def exitRenames(self, ctx:normParser.RenamesContext):

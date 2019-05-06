@@ -338,6 +338,19 @@ class Lambda(Model, ParametrizedMixin):
         :return: the type of that variable
         :rtype: Lambda
         """
+        if variable_name == self.VAR_OUTPUT and not self.is_functional:
+            return self
+        elif variable_name == self.VAR_OID:
+            return self.VAR_OID_T
+        elif variable_name == self.VAR_TIMESTAMP:
+            return self.VAR_TIMESTAMP_T
+        elif variable_name == self.VAR_PROB:
+            return self.VAR_PROB_T
+        elif variable_name == self.VAR_LABEL:
+            return self.VAR_LABEL_T
+        elif variable_name == self.VAR_TOMBSTONE:
+            return self.VAR_TOMBSTONE_T
+
         for v in self.variables:
             if v.name == variable_name:
                 return v.type_

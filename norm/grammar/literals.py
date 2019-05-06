@@ -105,10 +105,11 @@ class LOP(Enum):
 
 
 class MOP(Enum):
-    REVISIONS = 'revisions'
-    VERSIONS = 'versions'
+    HISTORY = 'history'
+    DESCRIBE = 'describe'
     REDO = 'redo'
     UNDO = 'undo'
+    DEL = 'del'
 
 
 class ConstantType(Enum):

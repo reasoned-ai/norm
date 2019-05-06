@@ -21,14 +21,34 @@ class Command(NormExecutable):
         :type type_name: TypeName
         """
         super().__init__()
-        self.op = op
-        self.type_name = type_name
-        self.lam = None
+        self.op: MOP = op
+        self.type_name: TypeName = type_name
+        from norm.models import Lambda
+        self.lam: Lambda = None
 
     def compile(self, context):
-        session = context.session
+        self.lam = self.type_name.lam
         return self
 
     def execute(self, context):
-        # TODO
+        if self.op == MOP.DESCRIBE:
+            d = self.lam.data.describe().transpose()
+            numerics = set(d.index)
+            non_numerics = set(self.lam.data.columns).difference(numerics)
+            datetimes = [col for col in non_numerics if self.lam.data[col].dtype.name.find('datetime') >= 0]
+            non_numerics = non_numerics.difference(datetimes)
+            for col in numerics:
+                d.loc[col, 'unique'] = self.lam.data[col].drop_duplicates().count()
+            for col in non_numerics:
+                d.loc[col] = [self.lam.data[col].count(), None, None, None, None, None, None, None,
+                              self.lam.data[col].drop_duplicates().count()]
+            for col in datetimes:
+                d.loc[col] = [self.lam.data[col].count(), None, None, self.lam.data[col].min(), None, None, None,
+                              self.lam.data[col].max(), self.lam.data[col].drop_duplicates().count()]
+            for col in self.lam.data.columns:
+                d.loc[col, 'type'] = str(self.lam.get_type(col)) or 'Any'
+            d['count'] = d['count'].astype('int')
+            d['unique'] = d['unique'].astype('int')
+            return d.loc[self.lam.data.columns, ['type', 'count', 'unique', 'min', 'max', 'mean', 'std', '25%', '50%',
+                                                 '75%']]
         return None
