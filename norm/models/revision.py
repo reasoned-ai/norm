@@ -105,11 +105,14 @@ class AddVariableRevision(SchemaRevision):
 
     def apply(self):
         self.lam.variables.extend(self.variables)
+        for v in self.variables:
+            self.lam.data[v.name] = v.type_.default
 
     def undo(self):
         for v in reversed(self.variables):
             popped_vp = self.lam.variables.pop()
             assert(v.name == popped_vp.name)
+        self.lam.data.drop(columns=[v.name for v in self.variables])
 
 
 class RenameVariableRevision(SchemaRevision):

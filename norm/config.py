@@ -2,6 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import os
+import pandas as pd
 
 # Default namespace stubs
 from sqlalchemy.pool import StaticPool
@@ -43,5 +44,6 @@ except:
 # Set the context id
 context_id = str(datetime.utcnow().strftime('%m%d%Y.%H%M%S'))
 
-
-
+# Pandas display options
+pd.options.display.width = 400
+pd.options.display.max_columns = 100

@@ -50,6 +50,11 @@ class Command(NormExecutable):
             d['tag'] = ''
             norm_cols = [self.lam.VAR_LABEL, self.lam.VAR_TOMBSTONE, self.lam.VAR_TIMESTAMP, self.lam.VAR_PROB]
             d.loc[norm_cols, 'tag'] = 'reserved'
+            for v in self.lam.variables:
+                if v.primary:
+                    d.loc[v.name, 'tag'] = 'primary'
+                else:
+                    d.loc[v.name, 'tag'] = 'optional'
             d['count'] = d['count'].astype('int')
             d['unique'] = d['unique'].astype('int')
             return d.loc[self.lam.data.columns, ['tag', 'type', 'count', 'unique', 'min', 'max', 'mean', 'std', '25%',

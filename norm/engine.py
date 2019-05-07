@@ -71,6 +71,12 @@ class NormCompiler(normListener):
         """
         self.scopes.append((Lambda(self.context_namespace, self.TMP_VARIABLE_STUB + str(uuid.uuid4())), 'temp'))
 
+    def get_scope(self, name):
+        for scope, scope_lex in reversed(self.scopes):
+            if name in scope:
+                return scope
+        return None
+
     @property
     def scope(self):
         return self.scopes[-1][0] if len(self.scopes) > 0 else None

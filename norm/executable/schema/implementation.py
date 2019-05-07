@@ -1,3 +1,6 @@
+from pandas import DataFrame, Series
+import numpy as np
+
 from norm.executable.schema import NormSchema
 from norm.executable.schema.declaration import TypeDeclaration
 from norm.executable.expression import NormExpression
@@ -50,18 +53,20 @@ class TypeImplementation(NormSchema):
         from norm.models.norm import RevisionType
         lam = self.lam
         delta = self.query.execute(context)
-        if self.query.output_lam is not self.lam:
-            # reset the index name if the output lambda is not the lambda to be revised
-            delta.index.name = ''
+        if isinstance(delta, DataFrame):
+            if self.query.output_lam is not self.lam:
+                # reset the index name if the output lambda is not the lambda to be revised
+                delta.index.name = ''
 
-        if delta.index.name != lam.VAR_OID:
-            delta = lam.fill_primary(delta)
-            delta = lam.fill_time(delta)
-            delta = lam.fill_oid(delta)
-            if lam.VAR_OID in delta.columns:
-                delta = delta.set_index(lam.VAR_OID)
-            else:
-                delta.index.rename(lam.VAR_OID, inplace=True)
+            if delta.index.name != lam.VAR_OID:
+                delta = lam.fill_primary(delta)
+                delta = lam.fill_time(delta)
+                delta = lam.fill_oid(delta)
+                if lam.VAR_OID in delta.columns:
+                    delta = delta.set_index(lam.VAR_OID)
+                else:
+                    delta.index.rename(lam.VAR_OID, inplace=True)
+
         qs = str(self.query)
         if self.op == ImplType.DEF:
             # If the query already exists, the revision is skipped
@@ -75,5 +80,15 @@ class TypeImplementation(NormSchema):
         elif self.op == ImplType.OR_DEF:
             lam.revise(qs, self.description, delta, RevisionType.DISJUNCTION)
         elif self.op == ImplType.AND_DEF:
+            if isinstance(delta, Series):
+                if len(delta) == 1:
+                    vname = delta.name
+                    vvalue = delta.values[0]
+                    delta = DataFrame(index=lam.data.index)
+                    delta[vname] = vvalue
+                    delta = lam.fill_time(delta)
+                elif delta.index.name == lam.VAR_OID:
+                    delta = DataFrame(delta)
+                    delta = lam.fill_time(delta)
             lam.revise(qs, self.description, delta, RevisionType.CONJUNCTION)
         return lam

@@ -103,9 +103,9 @@ class EvaluationExpr(NormExpression):
             if isinstance(arg.variable, JoinVariable):
                 self.joins.append(arg.variable)
             if arg.op == COP.LK:
-                condition = '{}.str.contains({})'.format(arg.variable, arg.expr)
+                condition = '{}.str.contains({})'.format(arg.variable.name, arg.expr)
             else:
-                condition = '{} {} ({})'.format(arg.variable, arg.op, arg.expr)
+                condition = '{} {} ({})'.format(arg.variable.name, arg.op, arg.expr)
             inputs.append(condition)
         return ' and '.join(inputs)
 
@@ -230,12 +230,18 @@ class AtomicEvaluationExpr(NormExpression):
         inputs = dict((key, value.execute(context)) for key, value in self.inputs.items())
         result = self.lam(**inputs)
         if self.output_projection is not None:
-            if isinstance(result, (Series, Index)):
+            import numpy
+            if isinstance(result, (list, numpy.ndarray)):
+                return Series(result, name=self.output_projection)
+            elif isinstance(result, (Series, Index)):
                 return result.rename(self.output_projection)
             elif isinstance(result, DataFrame):
                 cols = {col: '{}{}{}'.format(self.output_projection, self.VARIABLE_SEPARATOR, col)
                         for col in result.columns}
                 return result.loc[result.index.rename(self.output_projection)].rename(columns=cols)
+            else:
+                return Series([result], name=self.output_projection)
+
         return result
 
 

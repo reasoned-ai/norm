@@ -35,8 +35,9 @@ class VariableName(NormSchema):
 
         if self.scope is None:
             name = self.name
-            if context.scope and name in context.scope:
-                return ColumnVariable(None, name).compile(context)
+            scope = context.get_scope(name)
+            if scope is not None:
+                return ColumnVariable(scope, name).compile(context)
             else:
                 lam = retrieve_type(context.context_namespace, name, session=session)
                 if lam is None:
@@ -84,6 +85,8 @@ class ColumnVariable(VariableName):
         if self.scope is None:
             assert(context.scope is not None)
             self.lam = context.scope
+        elif isinstance(self.scope, Lambda):
+            self.lam = self.scope
         else:
             self.lam = self.scope.lam
         return self

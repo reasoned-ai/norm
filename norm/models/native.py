@@ -51,6 +51,10 @@ class AnyLambda(NativeLambda):
                          description='Any type',
                          variables=[])
 
+    @property
+    def default(self):
+        return None
+
 
 class ListLambda(NativeLambda):
     __mapper_args__ = {
