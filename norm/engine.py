@@ -152,7 +152,7 @@ class NormCompiler(normListener):
             results = results.rename(columns=fix_dot_columns)
         return results
 
-    def exitStatement(self, ctx:normParser.StatementContext):
+    def exitStatement(self, ctx: normParser.StatementContext):
         if ctx.typeDeclaration():
             if ctx.IMPL():
                 query = self._pop()  # type: NormExpression
@@ -187,38 +187,38 @@ class NormCompiler(normListener):
                 self._pop()
                 self._push(expr)
 
-    def exitNone(self, ctx:normParser.NoneContext):
+    def exitNone(self, ctx: normParser.NoneContext):
         self._push(Constant(ConstantType.NULL, None))
 
-    def exitBool_c(self, ctx:normParser.Bool_cContext):
+    def exitBool_c(self, ctx: normParser.Bool_cContext):
         self._push(Constant(ConstantType.BOOL, ctx.getText().lower() == 'true'))
 
-    def exitInteger_c(self, ctx:normParser.Integer_cContext):
+    def exitInteger_c(self, ctx: normParser.Integer_cContext):
         self._push(Constant(ConstantType.INT, int(ctx.getText())))
 
-    def exitFloat_c(self, ctx:normParser.Float_cContext):
+    def exitFloat_c(self, ctx: normParser.Float_cContext):
         self._push(Constant(ConstantType.FLT, float(ctx.getText())))
 
-    def exitString_c(self, ctx:normParser.String_cContext):
+    def exitString_c(self, ctx: normParser.String_cContext):
         self._push(Constant(ConstantType.STR, str(ctx.getText()[1:-1])))
 
-    def exitPattern(self, ctx:normParser.PatternContext):
+    def exitPattern(self, ctx: normParser.PatternContext):
         try:
             self._push(Constant(ConstantType.PTN, re.compile(str(ctx.getText()[2:-1]))))
         except:
             raise ParseError('Pattern constant {} is in wrong format, should be Python regex pattern'
                              .format(ctx.getText()))
 
-    def exitUuid(self, ctx:normParser.UuidContext):
+    def exitUuid(self, ctx: normParser.UuidContext):
         self._push(Constant(ConstantType.UID, str(ctx.getText()[2:-1])))
 
-    def exitUrl(self, ctx:normParser.UrlContext):
+    def exitUrl(self, ctx: normParser.UrlContext):
         self._push(Constant(ConstantType.URL, str(ctx.getText()[2:-1])))
 
-    def exitDatetime(self, ctx:normParser.DatetimeContext):
+    def exitDatetime(self, ctx: normParser.DatetimeContext):
         self._push(Constant(ConstantType.DTM, dateparser.parse(ctx.getText()[2:-1], fuzzy=True)))
 
-    def exitConstant(self, ctx:normParser.ConstantContext):
+    def exitConstant(self, ctx: normParser.ConstantContext):
         if ctx.LSBR():
             constants = list(reversed([self._pop() for ch in ctx.children
                                        if isinstance(ch, normParser.ConstantContext)]))  # type: List[Constant]
@@ -229,14 +229,14 @@ class NormCompiler(normListener):
                 type_ = types.pop()
             self._push(ListConstant(type_, [constant.value for constant in constants]))
 
-    def exitQueryProjection(self, ctx:normParser.QueryProjectionContext):
+    def exitQueryProjection(self, ctx: normParser.QueryProjectionContext):
         variables = list(reversed([self._pop() for ch in ctx.children
                                    if isinstance(ch, normParser.VariableContext)]))
         to_evaluate = True if ctx.LCBR() else False
         # TODO: evaluate the variables to get the referred variables
         self._push(Projection(variables, to_evaluate))
 
-    def exitComments(self, ctx:normParser.CommentsContext):
+    def exitComments(self, ctx: normParser.CommentsContext):
         spaces = ' \r\n\t'
         cmt = ctx.getText()
         if ctx.MULTILINE():
@@ -245,66 +245,66 @@ class NormCompiler(normListener):
             cmt = '\n'.join(cmt_line.strip(spaces)[2:].strip(spaces) for cmt_line in cmt.split('\n'))
         self._push(cmt)
 
-    def exitImports(self, ctx:normParser.ImportsContext):
+    def exitImports(self, ctx: normParser.ImportsContext):
         type_: TypeName = self._pop() if ctx.typeName() else None
         namespace = [str(v) for v in ctx.VARNAME()]
         variable = namespace.pop() if ctx.AS() else None
         self._push(Import('.'.join(namespace), type_, variable).compile(self))
 
-    def exitExports(self, ctx:normParser.ExportsContext):
+    def exitExports(self, ctx: normParser.ExportsContext):
         type_: TypeName = self._pop()
         namespace = [str(v) for v in ctx.VARNAME()]
         variable = namespace.pop() if ctx.AS() else None
         self._push(Export('.'.join(namespace), type_, variable).compile(self))
 
-    def exitCommands(self, ctx:normParser.CommandsContext):
+    def exitCommands(self, ctx: normParser.CommandsContext):
         type_: TypeName = self._pop()
         op = MOP(ctx.SPACED_COMMAND().getText().strip().lower())
         self._push(Command(op, type_).compile(self))
 
-    def exitArgumentDeclaration(self, ctx:normParser.ArgumentDeclarationContext):
+    def exitArgumentDeclaration(self, ctx: normParser.ArgumentDeclarationContext):
         variable_property = ctx.argumentProperty().getText() if ctx.argumentProperty() else None
         optional = variable_property is not None and variable_property.lower().find('optional') > 0
         type_name: TypeName = self._pop()
         variable_name: VariableName = self._pop()
         self._push(ArgumentDeclaration(variable_name, type_name, optional))
 
-    def enterArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
+    def enterArgumentDeclarations(self, ctx: normParser.ArgumentDeclarationsContext):
         type_name = self._peek()
         if type_name is not None and isinstance(type_name, TypeName) and type_name.lam is not None:
             self.scopes.append((type_name.lam, 'argument_declarations'))
 
-    def exitArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
+    def exitArgumentDeclarations(self, ctx: normParser.ArgumentDeclarationsContext):
         args = list(reversed([self._pop() for ch in ctx.children
-                             if isinstance(ch, normParser.ArgumentDeclarationContext)]))
+                              if isinstance(ch, normParser.ArgumentDeclarationContext)]))
         self._push(args)
         if self.scope_lex == 'argument_declarations':
             self.scopes.pop()
 
-    def exitRename(self, ctx:normParser.RenameContext):
+    def exitRename(self, ctx: normParser.RenameContext):
         new_name: VariableName = self._pop()
         original_name: VariableName = self._pop()
         self._push(RenameArgument(original_name.name, new_name.name))
 
-    def exitRenames(self, ctx:normParser.RenamesContext):
+    def exitRenames(self, ctx: normParser.RenamesContext):
         args = list(reversed([self._pop() for ch in ctx.children
                               if isinstance(ch, normParser.RenameContext)]))
         self._push(args)
         if self.scope_lex == 'renames':
             self.scopes.pop()
 
-    def enterRenames(self, ctx:normParser.RenamesContext):
+    def enterRenames(self, ctx: normParser.RenamesContext):
         type_name = self._peek()
         if type_name is not None and isinstance(type_name, TypeName) and type_name.lam is not None:
             self.scopes.append((type_name.lam, 'renames'))
 
-    def exitTypeDeclaration(self, ctx:normParser.TypeDeclarationContext):
+    def exitTypeDeclaration(self, ctx: normParser.TypeDeclarationContext):
         output_type_name = self._pop() if ctx.typeName(1) else None  # type: TypeName
         args = self._pop() if ctx.argumentDeclarations() else None  # type: List[ArgumentDeclaration]
         type_name = self._pop()  # type: TypeName
         self._push(TypeDeclaration(type_name, args, output_type_name).compile(self))
 
-    def exitTypeName(self, ctx:normParser.TypeNameContext):
+    def exitTypeName(self, ctx: normParser.TypeNameContext):
         typename = ctx.VARNAME()
         if typename:
             version = ctx.version().getText() if ctx.version() else None
@@ -315,7 +315,7 @@ class NormCompiler(normListener):
         else:
             raise ParseError('Not a valid type name definition')
 
-    def exitVariable(self, ctx:normParser.VariableContext):
+    def exitVariable(self, ctx: normParser.VariableContext):
         name: str = ''
         if ctx.VARNAME():
             name = ctx.VARNAME().getText()
@@ -326,7 +326,7 @@ class NormCompiler(normListener):
         scope = self._pop() if ctx.variable() else None  # type: VariableName
         self._push(VariableName(scope, name).compile(self))
 
-    def exitArgumentExpression(self, ctx:normParser.ArgumentExpressionContext):
+    def exitArgumentExpression(self, ctx: normParser.ArgumentExpressionContext):
         if isinstance(self._peek(), ArgumentExpr):
             return
 
@@ -343,25 +343,25 @@ class NormCompiler(normListener):
         else:
             self._push(ArgumentExpr(variable, op, expr, projection).compile(self))
 
-    def enterArgumentExpressions(self, ctx:normParser.ArgumentExpressionsContext):
+    def enterArgumentExpressions(self, ctx: normParser.ArgumentExpressionsContext):
         expr = self._peek()
         if expr is not None and isinstance(expr, (VariableName, EvaluationExpr)) and expr.lam is not None:
             self.scopes.append((expr.lam, 'argument_expressions'))
 
-    def exitArgumentExpressions(self, ctx:normParser.ArgumentExpressionsContext):
+    def exitArgumentExpressions(self, ctx: normParser.ArgumentExpressionsContext):
         args = list(reversed([self._pop() for ch in ctx.children
-                             if isinstance(ch, normParser.ArgumentExpressionContext)]))
+                              if isinstance(ch, normParser.ArgumentExpressionContext)]))
         self._push(args)
         if self.scope_lex == 'argument_expressions':
             self.scopes.pop()
 
-    def enterMultiLineExpression(self, ctx:normParser.MultiLineExpressionContext):
+    def enterMultiLineExpression(self, ctx: normParser.MultiLineExpressionContext):
         type_declaration = self._peek()
         if type_declaration is not None and isinstance(type_declaration, TypeDeclaration) \
                 and type_declaration.lam is not None:
             self.scopes.append((type_declaration.lam, 'multiline'))
 
-    def exitMultiLineExpression(self, ctx:normParser.MultiLineExpressionContext):
+    def exitMultiLineExpression(self, ctx: normParser.MultiLineExpressionContext):
         if ctx.newlineLogicalOperator():
             expr2 = self._pop()  # type: NormExpression
             expr1 = self._pop()  # type: NormExpression
@@ -370,7 +370,7 @@ class NormCompiler(normListener):
         if self.scope_lex == 'multiline':
             self.scopes.pop()
 
-    def exitOneLineExpression(self, ctx:normParser.OneLineExpressionContext):
+    def exitOneLineExpression(self, ctx: normParser.OneLineExpressionContext):
         if ctx.queryProjection():
             projection = self._pop()
             expr = self._peek()
@@ -384,14 +384,14 @@ class NormCompiler(normListener):
             op = LOP.parse(ctx.spacedLogicalOperator().logicalOperator().getText())
             self._push(QueryExpr(op, expr1, expr2).compile(self))
 
-    def exitConditionExpression(self, ctx:normParser.ConditionExpressionContext):
+    def exitConditionExpression(self, ctx: normParser.ConditionExpressionContext):
         if ctx.spacedConditionOperator():
             qexpr = self._pop()  # type: ArithmeticExpr
             aexpr = self._pop()  # type: ArithmeticExpr
             cop = COP(ctx.spacedConditionOperator().conditionOperator().getText().lower())
             self._push(ConditionExpr(cop, aexpr, qexpr).compile(self))
 
-    def exitArithmeticExpression(self, ctx:normParser.ArithmeticExpressionContext):
+    def exitArithmeticExpression(self, ctx: normParser.ArithmeticExpressionContext):
         if ctx.slicedExpression():
             return
 
@@ -411,10 +411,15 @@ class NormCompiler(normListener):
 
         if op is not None:
             expr2 = self._pop()  # type: ArithmeticExpr
+            if isinstance(expr2, ArgumentExpr):
+                expr2 = expr2.variable
             expr1 = self._pop() if ctx.arithmeticExpression(1) else None  # type: ArithmeticExpr
+            if isinstance(expr1, AddDataEvaluationExpr):
+                expr1 = list(expr1.data.values())[0]
+                assert (isinstance(expr1, ArithmeticExpr))
             self._push(ArithmeticExpr(op, expr1, expr2).compile(self))
 
-    def exitSlicedExpression(self, ctx:normParser.SlicedExpressionContext):
+    def exitSlicedExpression(self, ctx: normParser.SlicedExpressionContext):
         if ctx.LSBR():
             if ctx.evaluationExpression(1):
                 expr_range = self._pop()  # type: NormExpression
@@ -444,7 +449,7 @@ class NormCompiler(normListener):
                     end_value = start_value + 1
                 self._push(SliceExpr(expr, start_value, end_value).compile(self))
 
-    def exitEvaluationExpression(self, ctx:normParser.EvaluationExpressionContext):
+    def exitEvaluationExpression(self, ctx: normParser.EvaluationExpressionContext):
         if ctx.DOT():
             rexpr = self._pop()
             lexpr = self._pop()
@@ -455,6 +460,5 @@ class NormCompiler(normListener):
             variable = self._pop() if ctx.variable() else None  # type: VariableName
             self._push(EvaluationExpr(args, variable, projection).compile(self))
 
-    def exitCodeExpression(self, ctx:normParser.CodeExpressionContext):
+    def exitCodeExpression(self, ctx: normParser.CodeExpressionContext):
         self._push(ctx.code().getText())
-

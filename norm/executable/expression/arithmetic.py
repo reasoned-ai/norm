@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class ArithmeticExpr(NormExpression):
 
-    def __init__(self, op, expr1, expr2=None):
+    def __init__(self, op, expr1, expr2=None, projection=None):
         """
         Arithmetic expression
         :param op: the operation, e.g., [+, -, *, /, %, **]
@@ -23,6 +23,7 @@ class ArithmeticExpr(NormExpression):
         self.op: AOP = op
         self.expr1: ArithmeticExpr = expr1
         self.expr2: ArithmeticExpr = expr2
+        self.projection = projection
         assert(self.op is not None)
         assert(self.expr2 is not None)
         self._exprstr: str = None
@@ -48,6 +49,7 @@ class ArithmeticExpr(NormExpression):
         else:
             self._exprstr = '({}) {} ({})'.format(self.expr1, self.op, self.expr2)
         self.data = context.scope.data
+        self.output_lam = context.scope.output_type
         return self
 
     def execute(self, context):
@@ -59,4 +61,6 @@ class ArithmeticExpr(NormExpression):
                                         zip(df.columns, self.projection.variables)})
             elif isinstance(df, Series):
                 self.data = DataFrame({self.projection.variables[0].name: df})
+        else:
+            self.data = df
         return self.data

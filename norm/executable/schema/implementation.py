@@ -90,5 +90,7 @@ class TypeImplementation(NormSchema):
                 elif delta.index.name == lam.VAR_OID:
                     delta = DataFrame(delta)
                     delta = lam.fill_time(delta)
+            elif isinstance(delta, DataFrame):
+                delta = lam.fill_time(delta)
             lam.revise(qs, self.description, delta, RevisionType.CONJUNCTION)
         return lam

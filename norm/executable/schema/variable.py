@@ -23,7 +23,7 @@ class VariableName(NormSchema):
 
     def __str__(self):
         if self.scope is not None:
-            return '{}{}{}'.format(self.scope, self.VARIABLE_SEPARATOR, self.name)
+            return '{}{}{}'.format(self.scope.name, self.VARIABLE_SEPARATOR, self.name)
         else:
             return self.name
 
@@ -77,6 +77,9 @@ class ColumnVariable(VariableName):
 
     def __init__(self, scope, name):
         super().__init__(scope, name)
+
+    def __str__(self):
+        return self.name
 
     def variable_type(self):
         return self.lam.get_type(self.name)

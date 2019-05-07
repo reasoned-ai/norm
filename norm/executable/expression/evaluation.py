@@ -1,5 +1,3 @@
-from time import sleep
-
 from norm.utils import hash_df
 from pandas import DataFrame, Series, Index
 
@@ -100,12 +98,14 @@ class EvaluationExpr(NormExpression):
         for arg in self.args:
             if arg.op is None or arg.expr is None:
                 continue
+            vn = arg.variable.name
             if isinstance(arg.variable, JoinVariable):
                 self.joins.append(arg.variable)
+                vn = str(arg.variable)
             if arg.op == COP.LK:
-                condition = '{}.str.contains({})'.format(arg.variable.name, arg.expr)
+                condition = '{}.str.contains({})'.format(vn, arg.expr)
             else:
-                condition = '{} {} ({})'.format(arg.variable.name, arg.op, arg.expr)
+                condition = '{} {} ({})'.format(vn, arg.op, arg.expr)
             inputs.append(condition)
         return ' and '.join(inputs)
 
@@ -171,7 +171,7 @@ class EvaluationExpr(NormExpression):
             is_to_add_data &= len(self.outputs) == 0
 
         if is_to_add_data:
-            return AddDataEvaluationExpr(lam, self.inputs, self.variable is not None)
+            return AddDataEvaluationExpr(lam, self.inputs, self.variable is not None).compile(context)
         elif isinstance(self.inputs, dict):
             if self.projection is not None and self.projection.num == 1:
                 output_projection = self.projection.variables[0].name
@@ -351,6 +351,11 @@ class AddDataEvaluationExpr(NormExpression):
         return self._query_str
 
     def compile(self, context):
+        if not self.immediately and len(self.data) == 1:
+            expr = list(self.data.values())[0]
+            from norm.executable.expression.arithmetic import ArithmeticExpr
+            if isinstance(expr, ArithmeticExpr) and expr.op is not None:
+                return expr
         return self
 
     def execute(self, context):
