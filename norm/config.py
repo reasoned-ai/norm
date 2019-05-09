@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
+import cachetools
 import os
 import pandas as pd
 
@@ -23,6 +24,9 @@ VERSION_MIN_LENGTH = 6
 NORM_HOME = os.environ.get('NORM_HOME', os.path.expanduser('~/.norm'))
 DATA_STORAGE_ROOT = os.environ.get('NORM_DATA_STORAGE_ROOT', os.path.join(NORM_HOME, 'data'))
 DB_PATH = os.environ.get('NORM_DB_PATH', os.path.join(NORM_HOME, 'db/norm.db'))
+
+# Cache
+cache = cachetools.LRUCache(1024)
 
 # Default user name
 PUBLIC_USER = dict(first_name='norm',

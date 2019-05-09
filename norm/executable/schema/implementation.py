@@ -1,4 +1,4 @@
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Index
 import numpy as np
 
 from norm.executable.schema import NormSchema
@@ -62,11 +62,13 @@ class TypeImplementation(NormSchema):
                 delta = lam.fill_primary(delta)
                 delta = lam.fill_time(delta)
                 delta = lam.fill_oid(delta)
-                if lam.VAR_OID in delta.columns:
-                    delta = delta.set_index(lam.VAR_OID)
-                else:
-                    delta.index.rename(lam.VAR_OID, inplace=True)
-
+        elif isinstance(delta, Index):
+            assert(delta.name == lam.VAR_OID)
+            cols = [v.name for v in lam.variables if v.name in self.query.output_lam]
+            delta = self.query.output_lam.data.loc[delta, cols]
+            delta = lam.fill_primary(delta)
+            delta = lam.fill_time(delta)
+            delta = lam.fill_oid(delta.reset_index(drop=True))
         qs = str(self.query)
         if self.op == ImplType.DEF:
             # If the query already exists, the revision is skipped

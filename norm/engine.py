@@ -61,8 +61,8 @@ class NormCompiler(normListener):
         if self.user:
             self.user_namespace = '{}.{}'.format(config.USER_NAMESPACE_STUB, self.user.username)
         from norm.models import NativeLambda, CoreLambda
-        self.search_namespaces = {NativeLambda.NAMESPACE, CoreLambda.NAMESPACE, self.context_namespace,
-                                  self.user_namespace}
+        self.search_namespaces = [NativeLambda.NAMESPACE, CoreLambda.NAMESPACE, self.context_namespace,
+                                  self.user_namespace]
 
     def set_temp_scope(self):
         """

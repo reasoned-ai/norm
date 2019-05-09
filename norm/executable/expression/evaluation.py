@@ -53,6 +53,7 @@ class EvaluationExpr(NormExpression):
                     if keyword_arg:
                         msg = 'Keyword based arguments should come after positional arguments'
                         logger.error(msg)
+                        logger.error([str(arg) for arg in self.args])
                         raise NormError(msg)
                 else:
                     keyword_arg = True
@@ -315,6 +316,7 @@ class RetrieveAllDataExpr(NormExpression):
             result = self.lam.data[self.lam.VAR_OUTPUT]
         else:
             result = self.lam.data.index
+        print(self.lam, len(self.lam.data))
         if self.output_projection is not None:
             return result.rename(self.output_projection)
         else:

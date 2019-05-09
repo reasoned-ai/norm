@@ -38,7 +38,8 @@ class Import(NormSchema):
             * imported type is cloned in the context namespace as a draft
             * imported type with alias is cloned and renamed in the context namespace as a draft
         """
-        context.search_namespaces.add(self.namespace)
+        if self.namespace not in context.search_namespaces:
+            context.search_namespaces.append(self.namespace)
         if self.type_:
             if self.type_.namespace != self.namespace:
                 self.type_.namespace = self.namespace

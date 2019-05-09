@@ -35,6 +35,12 @@ class ArgumentExpr(NormExpression):
         self.op: COP = op
         self.projection: Projection = projection
 
+    def __str__(self):
+        return '{} {} {} {}'.format(self.variable if self.variable is not None else '',
+                                    self.op if self.op is not None else '',
+                                    self.expr if self.expr is not None else '',
+                                    self.projection if self.projection is not None else '')
+
     @property
     def is_constant(self):
         return isinstance(self.expr, Constant)

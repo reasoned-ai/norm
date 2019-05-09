@@ -20,7 +20,6 @@ import enum
 
 from datetime import datetime
 from pandas import DataFrame
-import pandas as pd
 from hashids import Hashids
 import numpy as np
 
@@ -359,7 +358,10 @@ class Lambda(Model, ParametrizedMixin):
     @property
     def data(self):
         if self._data is None:
-            self._data = self.empty_data()
+            if self.queryable:
+                self._data = self._load_data()
+            else:
+                self._data = self.empty_data()
         return self._data
 
     @data.setter
@@ -523,6 +525,9 @@ class Lambda(Model, ParametrizedMixin):
                 c = c.str.cat(df[col].astype(str))
         if c is not None:
             df[self.VAR_OID] = c.astype('bytes').apply(zlib.adler32).astype('int64')
+            df = df.set_index(self.VAR_OID)
+        else:
+            df.index.rename(self.VAR_OID, inplace=True)
         return df
 
     def fill_time(self, df):
@@ -804,16 +809,17 @@ class GroupLambda(Lambda):
         raise NotImplementedError
 
 
-def retrieve_type(namespaces, name, version=None, status=None, session=None):
+def retrieve_type(namespaces, name, version=None, status=None):
     """
     Retrieving a Lambda
     :type namespaces: str, List[str] or None
     :type name: str
     :type version: str or None
     :type status: Status or None
-    :type session: sqlalchemy.orm.Session
     :return: the Lambda or None
     """
+    from norm.config import session
+
     if version == '$lastest':
         version = None
     elif version == '$best':
@@ -830,34 +836,11 @@ def retrieve_type(namespaces, name, version=None, status=None, session=None):
     if version is not None:
         queries.append(Lambda.version.startswith(version))
 
-    if session is None:
-        import norm.config
-        session = norm.config.session
-
     lam = session.query(Lambda) \
                  .filter(*queries) \
                  .order_by(desc(Lambda.created_on)) \
                  .first()
     return lam
 
-
-def retrieve_variable(name, type_id, session=None):
-    """
-    Retrieving the variable by the name and the type id
-    :type name: str
-    :type type_id: int
-    :type session: sqlalchemy.orm.Session or None
-    :rtype: Variable or None
-    """
-    #  find the latest versions
-    if session is None:
-        import norm.config
-        session = norm.config.session
-
-    var = session.query(Variable)\
-                 .filter(Variable.name == name,
-                         Variable.type_id == type_id)\
-                 .first()
-    return var
 
 

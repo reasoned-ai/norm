@@ -29,22 +29,36 @@ class TypeName(NormSchema):
         s += self.version if self.version is not None else '$latest'
         return s
 
+    def try_retrieve_type(self, namespaces, name, version, status=None):
+        from norm.config import cache
+        if isinstance(namespaces, str):
+            key = namespaces
+        else:
+            key = ''.join(sorted(namespaces))
+        key = (key, name, version, status)
+        lam = cache.get(key)
+        if lam is not None:
+            return lam
+        lam = retrieve_type(namespaces, name, version, status)
+        cache[key] = lam
+        return lam
+
     def compile(self, context):
         """
         Retrieve the Lambda function by namespace, name, version.
         Note that user is encoded by the version.
         :rtype: Lambda
         """
-        session = context.session
         if self.namespace is None:
-            lam = retrieve_type(context.context_namespace, self.name, self.version, session=session)
+            lam = self.try_retrieve_type(context.context_namespace, self.name, self.version)
             if lam is None:
-                lam = retrieve_type(context.search_namespaces, self.name, self.version, Status.READY, session=session)
+                lam = self.try_retrieve_type(context.search_namespaces, self.name, self.version, Status.READY)
         else:
             if self.namespace == context.context_namespace:
-                lam = retrieve_type(self.namespace, self.name, self.version, session=session)
+                lam = self.try_retrieve_type(self.namespace, self.name, self.version)
             else:
-                lam = retrieve_type(self.namespace, self.name, self.version, Status.READY, session=session)
+                lam = self.try_retrieve_type(self.namespace, self.name, self.version, Status.READY)
+
         self.lam = lam
         return self
 

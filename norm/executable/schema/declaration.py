@@ -96,6 +96,8 @@ class TypeDeclaration(NormSchema):
             lam.description = self.description
             lam.variables = variables
             context.session.add(lam)
+            from norm.config import cache
+            cache[(context.context_namespace, self.type_name.name, None, None)] = lam
         else:
             assert(lam.status == Status.DRAFT)
             if len(variables) > 0 and \
@@ -181,5 +183,7 @@ class CodeTypeDeclaration(TypeDeclaration):
     def compile(self, context):
         lam = PythonLambda(context.context_namespace, self.type_name.name, self.description, self.code)
         context.session.add(lam)
+        from norm.config import cache
+        cache[(context.context_namespace, self.type_name.name, None, None)] = lam
         self.lam = lam
         return self
