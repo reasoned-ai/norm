@@ -361,6 +361,10 @@ class NormCompiler(normListener):
                 and type_declaration.lam is not None:
             self.scopes.append((type_declaration.lam, 'multiline'))
 
+    def exitContext(self, ctx:normParser.ContextContext):
+        type_name = self._pop()
+        self.scopes.append((type_name.lam, 'multiline'))
+
     def exitMultiLineExpression(self, ctx: normParser.MultiLineExpressionContext):
         if ctx.newlineLogicalOperator():
             expr2 = self._pop()  # type: NormExpression

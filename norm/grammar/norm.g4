@@ -7,7 +7,7 @@ statement
     | comments? imports
     | comments? exports
     | comments? commands
-    | comments? (WS|NS)? multiLineExpression
+    | comments? (WS|NS)? context? (WS|NS)? multiLineExpression
     | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? LBR argumentDeclarations RBR
     | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? LBR renames RBR
     | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? codeExpression
@@ -51,6 +51,9 @@ fragment DESCRIBE: 'describe'|'Describe'|'DESCRIBE';
 
 COMMAND: HISTORY|UNDO|REDO|DELETE|DESCRIBE;
 ARGOPT:  'optional' | 'primary' | 'oid' | 'time';
+
+context: SPACED_WITH typeName WS? ',';
+SPACED_WITH: 'with' [ \t]+;
 
 typeName
     : VARNAME version?

@@ -1,7 +1,6 @@
-from sqlalchemy import event
 from sqlalchemy.ext.declarative import declarative_base
 
-from norm.config import session, Session
+from norm.config import session
 
 import traceback
 
@@ -89,13 +88,6 @@ class Store(object):
 
     def __getattr__(self, item):
         return self.__getitem__(item)
-
-
-@event.listens_for(Session, "after_commit")
-def save_lambda_after_commit(sess):
-    for obj in sess.identity_map.values():
-        if isinstance(obj, Lambda) and obj.modified_or_new and obj.status == Status.DRAFT:
-            obj.save()
 
 
 from norm.models.norm import (Variable, Lambda, GroupLambda, Status, retrieve_type)

@@ -80,6 +80,12 @@ class EvaluationTestCase(NormTestCase):
                                                            lam.name,
                                                            lam.version))
 
+    def test_with_context(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        results = self.execute("with tmp, event~'Unix' & tally > 3;")
+        self.assertTrue(results is not None)
+        self.assertTrue(len(results) > 1)
+
     def test_ignore_same_revision(self):
         self.execute("wikisql(phase: Integer);")
         self.execute("wikisql := read('./data/norm/wikisql/train.jsonl', ext='jsonl');")

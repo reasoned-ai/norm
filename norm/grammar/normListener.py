@@ -62,6 +62,15 @@ class normListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by normParser#context.
+    def enterContext(self, ctx:normParser.ContextContext):
+        pass
+
+    # Exit a parse tree produced by normParser#context.
+    def exitContext(self, ctx:normParser.ContextContext):
+        pass
+
+
     # Enter a parse tree produced by normParser#typeName.
     def enterTypeName(self, ctx:normParser.TypeNameContext):
         pass

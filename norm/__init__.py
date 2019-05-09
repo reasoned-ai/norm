@@ -38,8 +38,8 @@ def configure(home=None, db_path=None, data_path=None, **kwargs):
     if data_path is not None:
         config.DATA_STORAGE_ROOT = data_path
     if home is not None or db_path is not None:
-        config.engine = create_engine('sqlite:///{}'.format(config.DB_PATH))
-        Session.configure(bind=config.engine, poolclass=StaticPool)
+        config.engine = create_engine('sqlite:///{}'.format(config.DB_PATH), poolclass=StaticPool)
+        Session.configure(bind=config.engine)
         config.session = Session()
         config.context_id = str(datetime.utcnow().strftime('%m%d%Y.%H%M%S'))
         global context
