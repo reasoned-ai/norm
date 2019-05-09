@@ -44,7 +44,7 @@ class ArithmeticExpr(NormExpression):
             # It is possible to be parsed as arguments
             self.expr2 = self.expr2.args[0].expr
 
-        if self.op is AOP.SUB:
+        if self.op is AOP.SUB and self.expr1 is None:
             self._exprstr = '-({})'.format(self.expr2)
         else:
             self._exprstr = '({}) {} ({})'.format(self.expr1, self.op, self.expr2)
