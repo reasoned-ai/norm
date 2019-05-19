@@ -1,6 +1,5 @@
 from norm.executable import NormError
 from norm.executable.constant import Constant
-from norm.executable.schema import NormSchema
 from norm.grammar.literals import COP, ConstantType, LOP
 
 from norm.executable.expression import NormExpression
@@ -46,14 +45,11 @@ class ConditionExpr(NormExpression):
             self._condition = '{}.str.contains({})'.format(self.lexpr, self.rexpr)
         else:
             self._condition = '({}) {} ({})'.format(self.lexpr, self.op, self.rexpr)
-        if isinstance(self.lexpr, NormSchema):
-            self.output_lam = self.lexpr.lam
-        else:
-            self.output_lam = self.lexpr.output_lam
+        self.lam = self.lexpr.lam
         return self
 
     def execute(self, context):
-        return self.output_lam.data.query(self._condition, engine='python')
+        return self.lam.data.query(self._condition, engine='python')
 
 
 class CombinedConditionExpr(ConditionExpr):
@@ -77,9 +73,9 @@ class CombinedConditionExpr(ConditionExpr):
         self.lexpr = self.lexpr.compile(context)
         self.rexpr = self.rexpr.compile(context)
         self._condition = '({}) {} ({})'.format(self.lexpr, self.op, self.rexpr)
-        assert(self.lexpr.output_lam is self.rexpr.output_lam)
-        self.output_lam = self.lexpr.output_lam
+        assert(self.lexpr.lam is self.rexpr.lam)
+        self.lam = self.lexpr.lam
         return self
 
     def execute(self, context):
-        return self.output_lam.data.query(self._condition, engine='python')
+        return self.lam.data.query(self._condition, engine='python')

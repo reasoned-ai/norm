@@ -1,0 +1,13 @@
+Consolidation of NormSchema and NormExpression
+===============================================
+
+Problem
+----------
+* Does scope mean the same as the output lambda?
+  test &= (a - b)?c & f(d=c)?e
+  where test is the scope of a, b, c, e. f is the scope of d.
+  the output of the query should align with test instead of f.
+* How do the inputs align each other?
+  f(d=c, g=a) where c and a might not be in scope of f or each other.
+* How do the combined queries align each other?
+  (a - b)?c & f(d=c)?e where the scope of a, b, c, e is test, but f is not.

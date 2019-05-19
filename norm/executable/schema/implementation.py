@@ -1,16 +1,15 @@
 from pandas import DataFrame, Series, Index
-import numpy as np
 
-from norm.executable.schema import NormSchema
+from norm.executable import NormExecutable
 from norm.executable.schema.declaration import TypeDeclaration
 from norm.executable.expression import NormExpression
-from norm.models import Lambda, Status, Variable
+from norm.models import Lambda, Status
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class TypeImplementation(NormSchema):
+class TypeImplementation(NormExecutable):
 
     def __init__(self, type_, op, query, description):
         """
@@ -54,7 +53,7 @@ class TypeImplementation(NormSchema):
         lam = self.lam
         delta = self.query.execute(context)
         if isinstance(delta, DataFrame):
-            if self.query.output_lam is not self.lam:
+            if self.query.lam is not self.lam:
                 # reset the index name if the output lambda is not the lambda to be revised
                 delta.index.name = ''
 
@@ -64,8 +63,8 @@ class TypeImplementation(NormSchema):
                 delta = lam.fill_oid(delta)
         elif isinstance(delta, Index):
             assert(delta.name == lam.VAR_OID)
-            cols = [v.name for v in lam.variables if v.name in self.query.output_lam]
-            delta = self.query.output_lam.data.loc[delta, cols]
+            cols = [v.name for v in lam.variables if v.name in self.query.lam]
+            delta = self.query.lam.data.loc[delta, cols]
             delta = lam.fill_primary(delta)
             delta = lam.fill_time(delta)
             delta = lam.fill_oid(delta.reset_index(drop=True))

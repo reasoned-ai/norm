@@ -142,8 +142,8 @@ class NormCompiler(normListener):
             else:
                 # TODO: shouldn't be here?
                 results = exe
-            if isinstance(results, Index) and isinstance(exe, NormExpression) and exe.output_lam is not None:
-                results = exe.output_lam.data.loc[results]
+            if isinstance(results, Index) and isinstance(exe, NormExpression) and exe.lam is not None:
+                results = exe.lam.data.loc[results]
         if isinstance(results, DataFrame):
             fix_dot_columns = OrderedDict()
             for col in results.columns:

@@ -747,7 +747,7 @@ class Lambda(Model, ParametrizedMixin):
                 revision.redo()
 
         # Choose the rows still alive and the columns specified in schema
-        self._data = self._data[self._all_columns][~self._data[self.VAR_TOMBSTONE]]
+        self._data = self._data[self._all_columns[1:]][~self._data[self.VAR_TOMBSTONE]]
         return self._data
 
     @_only_queryable

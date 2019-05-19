@@ -6,6 +6,13 @@ class NormExecutable(object):
 
     VARIABLE_SEPARATOR = '__dot__'
 
+    def __init__(self):
+        from norm.models.norm import Lambda
+        """
+        The scope of the output
+        """
+        self.lam: Lambda = None
+
     def compile(self, context):
         """
         Compile the command with the given context
@@ -23,7 +30,7 @@ class NormExecutable(object):
         :type context: norm.engine.NormCompiler
         :return: the result
         """
-        return None
+        return self.lam
 
 
 class Projection(NormExecutable):

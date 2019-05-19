@@ -131,7 +131,7 @@ class RenameVariableRevision(SchemaRevision):
 
     def apply(self):
         if self.lam and self.lam.data is not None:
-            self.lam._data = self.lam.data.rename(columns=self.renames, inplace=True)
+            self.lam._data = self.lam.data.rename(columns=self.renames)
         for v in self.lam.variables:
             new_name = self.renames.get(v.name)
             if new_name is not None:
@@ -140,7 +140,7 @@ class RenameVariableRevision(SchemaRevision):
     def undo(self):
         renames_r = self.renames_r
         if self.lam and self.lam.data is not None:
-            self.lam._data = self.lam.data.rename(columns=renames_r, inplace=True)
+            self.lam._data = self.lam.data.rename(columns=renames_r)
         for v in self.lam.variables:
             old_name = renames_r.get(v.name)
             if old_name is not None:

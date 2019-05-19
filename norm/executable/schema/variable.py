@@ -1,12 +1,12 @@
 from norm.models.norm import retrieve_type, Status, Lambda
-from norm.executable.schema import NormSchema
+from norm.executable import NormExecutable
 
 from typing import Union
 import logging
 logger = logging.getLogger(__name__)
 
 
-class VariableName(NormSchema):
+class VariableName(NormExecutable):
 
     def __init__(self, scope, name):
         """

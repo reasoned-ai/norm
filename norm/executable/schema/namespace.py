@@ -1,5 +1,4 @@
 from norm.executable import NormExecutable, NormError
-from norm.executable.schema import NormSchema
 from norm.executable.schema.type import TypeName
 
 from norm.models import Status
@@ -11,7 +10,7 @@ from norm.models.norm import new_version
 logger = logging.getLogger(__name__)
 
 
-class Import(NormSchema):
+class Import(NormExecutable):
 
     def __init__(self, namespace=None, type_=None, variable=None):
         """
@@ -63,7 +62,7 @@ class Import(NormSchema):
         return self
 
 
-class Export(NormSchema):
+class Export(NormExecutable):
 
     def __init__(self, namespace=None, type_=None, alias=None):
         """
@@ -112,7 +111,8 @@ class Export(NormSchema):
         new_lam.namespace = context.context_namespace
         new_lam.name = old_lam_name
         session.add(new_lam)
-
+        from norm.config import cache
+        cache[(context.context_namespace, new_lam.name, None, None)] = new_lam
         # TODO: possible cascaded exporting. the clone_from object might need to be exported too, or merge into one.
         self.lam = lam
         return self

@@ -215,21 +215,21 @@ class AtomicEvaluationExpr(NormExpression):
         assert(lam is not None)
         assert(isinstance(lam, Lambda))
         assert(isinstance(inputs, dict))
-        self.lam: Lambda = lam
-        self.output_lam: Lambda = self.lam.output_type
+        self.eval_lam: Lambda = lam
+        self.lam: Lambda = lam.output_type
         self.inputs: Dict = inputs
         self.output_projection: str = output_projection
 
     def __str__(self):
-        return '{}({})'.format(self.lam.signature, ', '.join('{}={}'.format(key, value) for key, value
-                                                             in self.inputs.items()))
+        return '{}({})'.format(self.eval_lam.signature, ', '.join('{}={}'.format(key, value) for key, value
+                                                                  in self.inputs.items()))
 
     def compile(self, context):
         return self
 
     def execute(self, context):
         inputs = dict((key, value.execute(context)) for key, value in self.inputs.items())
-        result = self.lam(**inputs)
+        result = self.eval_lam(**inputs)
         if self.output_projection is not None:
             import numpy
             if isinstance(result, (list, numpy.ndarray)):
@@ -259,14 +259,14 @@ class RetrievePartialDataExpr(NormExpression):
         assert(lam is not None)
         assert(isinstance(lam, Lambda))
         assert(not lam.atomic)
-        self.lam: Lambda = lam
-        self.output_lam: Lambda = self.lam.output_type
+        self.eval_lam: Lambda = lam
+        self.lam: Lambda = lam.output_type
         self.outputs: Dict = outputs
 
     def __str__(self):
-        oid = self.lam.VAR_OID
-        out = self.lam.VAR_OUTPUT
-        return '{}({}){}'.format(self.lam.signature,
+        oid = self.eval_lam.VAR_OID
+        out = self.eval_lam.VAR_OUTPUT
+        return '{}({}){}'.format(self.eval_lam.signature,
                                  ', '.join(('{}?'.format(c) for c in self.outputs.keys() if c != oid and c != out)),
                                  '?' if self.outputs.get(oid) or self.outputs.get(out) else '')
 
@@ -274,11 +274,11 @@ class RetrievePartialDataExpr(NormExpression):
         return self
 
     def execute(self, context):
-        output_col = self.outputs.get(self.lam.VAR_OID) or self.outputs.get(self.lam.VAR_OUTPUT)
-        if not self.lam.is_functional and output_col is not None:
-            result = self.lam.data.reset_index()
+        output_col = self.outputs.get(self.eval_lam.VAR_OID) or self.outputs.get(self.eval_lam.VAR_OUTPUT)
+        if not self.eval_lam.is_functional and output_col is not None:
+            result = self.eval_lam.data.reset_index()
         else:
-            result = self.lam.data
+            result = self.eval_lam.data
 
         result = result[self.outputs.keys()].rename(columns=self.outputs)
 
@@ -301,22 +301,21 @@ class RetrieveAllDataExpr(NormExpression):
         assert(lam is not None)
         assert(isinstance(lam, Lambda))
         assert(not lam.atomic)
-        self.lam: Lambda = lam
-        self.output_lam: Lambda = self.lam.output_type
+        self.eval_lam: Lambda = lam
+        self.lam: Lambda = lam.output_type
         self.output_projection: str = output_projection
 
     def __str__(self):
-        return '{}?'.format(self.lam.signature)
+        return '{}?'.format(self.eval_lam.signature)
 
     def compile(self, context):
         return self
 
     def execute(self, context):
-        if self.lam.is_functional:
-            result = self.lam.data[self.lam.VAR_OUTPUT]
+        if self.eval_lam.is_functional:
+            result = self.eval_lam.data[self.lam.VAR_OUTPUT]
         else:
-            result = self.lam.data.index
-        print(self.lam, len(self.lam.data))
+            result = self.eval_lam.data.index
         if self.output_projection is not None:
             return result.rename(self.output_projection)
         else:
@@ -338,8 +337,8 @@ class AddDataEvaluationExpr(NormExpression):
         """
         super().__init__()
         from norm.models.norm import Lambda
-        self.lam: Lambda = lam
-        self.output_lam: Lambda = self.lam.output_type
+        self.eval_lam: Lambda = lam
+        self.lam: Lambda = lam.output_type
         self.data: Dict = data
         self.immediately: bool = immediately
         self.description: str = 'add data'
@@ -362,25 +361,25 @@ class AddDataEvaluationExpr(NormExpression):
 
     def execute(self, context):
         if len(self.data) == 0:
-            return DataFrame(data=[self.lam.default])
+            return DataFrame(data=[self.eval_lam.default])
 
         data = OrderedDict((key, value.execute(context)) for key, value in self.data.items())
         data = self.unify(data)
         df = DataFrame(data=data, columns=data.keys())
         query_str = hash_df(df)
         self._query_str = query_str
-        df = self.lam.fill_primary(df)
-        df = self.lam.fill_time(df)
-        df = self.lam.fill_oid(df)
-        if self.lam.VAR_OID in df.columns:
-            df = df.set_index(self.lam.VAR_OID)
+        df = self.eval_lam.fill_primary(df)
+        df = self.eval_lam.fill_time(df)
+        df = self.eval_lam.fill_oid(df)
+        if self.eval_lam.VAR_OID in df.columns:
+            df = df.set_index(self.eval_lam.VAR_OID)
         else:
-            df.index.rename(self.lam.VAR_OID, inplace=True)
+            df.index.rename(self.eval_lam.VAR_OID, inplace=True)
         if self.immediately:
             from norm.models.norm import RevisionType
-            df = self.lam.revise(query_str, self.description, df, RevisionType.DISJUNCTION)
-            if self.lam.is_functional:
-                return df[self.lam.VAR_OUTPUT]
+            df = self.eval_lam.revise(query_str, self.description, df, RevisionType.DISJUNCTION)
+            if self.eval_lam.is_functional:
+                return df[self.eval_lam.VAR_OUTPUT]
             else:
                 return df.index
         return df

@@ -103,13 +103,6 @@ class EvaluationTestCase(NormTestCase):
         new_company = self.execute(script)
         self.assertTrue(company is new_company)
 
-    def test_save_lambda_with_data_after_commit(self):
-        self.execute("wikisql(phase:Integer);")
-        self.execute("wikisql := read('./data/norm/wikisql/train.jsonl', ext='jsonl');")
-        self.session.commit()
-        lam = self.execute("wikisql;")
-        self.assertTrue(os.path.exists(lam.folder))
-
     def test_evaluate_oid_generation(self):
         self.execute("test(a: String, b: Integer);")
         self.execute("test := ('test', 1)"

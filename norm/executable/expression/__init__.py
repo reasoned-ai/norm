@@ -23,8 +23,6 @@ class NormExpression(NormExecutable):
         self.projection: Projection = None
         self.data: DataFrame = None
         self.description: str = None
-        from norm.models.norm import Lambda
-        self.output_lam: Lambda = None
 
     def unify(self, inputs, strategy=Strategy.LONGEST):
         """

@@ -49,7 +49,7 @@ class ArithmeticExpr(NormExpression):
         else:
             self._exprstr = '({}) {} ({})'.format(self.expr1, self.op, self.expr2)
         self.data = context.scope.data
-        self.output_lam = context.scope.output_type
+        self.lam = context.scope.output_type
         return self
 
     def execute(self, context):

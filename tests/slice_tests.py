@@ -56,3 +56,4 @@ class SliceTestCase(NormTestCase):
         data = self.execute("test[:-1];")
         self.assertTrue(all(data['a'] == ['test', 'here']))
         self.assertTrue(all(data['b'] == [1, 2]))
+

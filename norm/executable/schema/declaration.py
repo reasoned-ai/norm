@@ -1,4 +1,4 @@
-from norm.executable.schema import NormSchema
+from norm.executable import NormExecutable
 from norm.executable.schema.variable import VariableName
 from norm.executable.schema.type import TypeName
 from norm.models import Lambda, Status, PythonLambda
@@ -40,7 +40,7 @@ class RenameArgument(object):
         self.variable_new_name = variable_new_name
 
 
-class TypeDeclaration(NormSchema):
+class TypeDeclaration(NormExecutable):
 
     def __init__(self, type_name, argument_declarations=None, output_type_name=None):
         """

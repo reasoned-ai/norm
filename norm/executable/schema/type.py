@@ -1,12 +1,11 @@
-from norm.executable import NormError
-from norm.executable.schema import NormSchema
+from norm.executable import NormError, NormExecutable
 from norm.models import ListLambda, Lambda, Variable, retrieve_type, Status
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class TypeName(NormSchema):
+class TypeName(NormExecutable):
 
     def __init__(self, name, version=None):
         """
@@ -29,7 +28,8 @@ class TypeName(NormSchema):
         s += self.version if self.version is not None else '$latest'
         return s
 
-    def try_retrieve_type(self, namespaces, name, version, status=None):
+    def try_retrieve_type(self, session, namespaces, name, version, status=None):
+        current_session_id = session.hash_key
         from norm.config import cache
         if isinstance(namespaces, str):
             key = namespaces
@@ -38,6 +38,11 @@ class TypeName(NormSchema):
         key = (key, name, version, status)
         lam = cache.get(key)
         if lam is not None:
+            if lam._sa_instance_state.session_id != current_session_id:
+                new_lam: Lambda = session.merge(lam)
+                # TODO: might have other states need to be kept
+                new_lam._data = lam._data
+                lam = new_lam
             return lam
         lam = retrieve_type(namespaces, name, version, status)
         cache[key] = lam
@@ -50,20 +55,20 @@ class TypeName(NormSchema):
         :rtype: Lambda
         """
         if self.namespace is None:
-            lam = self.try_retrieve_type(context.context_namespace, self.name, self.version)
+            lam = self.try_retrieve_type(context.session, context.context_namespace, self.name, self.version)
             if lam is None:
-                lam = self.try_retrieve_type(context.search_namespaces, self.name, self.version, Status.READY)
+                lam = self.try_retrieve_type(context.session, context.search_namespaces, self.name, self.version, Status.READY)
         else:
             if self.namespace == context.context_namespace:
-                lam = self.try_retrieve_type(self.namespace, self.name, self.version)
+                lam = self.try_retrieve_type(context.session, self.namespace, self.name, self.version)
             else:
-                lam = self.try_retrieve_type(self.namespace, self.name, self.version, Status.READY)
+                lam = self.try_retrieve_type(context.session, self.namespace, self.name, self.version, Status.READY)
 
         self.lam = lam
         return self
 
 
-class ListType(NormSchema):
+class ListType(NormExecutable):
 
     def __init__(self, intern):
         """
