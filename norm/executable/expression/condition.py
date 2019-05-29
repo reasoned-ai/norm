@@ -1,3 +1,5 @@
+import uuid
+
 from norm.executable import NormError
 from norm.executable.constant import Constant
 from norm.grammar.literals import COP, ConstantType, LOP
@@ -45,11 +47,16 @@ class ConditionExpr(NormExpression):
             self._condition = '{}.str.contains({})'.format(self.lexpr, self.rexpr)
         else:
             self._condition = '({}) {} ({})'.format(self.lexpr, self.op, self.rexpr)
-        self.lam = self.lexpr.lam
+        self.eval_lam = self.lexpr.lam
+        from norm.models import Lambda
+        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
+                          variables=self.eval_lam.variables)
+        self.lam.cloned_from = self.eval_lam
         return self
 
     def execute(self, context):
-        return self.lam.data.query(self._condition, engine='python')
+        self.lam.data = self.eval_lam.data.query(self._condition, engine='python')
+        return self.lam.data
 
 
 class CombinedConditionExpr(ConditionExpr):
@@ -73,9 +80,14 @@ class CombinedConditionExpr(ConditionExpr):
         self.lexpr = self.lexpr.compile(context)
         self.rexpr = self.rexpr.compile(context)
         self._condition = '({}) {} ({})'.format(self.lexpr, self.op, self.rexpr)
-        assert(self.lexpr.lam is self.rexpr.lam)
-        self.lam = self.lexpr.lam
+        assert(self.lexpr.eval_lam is self.rexpr.eval_lam or self.lexpr.eval_lam is self.rexpr.eval_lam.cloned_from)
+        self.eval_lam = self.lexpr.eval_lam
+        from norm.models import Lambda
+        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
+                          variables=self.eval_lam.variables)
+        self.lam.cloned_from = self.eval_lam
         return self
 
     def execute(self, context):
-        return self.lam.data.query(self._condition, engine='python')
+        self.lam.data = self.eval_lam.data.query(self._condition, engine='python')
+        return self.lam.data

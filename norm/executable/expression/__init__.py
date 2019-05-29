@@ -1,5 +1,4 @@
 import enum
-
 from norm.executable import NormExecutable
 from norm.executable import Projection
 from pandas import DataFrame, Series, concat, Index
@@ -21,7 +20,7 @@ class NormExpression(NormExecutable):
     def __init__(self):
         super().__init__()
         self.projection: Projection = None
-        self.data: DataFrame = None
+        self.eval_lam = None
         self.description: str = None
 
     def unify(self, inputs, strategy=Strategy.LONGEST):
@@ -79,3 +78,6 @@ class NormExpression(NormExecutable):
             for k, v in constant_inputs.items():
                 rt[k] = v
         return rt
+
+    def execute(self, context):
+        return self.lam.data

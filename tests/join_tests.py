@@ -17,3 +17,20 @@ class JoinLambdaTestCase(NormTestCase):
         results = self.execute("teach(teacher?, class.name=='mathematics');")
         self.assertTrue(results is not None)
         self.assertTrue(all(results['teacher'] == [42205503, 100663807]))
+
+    def test_combined_join(self):
+        self.execute("Event(name: String, ip: String);")
+        self.execute("Event := ('Windows crash', '192.168.0.1')"
+                     "       | ('Windows crash', '192.168.0.102')"
+                     "       | ('Unix crash', '192.168.0.2')"
+                     "       | ('Unix crash', '192.168.0.11')"
+                     "       | ('Windows crash', '192.168.0.3');")
+        self.execute("Cluster(name: String, ip: String);")
+        self.execute("Cluster := ('Application cluster', '192.168.0.11')"
+                     "         | ('Application cluster', '192.168.0.2')"
+                     "         | ('Oracle cluster', '192.168.0.1')"
+                     "         | ('Oracle cluster', '192.168.0.3')"
+                     "         | ('Oracle cluster', '192.168.0.102');")
+        results = self.execute("Event(name?, ip?eip) & Cluster(ip=eip, name~'App'?cluster_name);")
+        self.assertTrue(len(results) == 2)
+

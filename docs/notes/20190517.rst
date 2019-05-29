@@ -11,3 +11,35 @@ Problem
   f(d=c, g=a) where c and a might not be in scope of f or each other.
 * How do the combined queries align each other?
   (a - b)?c & f(d=c)?e where the scope of a, b, c, e is test, but f is not.
+
+
+Solutions
+-----------
+Each evaluation has one computational scope, multiple input scope and one output scope.
+* Input scope is the same as the computational scope. For example, filtering and arithmetic computation. The output
+scope will be the projected attributes with the input scope oid index.
+
+.. code-block:: prolog
+
+    // Query
+    Teach(teacher=='Joe', class?);
+    // Evaluate
+    with Event, sqrt(tally)?st;
+
+* Input contains an expression to access attributes. The attributes will be joined to the computational scope first.
+
+.. code-block:: prolog
+
+    // All teachers who teach mathematics. It first join Class into Teach
+    teach(teacher?, class.name=='mathematics');
+
+* Input contains expressions to refer previous scope's attributes by equality. The computational scope will join this
+input scope. If there are more than one such inputs, they should be aligned, i.e., derived from the same scope.
+
+.. code-block:: prolog
+
+    // All events whose cluster is about 'App'. It first joins Cluster to Event by ip.
+    Teacher?t and t.teach(class.name=='mathematics');
+    Event(name?, ip?eip) and Cluster(ip==eip, name~'App');
+
+* Input contains expressions to refer previous scope's attributes by comparisons, e.g., <, >, ~.

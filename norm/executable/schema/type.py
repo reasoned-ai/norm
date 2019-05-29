@@ -1,5 +1,5 @@
 from norm.executable import NormError, NormExecutable
-from norm.models import ListLambda, Lambda, Variable, retrieve_type, Status
+from norm.models import ListLambda, Lambda, Variable, Status
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,26 +28,6 @@ class TypeName(NormExecutable):
         s += self.version if self.version is not None else '$latest'
         return s
 
-    def try_retrieve_type(self, session, namespaces, name, version, status=None):
-        current_session_id = session.hash_key
-        from norm.config import cache
-        if isinstance(namespaces, str):
-            key = namespaces
-        else:
-            key = ''.join(sorted(namespaces))
-        key = (key, name, version, status)
-        lam = cache.get(key)
-        if lam is not None:
-            if lam._sa_instance_state.session_id != current_session_id:
-                new_lam: Lambda = session.merge(lam)
-                # TODO: might have other states need to be kept
-                new_lam._data = lam._data
-                lam = new_lam
-            return lam
-        lam = retrieve_type(namespaces, name, version, status)
-        cache[key] = lam
-        return lam
-
     def compile(self, context):
         """
         Retrieve the Lambda function by namespace, name, version.
@@ -57,7 +37,8 @@ class TypeName(NormExecutable):
         if self.namespace is None:
             lam = self.try_retrieve_type(context.session, context.context_namespace, self.name, self.version)
             if lam is None:
-                lam = self.try_retrieve_type(context.session, context.search_namespaces, self.name, self.version, Status.READY)
+                lam = self.try_retrieve_type(context.session, context.search_namespaces, self.name, self.version,
+                                             Status.READY)
         else:
             if self.namespace == context.context_namespace:
                 lam = self.try_retrieve_type(context.session, self.namespace, self.name, self.version)

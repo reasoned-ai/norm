@@ -1,3 +1,5 @@
+import uuid
+
 from norm.utils import hash_df
 from pandas import DataFrame, Series, Index
 
@@ -31,10 +33,11 @@ class EvaluationExpr(NormExpression):
         self.args: List[ArgumentExpr] = args
         self.inputs: Dict[str, DataFrame] = None
         self.outputs: Dict[str, str] = None
-        self.joins: List[JoinVariable] = []
-        from norm.models.norm import Lambda
-        self.lam: Lambda = None
+        self.join_variables: List[JoinVariable] = []
         self.projection: Projection = projection
+        self.equalities: Dict[str, str] = None
+        from norm.models.norm import Lambda
+        self.equality_scope: Lambda = None
 
     @property
     def is_constant_arguments(self):
@@ -95,13 +98,23 @@ class EvaluationExpr(NormExpression):
         :return: a query string
         :rtype: Dict
         """
+        self.equalities = OrderedDict()
+        self.equality_scope = None
         inputs = []
         for arg in self.args:
+            if (arg.is_assign_operator or arg.op is COP.EQ) and isinstance(arg.expr, ColumnVariable) and \
+                    isinstance(arg.variable, ColumnVariable):
+                self.equalities[arg.expr.name] = arg.variable.name
+                if self.equality_scope is None:
+                    self.equality_scope = arg.expr.lam
+                else:
+                    assert(self.equality_scope is arg.expr.lam)
+                continue
             if arg.op is None or arg.expr is None:
                 continue
             vn = arg.variable.name
             if isinstance(arg.variable, JoinVariable):
-                self.joins.append(arg.variable)
+                self.join_variables.append(arg.variable)
                 vn = str(arg.variable)
             if arg.op == COP.LK:
                 condition = '{}.str.contains({})'.format(vn, arg.expr)
@@ -171,6 +184,10 @@ class EvaluationExpr(NormExpression):
             self.outputs = self.build_outputs(lam)
             is_to_add_data &= len(self.outputs) == 0
 
+        if self.equality_scope is not None and len(self.equalities) > 0:
+            return JoinEqualityEvaluationExpr(lam, self.equality_scope, self.equalities, self.inputs, self.outputs)\
+                .compile(context)
+
         if is_to_add_data:
             return AddDataEvaluationExpr(lam, self.inputs, self.variable is not None).compile(context)
         elif isinstance(self.inputs, dict):
@@ -187,18 +204,83 @@ class EvaluationExpr(NormExpression):
                     return RetrieveAllDataExpr(lam, output_projection).compile(context)
                 else:
                     return RetrievePartialDataExpr(lam, self.outputs).compile(context)
-        self.lam = lam
+        self.eval_lam = lam
+        from norm.models import Lambda, Variable
+        if len(self.outputs) > 0:
+            variables = [Variable(self.outputs[v.name], v.type_) for v in self.eval_lam.variables
+                         if v.name in self.outputs.keys()]
+        else:
+            variables = self.eval_lam.variables
+        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
+                          variables=variables)
+        self.lam.cloned_from = self.eval_lam
         return self
 
     def execute(self, context):
-        for jv in self.joins:
+        for jv in self.join_variables:
             jv.execute(context)
-        df = self.lam.data.query(self.inputs, engine='python')
+        df = self.eval_lam.data.query(self.inputs, engine='python')
 
         if isinstance(df, DataFrame) and len(self.outputs) > 0:
             df = df[self.outputs.keys()].rename(columns=self.outputs)
-
+        self.lam.data = df
         return df
+
+
+class JoinEqualityEvaluationExpr(NormExpression):
+
+    def __init__(self, lam, scope, equalities, condition, outputs):
+        """
+        Join the input scope first and then evaluate
+        Event(name?, ip?eip) & Cluster(ip=eip, name~'App'?cluster_name);
+        :param lam: the current scope
+        :param scope: the input scope
+        :param equalities: the equalities, e.g., {'eip':'ip'}
+        :param condition: the other condition, e.g., 'name.str.contains("App")'
+        :param outputs: the outputs for the current scope, e.g., {'name':'cluster_name'}
+        """
+        super().__init__()
+        self.eval_lam = lam
+        self.scope = scope
+        self.equalities = equalities
+        self.condition = condition
+        self.outputs = outputs
+
+    def compile(self, context):
+        scope = self.scope
+        from norm.models import Lambda, Variable
+        if len(self.outputs) > 0:
+            variables = [Variable(v.name, v.type_) for v in scope.variables
+                         if v.name in self.outputs.keys()]
+            leftover = set(self.outputs.values()).difference(v.name for v in variables)
+            variables += [Variable(self.outputs[v.name], v.type_) for v in self.eval_lam.variables
+                          if self.outputs.get(v.name) in leftover]
+        else:
+            variables = scope.variables
+            scope_variable_names = set(v.name for v in variables)
+            variables += [v for v in self.eval_lam.variables if v.name not in scope_variable_names]
+        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
+                          variables=variables)
+        self.lam.cloned_from = scope
+        return self
+
+    def execute(self, context):
+        inp = self.lam.cloned_from.data
+        equal_cols = list(self.equalities.items())
+        to_merge = self.eval_lam.data.query(self.condition, engine='python')
+        if len(self.outputs) > 0:
+            to_merge = to_merge[set(list(self.outputs.keys()) + list(self.equalities.values()))]\
+                        .rename(columns=self.outputs)
+        left_col, right_col = equal_cols.pop()
+        joined = inp.reset_index().merge(to_merge, left_on=left_col, right_on=right_col)
+        joined = joined.set_index(self.lam.VAR_OID)
+        condition = ' & '.join('({} == {})'.format(left_col, right_col) for left_col, right_col in equal_cols)
+        if condition != '':
+            results = joined.query(condition)
+        else:
+            results = joined
+        self.lam.data = results
+        return results
 
 
 class AtomicEvaluationExpr(NormExpression):
@@ -225,6 +307,7 @@ class AtomicEvaluationExpr(NormExpression):
                                                                   in self.inputs.items()))
 
     def compile(self, context):
+        # TODO: infer the output lambda schema
         return self
 
     def execute(self, context):
@@ -242,7 +325,6 @@ class AtomicEvaluationExpr(NormExpression):
                 return result.loc[result.index.rename(self.output_projection)].rename(columns=cols)
             else:
                 return Series([result], name=self.output_projection)
-
         return result
 
 
@@ -260,7 +342,7 @@ class RetrievePartialDataExpr(NormExpression):
         assert(isinstance(lam, Lambda))
         assert(not lam.atomic)
         self.eval_lam: Lambda = lam
-        self.lam: Lambda = lam.output_type
+        self.lam: Lambda = None
         self.outputs: Dict = outputs
 
     def __str__(self):
@@ -271,20 +353,27 @@ class RetrievePartialDataExpr(NormExpression):
                                  '?' if self.outputs.get(oid) or self.outputs.get(out) else '')
 
     def compile(self, context):
+        from norm.models import Lambda, Variable
+        if len(self.outputs) > 0:
+            variables = [Variable(self.outputs[v.name], v.type_) for v in self.eval_lam.variables
+                         if v.name in self.outputs.keys()]
+        else:
+            variables = self.eval_lam.variables
+        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
+                          variables=variables)
         return self
 
     def execute(self, context):
-        output_col = self.outputs.get(self.eval_lam.VAR_OID) or self.outputs.get(self.eval_lam.VAR_OUTPUT)
-        if not self.eval_lam.is_functional and output_col is not None:
-            result = self.eval_lam.data.reset_index()
-        else:
-            result = self.eval_lam.data
+        oid_output_col = self.outputs.get(self.eval_lam.VAR_OID)
+        if oid_output_col is not None:
+            del self.outputs[self.eval_lam.VAR_OID]
 
+        result = self.eval_lam.data
         result = result[self.outputs.keys()].rename(columns=self.outputs)
 
-        if output_col is not None:
-            result = result.set_index(output_col)
-
+        self.lam.data = result
+        if oid_output_col is not None:
+            result.index.rename(oid_output_col, inplace=True)
         return result
 
 
@@ -302,20 +391,20 @@ class RetrieveAllDataExpr(NormExpression):
         assert(isinstance(lam, Lambda))
         assert(not lam.atomic)
         self.eval_lam: Lambda = lam
-        self.lam: Lambda = lam.output_type
+        self.lam: Lambda = lam
         self.output_projection: str = output_projection
 
     def __str__(self):
-        return '{}?'.format(self.eval_lam.signature)
+        return '{}?'.format(self.lam.signature)
 
     def compile(self, context):
         return self
 
     def execute(self, context):
-        if self.eval_lam.is_functional:
-            result = self.eval_lam.data[self.lam.VAR_OUTPUT]
+        if self.lam.is_functional:
+            result = self.lam.data[self.lam.VAR_OUTPUT]
         else:
-            result = self.eval_lam.data.index
+            result = self.lam.data.index
         if self.output_projection is not None:
             return result.rename(self.output_projection)
         else:
@@ -337,8 +426,7 @@ class AddDataEvaluationExpr(NormExpression):
         """
         super().__init__()
         from norm.models.norm import Lambda
-        self.eval_lam: Lambda = lam
-        self.lam: Lambda = lam.output_type
+        self.lam: Lambda = lam
         self.data: Dict = data
         self.immediately: bool = immediately
         self.description: str = 'add data'
@@ -361,25 +449,25 @@ class AddDataEvaluationExpr(NormExpression):
 
     def execute(self, context):
         if len(self.data) == 0:
-            return DataFrame(data=[self.eval_lam.default])
+            return DataFrame(data=[self.lam.default])
 
         data = OrderedDict((key, value.execute(context)) for key, value in self.data.items())
         data = self.unify(data)
         df = DataFrame(data=data, columns=data.keys())
         query_str = hash_df(df)
         self._query_str = query_str
-        df = self.eval_lam.fill_primary(df)
-        df = self.eval_lam.fill_time(df)
-        df = self.eval_lam.fill_oid(df)
-        if self.eval_lam.VAR_OID in df.columns:
-            df = df.set_index(self.eval_lam.VAR_OID)
+        df = self.lam.fill_primary(df)
+        df = self.lam.fill_time(df)
+        df = self.lam.fill_oid(df)
+        if self.lam.VAR_OID in df.columns:
+            df = df.set_index(self.lam.VAR_OID)
         else:
-            df.index.rename(self.eval_lam.VAR_OID, inplace=True)
+            df.index.rename(self.lam.VAR_OID, inplace=True)
         if self.immediately:
             from norm.models.norm import RevisionType
-            df = self.eval_lam.revise(query_str, self.description, df, RevisionType.DISJUNCTION)
-            if self.eval_lam.is_functional:
-                return df[self.eval_lam.VAR_OUTPUT]
+            df = self.lam.revise(query_str, self.description, df, RevisionType.DISJUNCTION)
+            if self.lam.is_functional:
+                return df[self.lam.VAR_OUTPUT]
             else:
                 return df.index
         return df
@@ -444,8 +532,7 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
         return self
 
     def execute(self, context):
-        col = self.column_variable.scope.lam.data[self.column_variable.name]
-        print(self.column_variable.scope.lam)
+        col = self.column_variable.execute(context)
         args = []
         kwargs = {}
         for arg in self.expr.args:  # type: ArgumentExpr

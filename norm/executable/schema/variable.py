@@ -1,4 +1,4 @@
-from norm.models.norm import retrieve_type, Status, Lambda
+from norm.models.norm import Status, Lambda
 from norm.executable import NormExecutable
 
 from typing import Union
@@ -30,30 +30,17 @@ class VariableName(NormExecutable):
     def variable_type(self):
         return self.lam
 
-    def try_retrieve_type(self, namespaces, name, version=None, status=None):
-        from norm.config import cache
-        if isinstance(namespaces, str):
-            key = namespaces
-        else:
-            key = ''.join(sorted(namespaces))
-        key = (key, name, version, status)
-        lam = cache.get(key)
-        if lam is not None:
-            return lam
-        lam = retrieve_type(namespaces, name, version, status)
-        cache[key] = lam
-        return lam
-
     def compile(self, context):
+        session = context.session
         if self.scope is None:
             name = self.name
             scope = context.get_scope(name)
             if scope is not None:
                 return ColumnVariable(scope, name).compile(context)
             else:
-                lam = self.try_retrieve_type(context.context_namespace, name)
+                lam = self.try_retrieve_type(session, context.context_namespace, name)
                 if lam is None:
-                    lam = self.try_retrieve_type(context.search_namespaces, name, status=Status.READY)
+                    lam = self.try_retrieve_type(session, context.search_namespaces, name, status=Status.READY)
                 self.lam = lam
                 return self
         else:
@@ -72,9 +59,9 @@ class VariableName(NormExecutable):
                     return ColumnVariable(self.scope, self.name).compile(context)
             else:
                 # An evaluation whose first argument is the scope
-                lam = self.try_retrieve_type(context.context_namespace, self.name)
+                lam = self.try_retrieve_type(session, context.context_namespace, self.name)
                 if lam is None:
-                    lam = self.try_retrieve_type(context.search_namespaces, self.name, status=Status.READY)
+                    lam = self.try_retrieve_type(session, context.search_namespaces, self.name, status=Status.READY)
                 assert(lam is not None)
                 self.lam = lam
                 from norm.executable.expression.argument import ArgumentExpr

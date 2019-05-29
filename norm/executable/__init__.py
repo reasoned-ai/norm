@@ -8,10 +8,28 @@ class NormExecutable(object):
 
     def __init__(self):
         from norm.models.norm import Lambda
-        """
-        The scope of the output
-        """
         self.lam: Lambda = None
+
+    def try_retrieve_type(self, session, namespaces, name, version=None, status=None):
+        current_session_id = session.hash_key
+        from norm.config import cache
+        from norm.models.norm import retrieve_type, Lambda
+        if isinstance(namespaces, str):
+            key = namespaces
+        else:
+            key = ''.join(sorted(namespaces))
+        key = (key, name, version, status)
+        lam = cache.get(key)
+        if lam is not None:
+            if lam._sa_instance_state.session_id != current_session_id:
+                new_lam: Lambda = session.merge(lam)
+                # TODO: might have other states need to be kept
+                new_lam._data = lam._data
+                lam = new_lam
+            return lam
+        lam = retrieve_type(namespaces, name, version, status)
+        cache[key] = lam
+        return lam
 
     def compile(self, context):
         """

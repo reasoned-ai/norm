@@ -374,11 +374,16 @@ class NormCompiler(normListener):
         if self.scope_lex == 'multiline':
             self.scopes.pop()
 
+    def enterSpacedLogicalOperator(self, ctx:normParser.SpacedLogicalOperatorContext):
+        expr = self._peek()
+        self.scopes.append((expr.lam, 'lop'))
+
     def exitOneLineExpression(self, ctx: normParser.OneLineExpressionContext):
         if ctx.queryProjection():
             projection = self._pop()
             expr = self._peek()
             expr.projection = projection
+            expr.compile(self)
         elif ctx.NOT():
             expr = self._pop()  # type: NormExpression
             self._push(NegatedQueryExpr(expr).compile(self))
@@ -387,6 +392,8 @@ class NormCompiler(normListener):
             expr1 = self._pop()  # type: NormExpression
             op = LOP.parse(ctx.spacedLogicalOperator().logicalOperator().getText())
             self._push(QueryExpr(op, expr1, expr2).compile(self))
+            if self.scope_lex == 'lop':
+                self.scopes.pop()
 
     def exitConditionExpression(self, ctx: normParser.ConditionExpressionContext):
         if ctx.spacedConditionOperator():
