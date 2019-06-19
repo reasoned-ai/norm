@@ -8,9 +8,9 @@ from setuptools import setup, Command
 from distutils.command.install import install
 
 # Package meta-data.
-NAME = 'norm'
+NAME = 'pynorm'
 DESCRIPTION = 'A probabilistic logic programming library for data science'
-URL = 'https://github.com/xumiao/norm'
+URL = 'https://github.com/reasoned-ai/norm'
 EMAIL = 'xu@reasoned.ai'
 AUTHOR = 'Xu Miao'
 REQUIRES_PYTHON = '>=3.6.0'
@@ -19,9 +19,7 @@ VERSION = '0.1.0'
 with io.open('requirements.txt') as f:
     REQUIRED = [line.split('==')[0] for line in f.readlines()]
 
-EXTRAS = {
-
-}
+EXTRAS = {}
 
 with io.open('README.md', encoding='utf-8') as f:
     long_description = f.read()
@@ -94,6 +92,7 @@ setup(
     version=VERSION,
     description=DESCRIPTION,
     long_description=long_description,
+    long_description_content_type='text/markdown',
     author=AUTHOR,
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
@@ -110,7 +109,7 @@ setup(
     classifiers=[
         # Trove classifiers
         # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        'License :: OSI Approved :: Apache License, Version 2.0',
+        'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
