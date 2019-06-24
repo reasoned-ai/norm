@@ -126,7 +126,7 @@ def init_colab():
 # IPython magics
 if get_ipython() is not None:
     @register_line_cell_magic
-    def norm(line, cell=None):
+    def norma(line, cell=None):
         """
         Parsing the norm command and execute it
         :param line: a line of norm command
