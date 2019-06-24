@@ -1,4 +1,3 @@
-from norm.config import PUBLIC_USER, session
 import logging
 import traceback
 
@@ -10,6 +9,7 @@ def login(usr=None):
     u = None
     try:
         from norm.models.user import User
+        from norm.config import PUBLIC_USER, session
         if usr is None:
             usr = PUBLIC_USER
 
