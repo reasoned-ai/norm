@@ -3,10 +3,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.pool import StaticPool
 
-from norm.engine import NormCompiler, NormError
-from norm.config import Session
-from norm import config
-
 from IPython import get_ipython
 from IPython.core.magic import register_line_magic, register_cell_magic, register_line_cell_magic
 
@@ -14,7 +10,7 @@ import os
 import logging
 logger = logging.getLogger(__name__)
 
-context = NormCompiler(config.context_id, user, config.session)
+context = None
 
 
 def configure(home=None, db_path=None, data_path=None, **kwargs):
@@ -28,6 +24,9 @@ def configure(home=None, db_path=None, data_path=None, **kwargs):
     :type data_path: str
     :param kwargs: other parameters
     """
+    from norm.config import Session
+    from norm import config
+
     if home is not None:
         config.NORM_HOME = home
         config.DATA_STORAGE_ROOT = os.path.join(home, 'data')
@@ -43,7 +42,16 @@ def configure(home=None, db_path=None, data_path=None, **kwargs):
         config.context_id = str(datetime.utcnow().strftime('%m%d%Y.%H%M%S'))
         global context
         from norm.security import user
+        from norm.engine import NormCompiler, NormError
         context = NormCompiler(config.context_id, user, config.session)
+
+
+def init_context():
+    from norm.engine import NormCompiler, NormError
+    from norm.config import session, context_id
+    from norm.security import user
+    global context
+    context = NormCompiler(context_id, user, session)
 
 
 def init_colab():
@@ -78,6 +86,9 @@ def init_colab():
     else:
         logging.info("Directory ", home, " already exists")
 
+    from norm.config import Session
+    from norm import config, security
+
     config.NORM_HOME = home
 
     config.DATA_STORAGE_ROOT = os.path.join(home, 'data')
@@ -108,6 +119,7 @@ def init_colab():
     config.session = Session()
     config.context_id = str(datetime.utcnow().strftime('%m%d%Y.%H%M%S'))
     global context
+    from norm.engine import NormCompiler, NormError
     context = NormCompiler(config.context_id, user, config.session)
 
 
@@ -122,6 +134,8 @@ if get_ipython() is not None:
         :param cell: a multi-line of norm command
         :type cell: str
         """
+        from norm.engine import NormCompiler, NormError
+        import norm.config as config
         try:
             if cell is None:
                 if line.strip('\n\t ')[-1] != ';':

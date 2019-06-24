@@ -1,5 +1,4 @@
 import re
-import uuid
 
 from antlr4 import *
 from antlr4.error.ErrorListener import ErrorListener
@@ -9,7 +8,6 @@ from textwrap import dedent
 from norm import config
 from norm.executable import NormExecutable, Projection
 from norm.executable.command import Command
-from norm.executable.constant import Constant
 from norm.executable.schema.declaration import *
 from norm.executable.expression.arithmetic import *
 from norm.executable.expression.evaluation import *
