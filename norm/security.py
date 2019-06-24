@@ -27,7 +27,4 @@ def login(usr=None):
     return u
 
 
-# Initialize the user
-login()
-
 

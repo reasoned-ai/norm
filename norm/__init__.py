@@ -49,8 +49,9 @@ def configure(home=None, db_path=None, data_path=None, **kwargs):
 def init_context():
     from norm.engine import NormCompiler, NormError
     from norm.config import session, context_id
-    from norm.security import user
+    from norm.security import user, login
     global context
+    login()
     context = NormCompiler(context_id, user, session)
 
 
