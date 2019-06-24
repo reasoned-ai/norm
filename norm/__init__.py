@@ -70,13 +70,6 @@ def init_colab():
     email = gcloud_tokeninfo['email']
     last_name = gcloud_tokeninfo['hd']
     first_name = email.split('@')[0]
-    from norm.security import login
-    user = login({'first_name': first_name,
-                  'last_name': last_name,
-                  'username': email,
-                  'email': email})
-
-    logging.info(user.username + ' logged in')
 
     # Mount the drive
     drive.mount('/content/drive')
@@ -121,6 +114,15 @@ def init_colab():
     Session.configure(bind=config.engine)
     config.session = Session()
     config.context_id = str(datetime.utcnow().strftime('%m%d%Y.%H%M%S'))
+
+    from norm.security import login
+    user = login({'first_name': first_name,
+                  'last_name': last_name,
+                  'username': email,
+                  'email': email})
+
+    logging.info(user.username + ' logged in')
+
     global context
     from norm.engine import NormCompiler, NormError
     context = NormCompiler(config.context_id, user, config.session)
