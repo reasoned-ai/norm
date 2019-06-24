@@ -76,6 +76,8 @@ def init_colab():
                   'username': email,
                   'email': email})
 
+    logging.info(user.username + ' logged in')
+
     # Mount the drive
     drive.mount('/content/drive')
 
