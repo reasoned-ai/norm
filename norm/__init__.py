@@ -83,9 +83,9 @@ def init_colab():
     home = '/content/drive/My Drive/.norm/'
     if not os.path.exists(home):
         os.mkdir(home)
-        logging.info("Directory ", home, " created ")
+        logging.info("Directory " + home + " created ")
     else:
-        logging.info("Directory ", home, " already exists")
+        logging.info("Directory " + home + " already exists")
 
     from norm.config import Session
     from norm import config, security
@@ -95,25 +95,25 @@ def init_colab():
     config.DATA_STORAGE_ROOT = os.path.join(home, 'data')
     if not os.path.exists(config.DATA_STORAGE_ROOT):
         os.mkdir(config.DATA_STORAGE_ROOT)
-        logging.info("Directory ", config.DATA_STORAGE_ROOT, " created ")
+        logging.info("Directory " + config.DATA_STORAGE_ROOT + " created ")
     else:
-        logging.info("Directory ", config.DATA_STORAGE_ROOT, " already exists")
+        logging.info("Directory " + config.DATA_STORAGE_ROOT + " already exists")
 
     db_path = os.path.join(home, 'db')
     if not os.path.exists(db_path):
         os.mkdir(db_path)
-        logging.info("Directory ", db_path, " created ")
+        logging.info("Directory " + db_path + " created ")
     else:
-        logging.info("Directory ", db_path, " already exists")
+        logging.info("Directory " + db_path + " already exists")
 
     config.DB_PATH = os.path.join(home, 'db/norm.db')
     if not os.path.exists(config.DB_PATH):
         orig_db_file = './norm/db/norm.db'
         from shutil import copyfile
         copyfile(orig_db_file, config.DB_PATH)
-        logging.info("File ", config.DB_PATH, " copied")
+        logging.info("File " + config.DB_PATH + " copied")
     else:
-        logging.info("File ", config.DB_PATH, " already exists")
+        logging.info("File " + config.DB_PATH + " already exists")
 
     config.engine = create_engine('sqlite:///{}'.format(config.DB_PATH), poolclass=StaticPool)
     Session.configure(bind=config.engine)
