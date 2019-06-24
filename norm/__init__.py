@@ -104,7 +104,7 @@ def init_colab():
 
     config.DB_PATH = os.path.join(home, 'db/norm.db')
     if not os.path.exists(config.DB_PATH):
-        orig_db_file = './norm/db/norm.db'
+        orig_db_file = os.path.join(os.path.dirname(__file__), 'db/norm.db')
         from shutil import copyfile
         copyfile(orig_db_file, config.DB_PATH)
         logging.info("File " + config.DB_PATH + " copied")
