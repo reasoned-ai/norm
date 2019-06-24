@@ -6,7 +6,6 @@ babel==2.6.0
 bqplot==0.11.5
 cython==0.29.10
 dask==1.2.2
-distributed==1.28.1
 docutils==0.14
 fastparquet==0.3.1
 gcloud==0.18.3
