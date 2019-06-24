@@ -64,6 +64,7 @@ def init_colab():
     auth.authenticate_user()
     import requests
     from gcloud import credentials
+    logging.basicConfig(level=logging.DEBUG)
     access_token = credentials.get_credentials().get_access_token().access_token
     gcloud_tokeninfo = requests.get('https://www.googleapis.com/oauth2/v3/userinfo?access_token=' + access_token).json()
     email = gcloud_tokeninfo['email']
