@@ -1,5 +1,6 @@
 from norm.config import PUBLIC_USER, session
 import logging
+import traceback
 
 user = None
 
@@ -24,6 +25,7 @@ def login(usr=None):
         user = None
         logging.warning('Login failed')
         logging.warning(e)
+        logging.warning(traceback.print_exc())
     return u
 
 
