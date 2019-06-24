@@ -107,7 +107,7 @@ def init_colab():
         logging.info("Directory ", db_path, " already exists")
 
     if not os.path.exists(config.DB_PATH):
-        orig_db_file = '/'.join(norm.__file__.split('/')[:-1]) + '/db/norm.db'
+        orig_db_file = './db/norm.db'
         from shutil import copyfile
         copyfile(orig_db_file, config.DB_PATH)
         logging.info("File ", config.DB_PATH, " copied")
