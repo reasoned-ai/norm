@@ -9,6 +9,7 @@ dask==1.2.2
 distributed==1.28.1
 docutils==0.14
 fastparquet==0.3.1
+gcloud==0.18.3
 h5py==2.9.0
 humanize==0.5.1
 ipywidgets==7.4.2

@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 *.db-journal
 *.pyc
+*.egg-info
 .cache
 .DS_Store
 .coverage

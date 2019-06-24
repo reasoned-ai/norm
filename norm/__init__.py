@@ -6,7 +6,6 @@ from sqlalchemy.pool import StaticPool
 from norm.engine import NormCompiler, NormError
 from norm.config import Session
 from norm import config
-from norm.security import user
 
 from IPython import get_ipython
 from IPython.core.magic import register_line_magic, register_cell_magic, register_line_cell_magic
@@ -43,7 +42,73 @@ def configure(home=None, db_path=None, data_path=None, **kwargs):
         config.session = Session()
         config.context_id = str(datetime.utcnow().strftime('%m%d%Y.%H%M%S'))
         global context
+        from norm.security import user
         context = NormCompiler(config.context_id, user, config.session)
+
+
+def init_colab():
+    """
+    Setting the configurations in Colab (Google)
+    """
+    # Login the user
+    from google.colab import auth
+    from google.colab import drive
+    auth.authenticate_user()
+    import requests
+    from gcloud import credentials
+    access_token = credentials.get_credentials().get_access_token().access_token
+    gcloud_tokeninfo = requests.get('https://www.googleapis.com/oauth2/v3/userinfo?access_token=' + access_token).json()
+    email = gcloud_tokeninfo['email']
+    last_name = gcloud_tokeninfo['hd']
+    first_name = email.split('@')[0]
+    from norm.security import login
+    user = login({'first_name': first_name,
+                  'last_name': last_name,
+                  'username': email,
+                  'email': email})
+
+    # Mount the drive
+    drive.mount('/content/drive')
+
+    # Configure the database
+    home = '/content/drive/My Drive/.norm/'
+    if not os.path.exists(home):
+        os.mkdir(home)
+        logging.info("Directory ", home, " created ")
+    else:
+        logging.info("Directory ", home, " already exists")
+
+    config.NORM_HOME = home
+
+    config.DATA_STORAGE_ROOT = os.path.join(home, 'data')
+    if not os.path.exists(config.DATA_STORAGE_ROOT):
+        os.mkdir(config.DATA_STORAGE_ROOT)
+        logging.info("Directory ", config.DATA_STORAGE_ROOT, " created ")
+    else:
+        logging.info("Directory ", config.DATA_STORAGE_ROOT, " already exists")
+
+    config.DB_PATH = os.path.join(home, 'db/norm.db')
+    db_path = os.path.join(home, 'db')
+    if not os.path.exists(db_path):
+        os.mkdir(db_path)
+        logging.info("Directory ", db_path, " created ")
+    else:
+        logging.info("Directory ", db_path, " already exists")
+
+    if not os.path.exists(config.DB_PATH):
+        orig_db_file = '/'.join(norm.__file__.split('/')[:-1]) + '/db/norm.db'
+        from shutil import copyfile
+        copyfile(orig_db_file, config.DB_PATH)
+        logging.info("File ", config.DB_PATH, " copied")
+    else:
+        logging.info("File ", config.DB_PATH, " already exists")
+
+    config.engine = create_engine('sqlite:///{}'.format(config.DB_PATH), poolclass=StaticPool)
+    Session.configure(bind=config.engine)
+    config.session = Session()
+    config.context_id = str(datetime.utcnow().strftime('%m%d%Y.%H%M%S'))
+    global context
+    context = NormCompiler(config.context_id, user, config.session)
 
 
 # IPython magics
