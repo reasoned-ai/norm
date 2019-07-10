@@ -7,7 +7,8 @@ from norm.models.license import License
 from norm.models.user import User
 from norm.models import Model
 
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, desc, UniqueConstraint, orm
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, desc, UniqueConstraint, orm, \
+    Binary
 from sqlalchemy import Table
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
@@ -151,6 +152,19 @@ def _only_adaptable(func):
             raise RuntimeError(msg)
         return func(self, *args, **kwargs)
     return wrapper
+
+
+class Namespace(Model, ParametrizedMixin):
+    """Namespace"""
+    __tablename__ = 'namespace'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(512), default='')
+    description = Column(Text, default='')
+    created_by_id = Column(Integer, ForeignKey(User.id))
+    owner = relationship(User, backref='namespaces', foreign_keys=[created_by_id])
+    created_on = Column(DateTime, default=datetime.now)
+    changed_on = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    secret = Column(Binary, default=b'')
 
 
 class Lambda(Model, ParametrizedMixin):

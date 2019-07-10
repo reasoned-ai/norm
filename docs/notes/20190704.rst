@@ -1,0 +1,14 @@
+Namespace ACL
+==============
+
+Namespace allows users to manage their spaces to organize and publish lambdas. ``norm.financial.stock.price`` represents
+a concept and its scope. Such pattern is very common in file system organization, programming language package
+organization.
+
+Namespace management system supports users to organize, control and exchange their knowledge. Access control can
+restrict other users from accessing their assets.
+
+
+
+
+
