@@ -8,7 +8,7 @@ from norm.models.user import User
 from norm.models import Model
 
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, desc, UniqueConstraint, \
-    orm, Binary
+    orm, LargeBinary
 from sqlalchemy import Table
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
@@ -172,7 +172,7 @@ class Namespace(Model, ParametrizedMixin):
     owner = relationship(User, backref='namespaces', foreign_keys=[created_by_id])
     created_on = Column(DateTime, default=datetime.now)
     changed_on = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    secret = Column(Binary, default=b'')
+    secret = Column(LargeBinary, default=b'')
 
 
 class Lambda(Model, ParametrizedMixin):

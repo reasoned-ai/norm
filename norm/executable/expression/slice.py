@@ -1,4 +1,5 @@
-from norm.executable import NormExecutable
+import uuid
+
 from norm.executable.expression import NormExpression
 
 
@@ -21,14 +22,19 @@ class SliceExpr(NormExpression):
 
     def compile(self, context):
         self.expr = self.expr.compile(context)
-        from norm.executable.schema.variable import VariableName
-        from norm.executable.expression.evaluation import EvaluationExpr
-        if isinstance(self.expr, VariableName):
-            self.expr = EvaluationExpr(args=[], variable=self.expr).compile(context)
+        from norm.models.norm import Lambda
+        self.eval_lam = self.expr.lam
+        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
+                          variables=self.eval_lam.variables)
+        self.lam.cloned_from = self.eval_lam
         return self
 
     def execute(self, context):
-        df = self.expr.execute(context)
+        from norm.executable.schema.variable import VariableName
+        if isinstance(self.expr, VariableName):
+            df = self.expr.lam.data
+        else:
+            df = self.expr.execute(context)
         df = df.iloc[self.start:self.end].reset_index(drop=True)
         # TODO whether reset the index for the projected variable or not?
         return df
