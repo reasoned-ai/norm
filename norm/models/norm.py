@@ -40,11 +40,13 @@ class Variable(Model):
     id = Column(Integer, primary_key=True)
     name = Column(String(256), default='')
     primary = Column(Boolean, default=False)
+    as_oid = Column(Boolean, default=False)
+    as_time = Column(Boolean, default=False)
     position = Column(Integer)
     type_id = Column(Integer, ForeignKey('lambdas.id'))
     type_ = relationship('Lambda', foreign_keys=[type_id])
 
-    def __init__(self, name, type_, primary=False):
+    def __init__(self, name, type_, primary=False, as_oid=False, as_time=False):
         """
         Construct the variable
         :param name: the full name of the variable
@@ -53,11 +55,17 @@ class Variable(Model):
         :type type_: Lambda
         :param primary: whether the variable is a primary for an Lambda
         :type primary: bool
+        :param as_oid: whether the variable is treated as oid
+        :type as_oid: bool
+        :param as_time: whether the variable is treated as time
+        :type as_time: bool
         """
         self.id = None
         self.name = name
         self.type_ = type_
         self.primary = primary
+        self.as_oid = as_oid
+        self.as_time = as_time
 
     def __hash__(self):
         return hash(self.name) + hash(self.type_)

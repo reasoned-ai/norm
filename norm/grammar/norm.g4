@@ -224,7 +224,7 @@ INTEGER:    [+-]? DIGIT+;
 FLOAT:      [+-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
 STRING:     '"' ( ~["\r\n\t] )*? '"' | '\'' ( ~['\r\n\t] )*? '\'' ;
 
-PATTERN:   'r' STRING;
+PATTERN:   'p' STRING;
 UUID:      '$' [0-9a-zA-Z-]*;
 URL:       'u' STRING;
 DATETIME:  't' STRING;
