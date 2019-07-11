@@ -265,7 +265,7 @@ class NormCompiler(normListener):
         optional = variable_property is not None and variable_property.lower().find('optional') > 0
         type_name: TypeName = self._pop()
         variable_name: VariableName = self._pop()
-        self._push(ArgumentDeclaration(variable_name, type_name, optional))
+        self._push(ArgumentDeclaration(variable_name, type_name, optional, as_oid, as_time))
 
     def enterArgumentDeclarations(self, ctx: normParser.ArgumentDeclarationsContext):
         type_name = self._peek()

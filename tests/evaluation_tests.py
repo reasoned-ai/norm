@@ -125,6 +125,16 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(all(results.index == [105841138, 99811799, 145556044]))
         self.assertTrue(all(results['test.c'] == ['tt', 'gg', 'hh']))
 
+    def test_evaluate_oid_set(self):
+        self.execute("test(a: String, b: Integer: oid);")
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3)"
+                     "     ;")
+        results = self.execute("test?;")
+        self.assertTrue(results is not None)
+        self.assertTrue(all(results.index == [1, 2, 3]))
+
     def test_evaluate_empty_as_default(self):
         self.execute("test(a: String, b: Integer);")
         test = self.execute("test;")

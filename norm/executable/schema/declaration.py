@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class ArgumentDeclaration(object):
 
-    def __init__(self, variable_name, variable_type, optional=False):
+    def __init__(self, variable_name, variable_type, optional=False, as_oid=False, as_time=False):
         """
         The argument declaration
         :param variable_name: the name of the variable
@@ -19,11 +19,15 @@ class ArgumentDeclaration(object):
         :type variable_type: TypeName
         :param optional: whether it is optional or not
         :type optional: bool
+        :param as_time: whether it is a time column
+        :type as_time: bool
+        :param as_oid: whether is it an oid column
+        :type as_oid: bool
         """
         assert(variable_type is not None)
         assert(variable_type.lam is not None)
         from norm.models import Variable
-        self.var = Variable(variable_name.name, variable_type.lam, not optional)
+        self.var = Variable(variable_name.name, variable_type.lam, not optional, as_oid, as_time)
 
 
 class RenameArgument(object):

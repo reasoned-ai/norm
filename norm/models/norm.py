@@ -2,13 +2,13 @@
 import zlib
 
 import norm.config as config
-from norm.models.mixins import ParametrizedMixin, ARRAY
+from norm.models.mixins import ParametrizedMixin, ARRAY, lazy_property
 from norm.models.license import License
 from norm.models.user import User
 from norm.models import Model
 
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, desc, UniqueConstraint, orm, \
-    Binary
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, desc, UniqueConstraint, \
+    orm, Binary
 from sqlalchemy import Table
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
@@ -342,6 +342,30 @@ class Lambda(Model, ParametrizedMixin):
         else:
             return self
 
+    @lazy_property
+    def oid_col(self):
+        """
+        Given oid column
+        :return: the column name
+        :rtype: str or None
+        """
+        for v in self.variables:
+            if v.as_oid:
+                return v.name
+        return None
+
+    @lazy_property
+    def time_col(self):
+        """
+        Given time column
+        :return: the column name
+        :rtype: str or None
+        """
+        for v in self.variables:
+            if v.as_time:
+                return v.name
+        return None
+
     def get_type(self, variable_name):
         """
         Get the type of the variable by the name
@@ -529,6 +553,16 @@ class Lambda(Model, ParametrizedMixin):
         if self.VAR_OID in df.columns or df.index.name == self.VAR_OID:
             return df
 
+        # if OID column is given
+        oid_col = self.oid_col
+        if oid_col is not None and oid_col in df.columns:
+            df[self.VAR_OID] = df[oid_col].astype('int64')
+            df = df.set_index(self.VAR_OID)
+            return df
+
+        # if OID column is given but with no value in the data
+        # primary columns are used to generate the oid and backfill it
+
         cols = [v.name for v in self.variables if v.primary and v.name in df.columns]
         c = None
         for col in cols:
@@ -541,13 +575,24 @@ class Lambda(Model, ParametrizedMixin):
             df = df.set_index(self.VAR_OID)
         else:
             df.index.rename(self.VAR_OID, inplace=True)
+
+        if oid_col is not None:
+            df[oid_col] = df.index.values
         return df
 
     def fill_time(self, df):
+        time_col = self.time_col
+
         if self.VAR_TIMESTAMP not in df.columns:
-            df[self.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
+            if time_col is not None and time_col in df.columns:
+                df[self.VAR_TIMESTAMP] = df[time_col].astype('datetime64[ns]')
+            else:
+                df[self.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
         else:
-            df[self.VAR_TIMESTAMP].fillna(np.datetime64(datetime.utcnow()), inplace=True)
+            if time_col is not None and time_col in df.columns:
+                df[self.VAR_TIMESTAMP].fillna(df[time_col].astype('datetime64[ns]'), inplace=True)
+            else:
+                df[self.VAR_TIMESTAMP].fillna(np.datetime64(datetime.utcnow()), inplace=True)
         return df
 
     def _fill_label(self, df):
