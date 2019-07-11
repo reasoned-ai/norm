@@ -13,6 +13,7 @@ from sqlalchemy import Table
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.orderinglist import ordering_list
+from cryptography.fernet import Fernet
 
 import os
 import errno
@@ -154,9 +155,11 @@ def _only_adaptable(func):
     return wrapper
 
 
-class Namespace(Model, ParametrizedMixin):
+class Namespace(Model):
     """Namespace"""
+
     __tablename__ = 'namespace'
+
     id = Column(Integer, primary_key=True)
     name = Column(String(512), default='')
     description = Column(Text, default='')
@@ -164,7 +167,37 @@ class Namespace(Model, ParametrizedMixin):
     owner = relationship(User, backref='namespaces', foreign_keys=[created_by_id])
     created_on = Column(DateTime, default=datetime.now)
     changed_on = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    secret = Column(Binary, default=b'')
+    secret = Column(Binary)
+
+    def __init__(self, name='', description='', user=None, secret=None):
+        self.id: int = None
+        self.name: str = name
+        self.description: str = description
+        self.owner: User = user
+        if user is not None:
+            if secret is None:
+                secret = Fernet.generate_key()
+            self.secret = user.encrypt(secret)
+        else:
+            self.secret = secret
+        self._cipher: Fernet = None
+
+    @property
+    def cipher(self):
+        if self.owner is not None and self.secret is not None and self._cipher is None:
+            secret = self.owner.decrypt(self.secret)
+            self._cipher = Fernet(secret)
+        return self._cipher
+
+    def encrpyt(self, data):
+        if self.cipher is None:
+            return None
+        return self.cipher.encrypt(data)
+
+    def decrpyt(self, data):
+        if self.cipher is None:
+            return None
+        return self.cipher.decrypt(data)
 
 
 class Lambda(Model, ParametrizedMixin):
