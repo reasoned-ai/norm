@@ -59,19 +59,20 @@ test &= gaussian(mu=2, gamma=0.1, b)?prob;
 test &= view(p, time<t, page?);
 
 // Sort on an attribute
-test.t.desc();
+test.desc(t);
 
 // Group by an attribute and take the mean
-tt := test.foreach(t) & tt.a.mean()?a_mean & tt.a.max()?a_max & tt.b.mean()?b_mean;
+tt := with test.foreach(t), a.mean()?a_mean & a.max()?a_max & b.mean()?b_mean;
+tt := with test.foreach(t).exists(a), a > 3;
 
 // Extract a pattern on an attribute
-test &= extract(a, r'sf')?sf;
+test &= extract(a, p'sf')?sf;
 
 // Extract a pattern on multiple attributes
-test &= extract(a, r'sf{\W+}{[0-9]+}')?(v1, v2);
+test &= extract(a, p'sf(\W+)([0-9]+)')?(v1, v2);
 
 // Access a nested attribute
-test &= extract(p.name, r'^tom')?is_tom;
+test &= extract(p.name, p'^tom')?is_tom;
 
 // Slicing with one object
 test[1];
@@ -82,22 +83,11 @@ test[:9];
 test[2:];
 test[:-2];
 
-// Row-wise expansion with vectorized inputs
 // match(s:String, p:Pattern)
-// the following will cross product test with [r's', r'sf', r'aa']
-patterns = [r's', r'sf', r'aa'];
-
-// Higher order relation GroupLambda and column-wise expansion
-// Iterate on patterns with OR and project to variable 'pa'
-  matches = match.foreach(p=patterns)
-& cols = 'pattern_{}'.format(patterns)
-& matches(test.a).any?pa;
-
-// Iterate on patterns with AND and project to variables  ('pattern_s', 'pattern_sf', 'pattern_aa')
-matches(test.a).all?{cols.all};
+matched = ['s', 'sf', 'aa']?p & match(test.a, p)?pattern_{p};
 
 
 // Inheritance
 animal(name: String, speak: String, num_of_legs: Integer);
-duck(name: String) = speak='guagua' & num_of_legs=2 & animal(name, speak, numOfLegs);
-frog(name: String) = speak='rubit' & num_of_legs=4 & animal(name, speak, numOfLegs);
+duck := animal(name: String, speak='guagua', num_of_legs=2);
+frog := animal(name: String, speak='rubit', num_of_legs=4);

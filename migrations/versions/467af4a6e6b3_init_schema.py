@@ -79,6 +79,8 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=256), nullable=True),
     sa.Column('primary', sa.Boolean(), nullable=False),
+    sa.Column('as_oid', sa.Boolean(), nullable=False),
+    sa.Column('as_time', sa.Boolean(), nullable=False),
     sa.Column('position', sa.Integer(), nullable=True),
     sa.Column('type_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['type_id'], ['lambdas.id'], ),
