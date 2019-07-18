@@ -71,6 +71,15 @@ class normListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by normParser#contexts.
+    def enterContexts(self, ctx:normParser.ContextsContext):
+        pass
+
+    # Exit a parse tree produced by normParser#contexts.
+    def exitContexts(self, ctx:normParser.ContextsContext):
+        pass
+
+
     # Enter a parse tree produced by normParser#typeName.
     def enterTypeName(self, ctx:normParser.TypeNameContext):
         pass
@@ -248,6 +257,15 @@ class normListener(ParseTreeListener):
 
     # Exit a parse tree produced by normParser#oneLineExpression.
     def exitOneLineExpression(self, ctx:normParser.OneLineExpressionContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#contextualOneLineExpression.
+    def enterContextualOneLineExpression(self, ctx:normParser.ContextualOneLineExpressionContext):
+        pass
+
+    # Exit a parse tree produced by normParser#contextualOneLineExpression.
+    def exitContextualOneLineExpression(self, ctx:normParser.ContextualOneLineExpressionContext):
         pass
 
 

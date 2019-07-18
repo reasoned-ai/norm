@@ -83,10 +83,13 @@ class ColumnVariable(VariableName):
         return self.lam.get_type(self.name)
 
     def compile(self, context):
+        from norm.engine import GroupedLambda
         if self.scope is None:
             assert(context.scope is not None)
             self.lam = context.scope
         elif isinstance(self.scope, Lambda):
+            self.lam = self.scope
+        elif isinstance(self.scope, GroupedLambda):
             self.lam = self.scope
         else:
             self.lam = self.scope.lam

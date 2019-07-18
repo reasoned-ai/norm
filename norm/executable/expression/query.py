@@ -1,11 +1,12 @@
 from collections import OrderedDict
 
+from pandas import DataFrame, Series
+
 from norm.executable import NormError
 from norm.executable.constant import ListConstant, Constant
 from norm.executable.expression import NormExpression
-from norm.executable.expression.argument import ArgumentExpr
 from norm.executable.expression.condition import ConditionExpr, CombinedConditionExpr
-from norm.executable.expression.evaluation import EvaluationExpr, AddDataEvaluationExpr
+from norm.executable.expression.evaluation import AddDataEvaluationExpr, DataFrameColumnFunctionExpr
 from norm.grammar.literals import LOP
 
 import logging
@@ -79,8 +80,34 @@ class QueryExpr(NormExpression):
 
     def execute(self, context):
         df1 = self.expr1.execute(context)
+        if isinstance(df1, Series):
+            df1 = DataFrame(data={df1.name: df1})
         df2 = self.expr2.execute(context)
-        # TODO: AND to intersect, OR to union
+        if isinstance(df2, Series):
+            df2 = DataFrame(data={df2.name: df2})
+
+        # TODO: OR to union
+        from norm.models.norm import Lambda
+        if self.op == LOP.AND:
+            # both indices are the same, left join to df2
+            # if not, cross join df1 and df2
+            if df1.index.name == df2.index.name:
+                cols = [col for col in df1.columns if col not in df2.columns]
+                df2[cols] = df1.loc[df2.index, cols]
+            else:
+                df1['__join__'] = 1
+                df2['__join__'] = 1
+                if df1.index.name is not None:
+                    df1 = df1.reset_index()
+                df1.set_index('__join__')
+                if df2.index.name is not None:
+                    df2 = df2.reset_index()
+                df2.set_index('__join__')
+                cols = [col for col in df1.columns if col not in df2.columns]
+                df2 = df2.join(df1[cols]).reset_index(drop=True)
+
+        if df2.index.name != Lambda.VAR_OID and df2.index.name is not None:
+            df2 = df2.reset_index()
         return df2
 
 

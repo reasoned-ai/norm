@@ -22,6 +22,23 @@ from norm.grammar.normListener import normListener
 from norm.grammar.normParser import normParser
 
 
+class GroupedLambda(object):
+
+    def __init__(self, lam: Lambda, cols: List[str]):
+        self.lam = lam
+        self.cols = cols
+
+    def __contains__(self, item):
+        return item in self.lam
+
+    @property
+    def data(self):
+        return self.lam.data.groupby(self.cols)
+
+    def get_type(self, name):
+        return self.lam.get_type(name)
+
+
 class ParseError(ValueError):
     pass
 
@@ -148,6 +165,11 @@ class NormCompiler(normListener):
                 if col.find(NormExecutable.VARIABLE_SEPARATOR) >= 0:
                     fix_dot_columns[col] = col.replace(NormExecutable.VARIABLE_SEPARATOR, '.')
             results = results.rename(columns=fix_dot_columns)
+        elif isinstance(results, Series):
+            if results.name.find(NormExecutable.VARIABLE_SEPARATOR) >= 0:
+                results = DataFrame(data={results.name.replace(NormExecutable.VARIABLE_SEPARATOR, '.'): results})
+            else:
+                results = DataFrame(data={results.name: results})
         return results
 
     def exitStatement(self, ctx: normParser.StatementContext):
@@ -230,7 +252,7 @@ class NormCompiler(normListener):
     def exitQueryProjection(self, ctx: normParser.QueryProjectionContext):
         variables = list(reversed([self._pop() for ch in ctx.children
                                    if isinstance(ch, normParser.VariableContext)]))
-        to_evaluate = True if ctx.LCBR() else False
+        to_evaluate = False
         # TODO: evaluate the variables to get the referred variables
         self._push(Projection(variables, to_evaluate))
 
@@ -362,8 +384,26 @@ class NormCompiler(normListener):
             self.scopes.append((type_declaration.lam, 'multiline'))
 
     def exitContext(self, ctx:normParser.ContextContext):
-        type_name = self._pop()
-        self.scopes.append((type_name.lam, 'multiline'))
+        if ctx.WITH():
+            type_name = self._pop()
+            self.scopes.append((type_name.lam, 'one_line_context'))
+        elif ctx.FOREACH():
+            tns = []
+            for ch in ctx.children:
+                if isinstance(ch, normParser.VariableContext):
+                    tn = self._pop()
+                    assert(isinstance(tn, ColumnVariable))
+                    tns.append(tn.name)
+            lam, lex = self.scopes.pop()
+            self.scopes.append((GroupedLambda(lam, tns), lex))
+        elif ctx.FORANY():
+            pass
+        elif ctx.EXIST():
+            pass
+
+    def exitContextualOneLineExpression(self, ctx:normParser.ContextualOneLineExpressionContext):
+        while self.scope_lex == 'one_line_context':
+            self.scopes.pop()
 
     def exitMultiLineExpression(self, ctx: normParser.MultiLineExpressionContext):
         if ctx.newlineLogicalOperator():
@@ -382,8 +422,12 @@ class NormCompiler(normListener):
         if ctx.queryProjection():
             projection = self._pop()
             expr = self._peek()
-            expr.projection = projection
-            expr.compile(self)
+            if isinstance(expr, VariableName):
+                self._pop()
+                self._push(EvaluationExpr([], expr, projection).compile(self))
+            else:
+                expr.projection = projection
+                expr.compile(self)
         elif ctx.NOT():
             expr = self._pop()  # type: NormExpression
             self._push(NegatedQueryExpr(expr).compile(self))
@@ -465,11 +509,11 @@ class NormCompiler(normListener):
             rexpr = self._pop()
             lexpr = self._pop()
             self._push(ChainedEvaluationExpr(lexpr, rexpr).compile(self))
-        elif ctx.argumentExpressions() or ctx.queryProjection():
-            projection = self._pop() if ctx.queryProjection() else None
+        elif ctx.argumentExpressions(): # or ctx.queryProjection():
+            #projection = self._pop() if ctx.queryProjection() else None
             args = self._pop() if ctx.argumentExpressions() else []  # type: List[ArgumentExpr]
             variable = self._pop() if ctx.variable() else None  # type: VariableName
-            self._push(EvaluationExpr(args, variable, projection).compile(self))
+            self._push(EvaluationExpr(args, variable, None).compile(self))
 
     def exitCodeExpression(self, ctx: normParser.CodeExpressionContext):
         self._push(ctx.code().getText())

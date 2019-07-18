@@ -854,27 +854,6 @@ class Lambda(Model, ParametrizedMixin):
         pass
 
 
-class GroupLambda(Lambda):
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'lambda_group'
-    }
-
-    def all(self):
-        """
-        Combine the groups as columns
-        :return: Lambda
-        """
-        raise NotImplementedError
-
-    def any(self):
-        """
-        Combine the groups as concatenation
-        :return: Lambda
-        """
-        raise NotImplementedError
-
-
 def retrieve_type(namespaces, name, version=None, status=None):
     """
     Retrieving a Lambda

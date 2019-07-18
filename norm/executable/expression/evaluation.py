@@ -1,4 +1,5 @@
 import uuid
+from enum import Enum
 
 from norm.utils import hash_df
 from pandas import DataFrame, Series, Index
@@ -313,7 +314,9 @@ class AtomicEvaluationExpr(NormExpression):
     def execute(self, context):
         inputs = dict((key, value.execute(context)) for key, value in self.inputs.items())
         result = self.eval_lam(**inputs)
-        if self.output_projection is not None:
+        if self.output_projection is None and self.projection is not None:
+            self.output_projection = self.projection.variables[0].name
+        if self.output_projection is not None or self.projection is not None:
             import numpy
             if isinstance(result, (list, numpy.ndarray)):
                 return Series(result, name=self.output_projection)
@@ -343,7 +346,7 @@ class RetrievePartialDataExpr(NormExpression):
         assert(not lam.atomic)
         self.eval_lam: Lambda = lam
         self.lam: Lambda = None
-        self.outputs: Dict = outputs
+        self.outputs: Dict = outputs if outputs is not None else OrderedDict()
 
     def __str__(self):
         oid = self.eval_lam.VAR_OID
@@ -352,8 +355,27 @@ class RetrievePartialDataExpr(NormExpression):
                                  ', '.join(('{}?'.format(c) for c in self.outputs.keys() if c != oid and c != out)),
                                  '?' if self.outputs.get(oid) or self.outputs.get(out) else '')
 
+    def _append_projection(self):
+        if self.projection is not None:
+            assert(len(self.projection.variables) <= 1)
+            assert(not self.projection.to_evaluate)
+            if self.projection.num == 1:
+                new_lambda_name = self.projection.variables[0].name
+            else:
+                new_lambda_name = self.eval_lam.name
+            outputs = OrderedDict((key, self.VARIABLE_SEPARATOR.join([new_lambda_name, value])) for key, value
+                                  in self.outputs.items())
+            if self.eval_lam.is_functional:
+                outputs[self.eval_lam.VAR_OUTPUT] = new_lambda_name
+            else:
+                outputs[self.eval_lam.VAR_OID] = new_lambda_name
+            self.outputs = outputs
+            self.projection = None
+
     def compile(self, context):
         from norm.models import Lambda, Variable
+        self._append_projection()
+
         if len(self.outputs) > 0:
             variables = [Variable(self.outputs[v.name], v.type_) for v in self.eval_lam.variables
                          if v.name in self.outputs.keys()]
@@ -523,16 +545,61 @@ class ChainedEvaluationExpr(NormExpression):
 
 class DataFrameColumnFunctionExpr(EvaluationExpr):
 
-    def __init__(self, column_variable, expr):
+    AGG_FUNCS = {'abs', 'idxmax', 'idxmin', 'count', 'kurt', 'mad', 'max', 'min', 'median', 'mean', 'nunique', 'std',
+                 'sum'}
+    INT_FUNCS = {'idxmax', 'idxmin', 'count', 'nunique'}
+    FLT_FUNCS = {'mean', 'std', 'kurt'}
+    STR_FUNCS = {'capitalize', 'cat', 'pcount', 'contains', 'endswith', 'extract', 'extractall', 'find', 'findall',
+                 'len', 'lower', 'match', 'replace', 'split', 'strip', 'title', 'upper', 'isalnum', 'isalpha', 'isdigit',
+                 'isspace', 'islower', 'isupper', 'istitle', 'isnumeric', 'isdecimal', 'wrap', 'translate', 'swapcase',
+                 'slice', 'slice_replace', 'repeat', 'pad', 'normalize'}
+
+    def __init__(self, column_variable, expr, projection=None):
         super().__init__([])
         self.column_variable: ColumnVariable = column_variable
         self.expr: EvaluationExpr = expr
+        self.projection: Projection = projection
+
+    def __str__(self):
+        return '{}{}{}'.format(self.column_variable.name, self.VARIABLE_SEPARATOR, self.expr.variable.name)
+
+    @property
+    def var_name(self):
+        if self.projection is not None:
+            assert(len(self.projection.variables) == 1)
+            return self.projection.variables[0].name
+        else:
+            return str(self)
 
     def compile(self, context):
+        self.eval_lam = self.column_variable.lam
+        from norm.models.norm import Lambda, Variable
+        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
+                          variables=[Variable(self.var_name, self.var_type)])
         return self
 
-    def execute(self, context):
-        col = self.column_variable.execute(context)
+    @property
+    def is_aggregation(self):
+        return self.expr.variable.name in self.AGG_FUNCS
+
+    @property
+    def is_str_handling(self):
+        return self.expr.variable.name in self.STR_FUNCS
+
+    @property
+    def var_type(self):
+        from norm.models import lambdas
+        f = self.expr.variable.name
+        if self.is_aggregation:
+            if f in self.INT_FUNCS:
+                return lambdas.Integer
+            if f in self.FLT_FUNCS:
+                return lambdas.Float
+            return self.column_variable.variable_type()
+        if self.is_str_handling:
+            return lambdas.String
+
+    def get_args(self, context):
         args = []
         kwargs = {}
         for arg in self.expr.args:  # type: ArgumentExpr
@@ -542,12 +609,23 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
                 kwargs[arg.variable.name] = arg.expr.execute(context)
             else:
                 args.append(arg.expr.execute(context))
-        func = self.expr.variable.name
-        try:
-            df = getattr(col, func)(*args, **kwargs)
-        except:
-            print('error on {}'.format(col))
-            df = getattr(col.str, func)(*args, **kwargs)
-            print(args, kwargs)
-            print(df)
+        return args, kwargs
+
+    def execute(self, context):
+        args, kwargs = self.get_args(context)
+        col = self.column_variable.execute(context)
+        f = self.expr.variable.name
+        if self.is_str_handling:
+            df = getattr(col.str, f)(*args, **kwargs)
+        elif self.is_aggregation:
+            df = getattr(col, f)(*args, **kwargs)
+        else:
+            msg = '{} is not implemented yet'.format(self.expr.variable.name)
+            logging.error(msg)
+            raise NormError(msg)
+
+        if not isinstance(df, Series):
+            df = Series(data=[df], name=self.var_name, dtype=self.var_type.dtype)
+        else:
+            df.name = self.var_name
         return df

@@ -90,7 +90,7 @@ class Store(object):
         return self.__getitem__(item)
 
 
-from norm.models.norm import (Variable, Lambda, GroupLambda, Status, retrieve_type)
+from norm.models.norm import (Variable, Lambda, Status, retrieve_type)
 from norm.models.revision import (Revision, revision_variable, SchemaRevision, AddVariableRevision,
                                   DeleteVariableRevision, RenameVariableRevision, RetypeVariableRevision,
                                   DeltaRevision, ConjunctionRevision, DisjunctionRevision, FitRevision)

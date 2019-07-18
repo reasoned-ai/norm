@@ -7,7 +7,7 @@ statement
     | comments? imports
     | comments? exports
     | comments? commands
-    | comments? (WS|NS)? context? (WS|NS)? multiLineExpression
+    | comments? (WS|NS)? multiLineExpression
     | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? LBR argumentDeclarations RBR
     | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? LBR renames RBR
     | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? codeExpression
@@ -50,10 +50,32 @@ fragment DELETE: 'del'|'Del'|'DEL';
 fragment DESCRIBE: 'describe'|'Describe'|'DESCRIBE';
 
 COMMAND: HISTORY|UNDO|REDO|DELETE|DESCRIBE;
-ARGOPT:  'optional' | 'primary' | 'oid' | 'time';
+ARGOPT:  'optional' | 'primary' | 'oid' | 'time'| 'parameter';
 
-context: SPACED_WITH typeName WS? ',';
-SPACED_WITH: 'with' [ \t]+;
+context
+    : WITH LBR typeName RBR
+    | FORANY LBR (variable (WS? COMMA WS? variable)*) RBR
+    | FOREACH LBR (variable (WS? COMMA WS? variable)*) RBR
+    | EXIST LBR(variable (WS? COMMA WS? variable)*) RBR
+    ;
+
+contexts: context (WS? DOT WS? context)* WS? COMMA;
+
+EXIST: 'exist' | 'Exist' | 'EXIST';
+
+WITH: 'with' | 'With' | 'WITH';
+
+FOREACH
+    : 'foreach' | 'forevery'
+    | 'Foreach' | 'Forevery'
+    | 'FOREACH' | 'FOREVERY'
+    ;
+
+FORANY
+    : 'forall' | 'forany'
+    | 'Forall' | 'Forany'
+    | 'FORALL' | 'FORANY'
+    ;
 
 typeName
     : VARNAME version?
@@ -62,9 +84,10 @@ typeName
 variable
     : VARNAME | COMMAND | ARGOPT
     | variable DOT (VARNAME | COMMAND | ARGOPT)
+    | VARNAME LCBR variable RCBR
     ;
 
-argumentProperty: (WS|NS)? COLON (WS|NS)? ARGOPT;
+argumentProperty: (WS|NS)? COLON (WS|NS)? ARGOPT WS? (LBR WS? constant WS? RBR)?;
 
 argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName argumentProperty?;
 
@@ -80,7 +103,6 @@ version: UUID | '$latest' | '$best';
 
 queryProjection
     : '?' variable?
-    | '?' LCBR variable (WS? COMMA WS? variable)* RCBR
     | '?' LBR variable (WS? COMMA WS? variable)* RBR
     ;
 
@@ -116,9 +138,9 @@ argumentExpressions
 
 evaluationExpression
     : constant
-    | variable WS? queryProjection?
+    | variable
     | argumentExpressions
-    | variable argumentExpressions WS? queryProjection?
+    | variable argumentExpressions
     | evaluationExpression (WS|NS)? DOT (WS|NS)? evaluationExpression
     ;
 
@@ -148,9 +170,12 @@ oneLineExpression
     | oneLineExpression spacedLogicalOperator oneLineExpression
     ;
 
+contextualOneLineExpression
+    : contexts? (WS|NS)? oneLineExpression;
+
 multiLineExpression
-    : oneLineExpression
-    | oneLineExpression newlineLogicalOperator multiLineExpression
+    : contextualOneLineExpression
+    | contextualOneLineExpression newlineLogicalOperator multiLineExpression
     ;
 
 
@@ -195,7 +220,7 @@ COMMA:     ',';
 DOT:       '.';
 DOTDOT:    '..';
 
-IN:        'in'  | 'IN'  | 'In';
+IN:        'in'  | 'IN'  | 'In' ;
 NI:        '!in' | '!IN' | '!In';
 EQ:        '==';
 NE:        '!=';

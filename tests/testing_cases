@@ -62,8 +62,8 @@ test &= view(p, time<t, page?);
 test.desc(t);
 
 // Group by an attribute and take the mean
-tt := with test.foreach(t), a.mean()?a_mean & a.max()?a_max & b.mean()?b_mean;
-tt := with test.foreach(t).exists(a), a > 3;
+tt := with(test).foreach(t), a.mean()?a_mean & a.max()?a_max & b.mean()?b_mean;
+tt := with(test).foreach(t).exist(a), a > 3;
 
 // Extract a pattern on an attribute
 test &= extract(a, p'sf')?sf;
@@ -83,11 +83,11 @@ test[:9];
 test[2:];
 test[:-2];
 
-// match(s:String, p:Pattern)
+// match(s:String, p:Pattern), pivoting
 matched = ['s', 'sf', 'aa']?p & match(test.a, p)?pattern_{p};
 
 
 // Inheritance
-animal(name: String, speak: String, num_of_legs: Integer);
-duck := animal(name: String, speak='guagua', num_of_legs=2);
-frog := animal(name: String, speak='rubit', num_of_legs=4);
+animal(name: String, sound: String, num_of_legs: Integer);
+duck(:animal(sound='guagua', num_of_legs=2));
+frog(:animal(sound='rubit', num_of_legs=4));

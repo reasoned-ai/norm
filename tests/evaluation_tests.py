@@ -2,7 +2,6 @@
 from tests.utils import NormTestCase
 from norm.config import DATA_STORAGE_ROOT
 from norm.models import Status
-import os
 
 
 class EvaluationTestCase(NormTestCase):
@@ -43,7 +42,7 @@ class EvaluationTestCase(NormTestCase):
                                                            lam.name,
                                                            lam.version))
 
-    def test_read_parquet2(self):
+    def test_select_primary_columns(self):
         self.execute("test := read('./data/norm/packed_alarms.parquet', ext='parq');")
         lam = self.execute("alarms(event: String, time: Datetime, ip: String) := test?;")
         self.assertTrue(lam is not None)
@@ -61,7 +60,7 @@ class EvaluationTestCase(NormTestCase):
                                                            lam.name,
                                                            lam.version))
 
-    def test_select_columns(self):
+    def test_select_optional_columns(self):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         # NOTE: tmp has no summary defined before read executed
         lam = self.execute("alarms(event:String, ip:String, time:Datetime) := tmp(event?, ip?, time?, summary?);")
@@ -80,11 +79,25 @@ class EvaluationTestCase(NormTestCase):
                                                            lam.name,
                                                            lam.version))
 
-    def test_with_context(self):
+    def test_select_time_columns(self):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
-        results = self.execute("with tmp, event~'Unix' & tally > 3;")
-        self.assertTrue(results is not None)
-        self.assertTrue(len(results) > 1)
+        # NOTE: tmp has no summary defined before read executed
+        lam = self.execute("alarms(event:String, ip:String, time:Datetime:time) := tmp(event?, ip?, time?, summary?);")
+        self.assertTrue(lam is not None)
+        self.assertTrue(len(lam.revisions) == 2)
+        self.assertTrue(lam.end_of_revisions)
+        self.assertTrue(not lam.empty_revisions)
+        self.assertTrue(lam.data is not None)
+        self.assertTrue(len(lam.data) > 0)
+        self.assertTrue(lam.current_revision == len(lam.revisions) - 1)
+        self.assertTrue(lam.queryable)
+        self.assertTrue(lam.status == Status.DRAFT)
+        self.assertTrue(lam.nargs > 1)
+        self.assertTrue(lam.folder == '{}/{}/{}/{}'.format(DATA_STORAGE_ROOT,
+                                                           lam.namespace.replace('.', '/'),
+                                                           lam.name,
+                                                           lam.version))
+        self.assertTrue(all(lam.data['time'] == lam.data['timestamp']))
 
     def test_ignore_same_revision(self):
         self.execute("wikisql(phase: Integer);")
@@ -225,9 +238,9 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('there', 3)"
                      "     ;")
         data = self.execute("test.a.max();")
-        self.assertTrue(data == 'there')
+        self.assertTrue(data['a.max'].values[0] == 'there')
         data = self.execute("test.a.count();")
-        self.assertTrue(data == 3)
+        self.assertTrue(data['a.count'].values[0] == 3)
 
     def test_chained_str_evaluation(self):
         self.execute("test(a: String, b: Integer);")
@@ -236,8 +249,8 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('there', 3)"
                      "     ;")
         data = self.execute("test.a.capitalize();")
-        self.assertTrue(all(data == ['Test', 'Here', 'There']))
+        self.assertTrue(all(data['a.capitalize'] == ['Test', 'Here', 'There']))
         data = self.execute("test.a.len();")
-        self.assertTrue(all(data == [4, 4, 5]))
+        self.assertTrue(all(data['a.len'] == [4, 4, 5]))
         data = self.execute("test.a.findall('ere');")
-        self.assertTrue(all(data == [[], ['ere'], ['ere']]))
+        self.assertTrue(all(data['a.findall'] == [[], ['ere'], ['ere']]))

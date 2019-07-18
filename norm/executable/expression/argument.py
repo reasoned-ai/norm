@@ -54,5 +54,6 @@ class ArgumentExpr(NormExpression):
         from norm.executable.schema.variable import VariableName
         if self.is_assign_operator and self.projection is not None and isinstance(self.expr, VariableName):
             self.expr = EvaluationExpr([], self.expr, self.projection).compile(context)
+            self.projection = None
         return self
 
