@@ -39,6 +39,18 @@ class GroupedLambda(object):
         return self.lam.get_type(name)
 
 
+class UniversalQuantifier(GroupedLambda):
+
+    def __init__(self, lam: Lambda, cols: List[str], forany_cols: List[str] = None, exist_cols: List[str] = None):
+        super().__init__(lam, cols)
+        self.forany_cols = forany_cols if forany_cols is not None else []
+        self.exist_cols = exist_cols if exist_cols is not None else []
+
+    @property
+    def data(self):
+        return self.lam.data.groupby(self.cols + self.forany_cols + self.exist_cols)
+
+
 class ParseError(ValueError):
     pass
 
