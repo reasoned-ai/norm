@@ -96,7 +96,7 @@ class NormCompiler(normListener):
         For a unnamed query, we assign a temporary type for the scope.
         For a named query, i.e., type implementation, the scope is the type.
         """
-        self.scopes.append((Lambda(self.context_namespace, self.TMP_VARIABLE_STUB + str(uuid.uuid4())), 'temp'))
+        self.scopes.append((self.temp_lambda([]), 'temp'))
 
     def get_scope(self, name):
         for scope, scope_lex in reversed(self.scopes):
@@ -156,6 +156,9 @@ class NormCompiler(normListener):
         # assert(len(self.stack) == 1)  # Ensure that parsing and compilation has finished completely
         # return self.optimize(self._pop())
         return
+
+    def temp_lambda(self, variables):
+        return Lambda(self.context_namespace, self.TMP_VARIABLE_STUB + str(uuid.uuid4()), variables=variables)
 
     def execute(self, script):
         self.stack = []
@@ -407,7 +410,7 @@ class NormCompiler(normListener):
                     assert(isinstance(tn, ColumnVariable))
                     tns.append(tn.name)
             lam, lex = self.scopes.pop()
-            self.scopes.append((GroupedLambda(lam, tns), lex))
+            self.scopes.append((GroupedLambda(lam, list(reversed(tns))), lex))
         elif ctx.FORANY():
             pass
         elif ctx.EXIST():

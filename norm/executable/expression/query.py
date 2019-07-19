@@ -76,6 +76,9 @@ class QueryExpr(NormExpression):
                 return self.expr1
         if isinstance(self.expr1, ConditionExpr) and isinstance(self.expr2, ConditionExpr):
             return CombinedConditionExpr(self.op, self.expr1, self.expr2).compile(context)
+
+        self.lam = context.temp_lambda(self.expr1.lam.variables +
+                                       [v for v in self.expr2.lam.variables if v.name not in self.expr1.lam])
         return self
 
     def execute(self, context):

@@ -50,7 +50,7 @@ fragment DELETE: 'del'|'Del'|'DEL';
 fragment DESCRIBE: 'describe'|'Describe'|'DESCRIBE';
 
 COMMAND: HISTORY|UNDO|REDO|DELETE|DESCRIBE;
-ARGOPT:  'optional' | 'primary' | 'oid' | 'time'| 'parameter';
+ARGOPT:  'optional' | 'primary' | 'oid' | 'time'| 'parameter' | 'state';
 
 context
     : WITH LBR typeName RBR
@@ -89,9 +89,15 @@ variable
 
 argumentProperty: (WS|NS)? COLON (WS|NS)? ARGOPT WS? (LBR WS? constant WS? RBR)?;
 
-argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName argumentProperty?;
+argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName argumentProperty? | inheritance;
 
 argumentDeclarations: argumentDeclaration ((WS|NS)? COMMA (WS|NS)? argumentDeclaration)*;
+
+inheritanceArgument: arithmeticExpression | variable (WS|NS)? AS (WS|NS)? arithmeticExpression;
+
+inheritanceArguments: inheritanceArgument ((WS|NS)? COMMA (WS|NS)? inheritanceArgument)*;
+
+inheritance : typeName (WS|NS)? (LCBR inheritanceArguments RCBR)?;
 
 rename: variable (WS|NS)? '->' (WS|NS)? variable;
 
@@ -245,8 +251,8 @@ IMP:       '=>'  | 'imp' | 'Imp' | 'IMP';
 EQV:       '<=>' | 'eqv' | 'Eqv' | 'EQV';
 
 BOOLEAN:    'true' | 'false' | 'True' | 'False' | 'TRUE' | 'FALSE';
-INTEGER:    [+-]? DIGIT+;
-FLOAT:      [+-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
+INTEGER:    [-]? DIGIT+;
+FLOAT:      [-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
 STRING:     '"' ( ~["\r\n\t] )*? '"' | '\'' ( ~['\r\n\t] )*? '\'' ;
 
 PATTERN:   'p' STRING;

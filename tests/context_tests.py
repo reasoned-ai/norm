@@ -29,6 +29,17 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue('tally.mean' in result.columns)
         self.assertTrue('total_tally' in result.columns)
 
+    def test_foreach_context_multiple_foreach_three_agg(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
+        self.execute("alarms := tmp(event?, ip?, time?, tally?);")
+        result = self.execute("with(alarms).foreach(event, ip), tally.sum()?total_tally & tally.mean() & tally.count();")
+        self.assertTrue(result is not None)
+        self.assertTrue(len(result) > 0)
+        self.assertTrue('tally.mean' in result.columns)
+        self.assertTrue('total_tally' in result.columns)
+        self.assertTrue('tally.count' in result.columns)
+
     def test_exists_context(self):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")

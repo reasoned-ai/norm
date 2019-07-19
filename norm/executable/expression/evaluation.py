@@ -212,8 +212,7 @@ class EvaluationExpr(NormExpression):
                          if v.name in self.outputs.keys()]
         else:
             variables = self.eval_lam.variables
-        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
-                          variables=variables)
+        self.lam = context.temp_lambda(variables)
         self.lam.cloned_from = self.eval_lam
         return self
 
@@ -260,8 +259,7 @@ class JoinEqualityEvaluationExpr(NormExpression):
             variables = scope.variables
             scope_variable_names = set(v.name for v in variables)
             variables += [v for v in self.eval_lam.variables if v.name not in scope_variable_names]
-        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
-                          variables=variables)
+        self.lam = context.temp_lambda(variables)
         self.lam.cloned_from = scope
         return self
 
@@ -381,8 +379,7 @@ class RetrievePartialDataExpr(NormExpression):
                          if v.name in self.outputs.keys()]
         else:
             variables = self.eval_lam.variables
-        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
-                          variables=variables)
+        self.lam = context.temp_lambda(variables)
         return self
 
     def execute(self, context):
@@ -573,9 +570,8 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
 
     def compile(self, context):
         self.eval_lam = self.column_variable.lam
-        from norm.models.norm import Lambda, Variable
-        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
-                          variables=[Variable(self.var_name, self.var_type)])
+        from norm.models.norm import Variable
+        self.lam = context.temp_lambda([Variable(self.var_name, self.var_type)])
         return self
 
     @property

@@ -48,9 +48,7 @@ class ConditionExpr(NormExpression):
         else:
             self._condition = '({}) {} ({})'.format(self.lexpr, self.op, self.rexpr)
         self.eval_lam = self.lexpr.lam
-        from norm.models import Lambda
-        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
-                          variables=self.eval_lam.variables)
+        self.lam = context.temp_lambda(self.eval_lam.variables)
         self.lam.cloned_from = self.eval_lam
         return self
 
@@ -82,9 +80,7 @@ class CombinedConditionExpr(ConditionExpr):
         self._condition = '({}) {} ({})'.format(self.lexpr, self.op, self.rexpr)
         assert(self.lexpr.eval_lam is self.rexpr.eval_lam or self.lexpr.eval_lam is self.rexpr.eval_lam.cloned_from)
         self.eval_lam = self.lexpr.eval_lam
-        from norm.models import Lambda
-        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
-                          variables=self.eval_lam.variables)
+        self.lam = context.temp_lambda(self.eval_lam.variables)
         self.lam.cloned_from = self.eval_lam
         return self
 

@@ -89,5 +89,5 @@ matched = ['s', 'sf', 'aa']?p & match(test.a, p)?pattern_{p};
 
 // Inheritance
 animal(name: String, sound: String, num_of_legs: Integer);
-duck(:animal(sound='guagua', num_of_legs=2));
-frog(:animal(sound='rubit', num_of_legs=4));
+duck(animal{sound='guagua', num_of_legs=2});
+frog(animal{sound='rubit', num_of_legs=4});
