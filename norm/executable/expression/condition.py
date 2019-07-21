@@ -1,4 +1,5 @@
 import uuid
+from typing import Union
 
 from norm.executable import NormError
 from norm.executable.constant import Constant
@@ -24,9 +25,10 @@ class ConditionExpr(NormExpression):
         :type rexpr: Union[ArithmeticExpr, ConditionExpr]
         """
         super().__init__()
-        self.op = op
-        self.lexpr = lexpr
-        self.rexpr = rexpr
+        from norm.executable.expression.arithmetic import ArithmeticExpr
+        self.op: COP = op
+        self.lexpr: Union[ArithmeticExpr, ConditionExpr] = lexpr
+        self.rexpr: Union[ArithmeticExpr, ConditionExpr] = rexpr
         self._condition = None
         assert(self.lexpr is not None)
         assert(self.rexpr is not None)
@@ -53,6 +55,7 @@ class ConditionExpr(NormExpression):
         return self
 
     def execute(self, context):
+        self.lexpr.execute(context)
         self.lam.data = self.eval_lam.data.query(self._condition, engine='python')
         return self.lam.data
 

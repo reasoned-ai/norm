@@ -206,7 +206,7 @@ class EvaluationExpr(NormExpression):
                 else:
                     return RetrievePartialDataExpr(lam, self.outputs).compile(context)
         self.eval_lam = lam
-        from norm.models import Lambda, Variable
+        from norm.models import Variable
         if len(self.outputs) > 0:
             variables = [Variable(self.outputs[v.name], v.type_) for v in self.eval_lam.variables
                          if v.name in self.outputs.keys()]
@@ -549,7 +549,7 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
     STR_FUNCS = {'capitalize', 'cat', 'pcount', 'contains', 'endswith', 'extract', 'extractall', 'find', 'findall',
                  'len', 'lower', 'match', 'replace', 'split', 'strip', 'title', 'upper', 'isalnum', 'isalpha', 'isdigit',
                  'isspace', 'islower', 'isupper', 'istitle', 'isnumeric', 'isdecimal', 'wrap', 'translate', 'swapcase',
-                 'slice', 'slice_replace', 'repeat', 'pad', 'normalize'}
+                 'slice', 'slice_replace', 'repeat', 'pad', 'startswith', 'normalize'}
 
     def __init__(self, column_variable, expr, projection=None):
         super().__init__([])
@@ -571,7 +571,13 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
     def compile(self, context):
         self.eval_lam = self.column_variable.lam
         from norm.models.norm import Variable
-        self.lam = context.temp_lambda([Variable(self.var_name, self.var_type)])
+        from norm.engine import GroupedLambda
+        if isinstance(self.column_variable.lam, GroupedLambda):
+            variables = self.column_variable.lam.get_grouped_variables()
+        else:
+            variables = []
+        variables.append(Variable(self.var_name, self.var_type))
+        self.lam = context.temp_lambda(variables=variables)
         return self
 
     @property
@@ -613,15 +619,20 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
         f = self.expr.variable.name
         if self.is_str_handling:
             df = getattr(col.str, f)(*args, **kwargs)
+            if not isinstance(df, Series):
+                df = Series(data=[df], name=self.var_name, dtype=self.var_type.dtype)
+            else:
+                df.name = self.var_name
         elif self.is_aggregation:
             df = getattr(col, f)(*args, **kwargs)
+            from norm.engine import GroupedLambda
+            if isinstance(self.column_variable.lam, GroupedLambda):
+                df = DataFrame(data={self.var_name: df}).reset_index()
+            else:
+                df = Series(data=[df], name=self.var_name, dtype=self.var_type.dtype)
         else:
             msg = '{} is not implemented yet'.format(self.expr.variable.name)
             logging.error(msg)
             raise NormError(msg)
-
-        if not isinstance(df, Series):
-            df = Series(data=[df], name=self.var_name, dtype=self.var_type.dtype)
-        else:
-            df.name = self.var_name
+        self.lam.data = df
         return df
