@@ -58,12 +58,12 @@ class GroupedLambda(object):
 
 
 class QType(Enum):
-    FOREACH = 'foreach'
-    FORALL = 'forall'
-    EXIST = 'exist'
+    FOREACH = 0
+    FORANY = 1
+    EXIST = 2
 
 
-class Quantifiers(object):
+class QuantifiedLambda(object):
 
     def __init__(self, lam: Lambda):
         self.lam = lam
@@ -88,20 +88,28 @@ class Quantifiers(object):
     def add_cols(self, qtype, cols):
         pos = len(self.cols)
         self.cols.extend(cols)
-        self.quantifiers.extend((QType(qtype), pos, pos + len(cols)))
+        self.quantifiers.append((qtype, pos, pos + len(cols)))
 
     def quantify(self, df):
-        if len(self.cols) == 0:
+        if len(self.cols) == 0 or len(df) == 0:
             return df
         assert(all([col in df.columns for col in self.cols]))
         while len(self.quantifiers) > 0:
             qtype, begin, end = self.quantifiers.pop()
+            if len(df) == 0:
+                continue
             if qtype == QType.EXIST:
-                df = df.groupby(self.cols[:begin]).apply(lambda x: x.iloc[0]).reset_index(drop=True)
-            elif qtype == QType.FORALL:
+                if begin == 0:
+                    df = df.iloc[:1]
+                else:
+                    df = df.groupby(self.cols[:begin]).apply(lambda x: x.iloc[0]).reset_index(drop=True)
+            elif qtype == QType.FORANY:
                 total = len(self.lam.data[self.cols[begin:end]].drop_duplicates())
-                df['_tmp_count'] = df.groupby(self.cols[:begin])[self.cols[begin]].transform('count')
-                df = df[df['_tmp_count'] == total].drop('_tmp_count')
+                if begin == 0:
+                    df = df if len(df) == total else df.iloc[0:0]
+                else:
+                    df['_tmp_count'] = df.groupby(self.cols[:begin])[self.cols[begin]].transform('count')
+                    df = df[df['_tmp_count'] == total].drop(columns=['_tmp_count'])
         return df
 
 
@@ -449,21 +457,8 @@ class NormCompiler(normListener):
         if ctx.WITH():
             type_name = self._pop()
             self.scopes.append((type_name.lam, 'one_line_context'))
-        elif ctx.FOREACH() or ctx.FORANY():
-            tns = []
-            lam = None
-            for ch in ctx.children:
-                if isinstance(ch, normParser.VariableContext):
-                    tn = self._pop()
-                    assert(isinstance(tn, ColumnVariable))
-                    tns.append(tn.name)
-                    if lam is None:
-                        lam = tn.lam
-                    else:
-                        assert(tn.lam is lam)
-            self.scopes.append((GroupedLambda(lam, list(reversed(tns))), 'one_line_context'))
-        elif ctx.EXIST():
-            if self.scope is not None and isinstance(self.scope, GroupedLambda):
+        elif ctx.FOREACH() or ctx.FORANY() or ctx.EXIST():
+            if self.scope is not None and isinstance(self.scope, QuantifiedLambda):
                 lam = self.scope
             else:
                 lam = None
@@ -477,20 +472,25 @@ class NormCompiler(normListener):
                         lam = tn.lam
                     else:
                         assert(tn.lam is lam)
-            if isinstance(lam, GroupedLambda):
-                lam.add_exist_cols(list(reversed(tns)))
-            else:
+            if not isinstance(lam, QuantifiedLambda):
                 assert(lam is not None)
-                scope = GroupedLambda(lam, [])
-                scope.add_exist_cols(list(reversed(tns)))
-                self.scopes.append((scope, 'one_line_context'))
+                lam = QuantifiedLambda(lam)
+            if ctx.FOREACH():
+                qtype = QType.FOREACH
+            elif ctx.FORANY():
+                qtype = QType.FORANY
+            else:
+                qtype = QType.EXIST
+            lam.add_cols(qtype, list(reversed(tns)))
+            if lam is not self.scope:
+                self.scopes.append((lam, 'one_line_context'))
 
     def exitContextualOneLineExpression(self, ctx:normParser.ContextualOneLineExpressionContext):
         while self.scope_lex == 'one_line_context':
             scope, lex = self.scopes.pop()
-            if isinstance(scope, GroupedLambda) and len(scope.exist_cols) > 0:
+            if isinstance(scope, QuantifiedLambda):
                 expr = self._pop()  # type: NormExpression
-                self._push(ExistQueryExpr(expr, scope.foreach_cols).compile(self))
+                self._push(QuantifiedQueryExpr(expr, scope).compile(self))
 
     def exitMultiLineExpression(self, ctx: normParser.MultiLineExpressionContext):
         if ctx.newlineLogicalOperator():

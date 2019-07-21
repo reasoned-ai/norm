@@ -571,8 +571,8 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
     def compile(self, context):
         self.eval_lam = self.column_variable.lam
         from norm.models.norm import Variable
-        from norm.engine import GroupedLambda
-        if isinstance(self.column_variable.lam, GroupedLambda):
+        from norm.engine import QuantifiedLambda
+        if isinstance(self.column_variable.lam, QuantifiedLambda):
             variables = self.column_variable.lam.get_grouped_variables()
         else:
             variables = []
@@ -625,8 +625,8 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
                 df.name = self.var_name
         elif self.is_aggregation:
             df = getattr(col, f)(*args, **kwargs)
-            from norm.engine import GroupedLambda
-            if isinstance(self.column_variable.lam, GroupedLambda):
+            from norm.engine import QuantifiedLambda
+            if isinstance(self.column_variable.lam, QuantifiedLambda):
                 df = DataFrame(data={self.var_name: df}).reset_index()
             else:
                 df = Series(data=[df], name=self.var_name, dtype=self.var_type.dtype)

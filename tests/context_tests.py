@@ -77,3 +77,28 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(all(result['tally.sum'] > 100))
         self.assertTrue('ip' in result.columns)
         self.assertTrue(len(result['event'].drop_duplicates()) == len(result))
+
+    def test_forany_context(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
+        self.execute("alarms := tmp(event?, ip?, time?, tally?);")
+        result = self.execute("with(alarms).exist(ip).forall(event), tally.sum() > 100;")
+        self.assertTrue(result is not None)
+        self.assertTrue(len(result) == 0)
+
+    def test_single_forany_context(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
+        self.execute("alarms := tmp(event?, ip?, time?, tally?);")
+        result = self.execute("with(alarms).forall(event), tally.sum() > 0;")
+        self.assertTrue(result is not None)
+        self.assertTrue(len(result) == 35)
+
+    def test_single_exist_context(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
+        self.execute("alarms := tmp(event?, ip?, time?, tally?);")
+        result = self.execute("with(alarms).exist(event), tally.sum() > 1000;")
+        self.assertTrue(result is not None)
+        self.assertTrue(len(result) == 1)
+        self.assertTrue(all(result['tally.sum'] > 1000))
