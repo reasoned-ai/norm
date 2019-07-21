@@ -1,4 +1,5 @@
 import uuid
+from typing import Union
 
 from norm.executable import NormError
 from norm.executable.constant import Constant
@@ -24,9 +25,10 @@ class ConditionExpr(NormExpression):
         :type rexpr: Union[ArithmeticExpr, ConditionExpr]
         """
         super().__init__()
-        self.op = op
-        self.lexpr = lexpr
-        self.rexpr = rexpr
+        from norm.executable.expression.arithmetic import ArithmeticExpr
+        self.op: COP = op
+        self.lexpr: Union[ArithmeticExpr, ConditionExpr] = lexpr
+        self.rexpr: Union[ArithmeticExpr, ConditionExpr] = rexpr
         self._condition = None
         assert(self.lexpr is not None)
         assert(self.rexpr is not None)
@@ -48,13 +50,12 @@ class ConditionExpr(NormExpression):
         else:
             self._condition = '({}) {} ({})'.format(self.lexpr, self.op, self.rexpr)
         self.eval_lam = self.lexpr.lam
-        from norm.models import Lambda
-        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
-                          variables=self.eval_lam.variables)
+        self.lam = context.temp_lambda(self.eval_lam.variables)
         self.lam.cloned_from = self.eval_lam
         return self
 
     def execute(self, context):
+        self.lexpr.execute(context)
         self.lam.data = self.eval_lam.data.query(self._condition, engine='python')
         return self.lam.data
 
@@ -82,9 +83,7 @@ class CombinedConditionExpr(ConditionExpr):
         self._condition = '({}) {} ({})'.format(self.lexpr, self.op, self.rexpr)
         assert(self.lexpr.eval_lam is self.rexpr.eval_lam or self.lexpr.eval_lam is self.rexpr.eval_lam.cloned_from)
         self.eval_lam = self.lexpr.eval_lam
-        from norm.models import Lambda
-        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
-                          variables=self.eval_lam.variables)
+        self.lam = context.temp_lambda(self.eval_lam.variables)
         self.lam.cloned_from = self.eval_lam
         return self
 

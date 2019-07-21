@@ -58,8 +58,7 @@ class ArithmeticExpr(NormExpression):
             self._projection_name = self.projection.variables[0].name
         else:
             self._projection_name = Lambda.VAR_OUTPUT
-        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
-                          variables=[Variable(self._projection_name, lambdas.Any)])
+        self.lam = context.temp_lambda([Variable(self._projection_name, lambdas.Any)])
         self.lam.cloned_from = self.eval_lam
         return self
 

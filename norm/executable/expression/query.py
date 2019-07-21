@@ -76,6 +76,9 @@ class QueryExpr(NormExpression):
                 return self.expr1
         if isinstance(self.expr1, ConditionExpr) and isinstance(self.expr2, ConditionExpr):
             return CombinedConditionExpr(self.op, self.expr1, self.expr2).compile(context)
+
+        self.lam = context.temp_lambda(self.expr1.lam.variables +
+                                       [v for v in self.expr2.lam.variables if v.name not in self.expr1.lam])
         return self
 
     def execute(self, context):
@@ -93,7 +96,8 @@ class QueryExpr(NormExpression):
             # if not, cross join df1 and df2
             if df1.index.name == df2.index.name:
                 cols = [col for col in df1.columns if col not in df2.columns]
-                df2[cols] = df1.loc[df2.index, cols]
+                if len(cols) > 0:
+                    df2[cols] = df1.loc[df2.index, cols]
             else:
                 df1['__join__'] = 1
                 df2['__join__'] = 1
@@ -108,7 +112,58 @@ class QueryExpr(NormExpression):
 
         if df2.index.name != Lambda.VAR_OID and df2.index.name is not None:
             df2 = df2.reset_index()
+        self.lam.data = df2
         return df2
+
+
+class ExistQueryExpr(NormExpression):
+
+    def __init__(self, expr, foreach_cols):
+        """
+        Pick first row for each combined columns
+        :param expr: the expression to pick
+        :type expr: NormExpression
+        :param foreach_cols: the columns to stratify
+        :type foreach_cols: List[str]
+        """
+        super().__init__()
+        self.expr = expr
+        self.foreach_cols = foreach_cols
+
+    def compile(self, context):
+        self.eval_lam = self.expr.eval_lam
+        self.lam = self.expr.lam
+        return self
+
+    def execute(self, context):
+        df = self.expr.execute(context)
+        assert(isinstance(df, DataFrame))
+        return df.groupby(self.foreach_cols).apply(lambda x: x.iloc[0]).reset_index(drop=True)
+
+
+class QuantifiedQueryExpr(NormExpression):
+
+    def __init__(self, expr, quantifiers):
+        """
+        Quantify result by the quantifiers
+        :param expr: the expression to query
+        :type expr: NormExpression
+        :param quantifiers: the list of quantifiers to evaluate
+        :type quantifiers: Quantifiers
+        """
+        super().__init__()
+        self.expr = expr
+        self.quantifiers = quantifiers
+
+    def compile(self, context):
+        self.eval_lam = self.expr.eval_lam
+        self.lam = self.expr.lam
+        return self
+
+    def execute(self, context):
+        df = self.expr.execute(context)
+        assert(isinstance(df, DataFrame))
+        return self.quantifiers.quantify(df)
 
 
 class NegatedQueryExpr(NormExpression):

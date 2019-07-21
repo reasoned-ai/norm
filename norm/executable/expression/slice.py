@@ -1,5 +1,3 @@
-import uuid
-
 from norm.executable.expression import NormExpression
 
 
@@ -22,10 +20,8 @@ class SliceExpr(NormExpression):
 
     def compile(self, context):
         self.expr = self.expr.compile(context)
-        from norm.models.norm import Lambda
         self.eval_lam = self.expr.lam
-        self.lam = Lambda(context.context_namespace, context.TMP_VARIABLE_STUB + str(uuid.uuid4()),
-                          variables=self.eval_lam.variables)
+        self.lam = context.temp_lambda(self.eval_lam.variables)
         self.lam.cloned_from = self.eval_lam
         return self
 

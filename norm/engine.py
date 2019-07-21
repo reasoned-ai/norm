@@ -6,7 +6,7 @@ from dateutil import parser as dateparser
 from textwrap import dedent
 
 from norm import config
-from norm.executable import NormExecutable, Projection
+from norm.executable import NormExecutable
 from norm.executable.command import Command
 from norm.executable.schema.declaration import *
 from norm.executable.expression.arithmetic import *
@@ -26,7 +26,49 @@ class GroupedLambda(object):
 
     def __init__(self, lam: Lambda, cols: List[str]):
         self.lam = lam
-        self.cols = cols
+        self.cols = cols if cols is not None else []
+        self.exist_cols = []
+
+    def __contains__(self, item):
+        return item in self.lam
+
+    @property
+    def data(self):
+        return self.lam.data.groupby(self.cols)
+
+    @property
+    def foreach_cols(self):
+        if len(self.exist_cols) > 0:
+            return [col for col in self.cols if col not in self.exist_cols]
+        else:
+            return self.cols
+
+    def get_type(self, name):
+        return self.lam.get_type(name)
+
+    def get_grouped_variables(self):
+        from norm.models import lambdas
+        variables = dict((v.name, v) for v in self.lam.variables)
+        return [variables.get(col, lambdas.Any) for col in self.cols]
+
+    def add_exist_cols(self, cols):
+        if cols is not None:
+            self.exist_cols.extend(cols)
+            self.cols.extend(cols)
+
+
+class QType(Enum):
+    FOREACH = 'foreach'
+    FORALL = 'forall'
+    EXIST = 'exist'
+
+
+class Quantifiers(object):
+
+    def __init__(self, lam: Lambda):
+        self.lam = lam
+        self.cols = []
+        self.quantifiers = []
 
     def __contains__(self, item):
         return item in self.lam
@@ -37,6 +79,30 @@ class GroupedLambda(object):
 
     def get_type(self, name):
         return self.lam.get_type(name)
+
+    def get_grouped_variables(self):
+        from norm.models import lambdas
+        variables = dict((v.name, v) for v in self.lam.variables)
+        return [variables.get(col, lambdas.Any) for col in self.cols]
+
+    def add_cols(self, qtype, cols):
+        pos = len(self.cols)
+        self.cols.extend(cols)
+        self.quantifiers.extend((QType(qtype), pos, pos + len(cols)))
+
+    def quantify(self, df):
+        if len(self.cols) == 0:
+            return df
+        assert(all([col in df.columns for col in self.cols]))
+        while len(self.quantifiers) > 0:
+            qtype, begin, end = self.quantifiers.pop()
+            if qtype == QType.EXIST:
+                df = df.groupby(self.cols[:begin]).apply(lambda x: x.iloc[0]).reset_index(drop=True)
+            elif qtype == QType.FORALL:
+                total = len(self.lam.data[self.cols[begin:end]].drop_duplicates())
+                df['_tmp_count'] = df.groupby(self.cols[:begin])[self.cols[begin]].transform('count')
+                df = df[df['_tmp_count'] == total].drop('_tmp_count')
+        return df
 
 
 class ParseError(ValueError):
@@ -84,7 +150,7 @@ class NormCompiler(normListener):
         For a unnamed query, we assign a temporary type for the scope.
         For a named query, i.e., type implementation, the scope is the type.
         """
-        self.scopes.append((Lambda(self.context_namespace, self.TMP_VARIABLE_STUB + str(uuid.uuid4())), 'temp'))
+        self.scopes.append((self.temp_lambda([]), 'temp'))
 
     def get_scope(self, name):
         for scope, scope_lex in reversed(self.scopes):
@@ -145,6 +211,9 @@ class NormCompiler(normListener):
         # return self.optimize(self._pop())
         return
 
+    def temp_lambda(self, variables):
+        return Lambda(self.context_namespace, self.TMP_VARIABLE_STUB + str(uuid.uuid4()), variables=variables)
+
     def execute(self, script):
         self.stack = []
         self.scopes = []
@@ -160,16 +229,9 @@ class NormCompiler(normListener):
             if isinstance(results, Index) and isinstance(exe, NormExpression) and exe.lam is not None:
                 results = exe.lam.data.loc[results]
         if isinstance(results, DataFrame):
-            fix_dot_columns = OrderedDict()
-            for col in results.columns:
-                if col.find(NormExecutable.VARIABLE_SEPARATOR) >= 0:
-                    fix_dot_columns[col] = col.replace(NormExecutable.VARIABLE_SEPARATOR, '.')
-            results = results.rename(columns=fix_dot_columns)
+            results.columns = results.columns.str.replace(NormExecutable.VARIABLE_SEPARATOR, '.')
         elif isinstance(results, Series):
-            if results.name.find(NormExecutable.VARIABLE_SEPARATOR) >= 0:
-                results = DataFrame(data={results.name.replace(NormExecutable.VARIABLE_SEPARATOR, '.'): results})
-            else:
-                results = DataFrame(data={results.name: results})
+            results = DataFrame(data={results.name.replace(NormExecutable.VARIABLE_SEPARATOR, '.'): results})
         return results
 
     def exitStatement(self, ctx: normParser.StatementContext):
@@ -387,23 +449,48 @@ class NormCompiler(normListener):
         if ctx.WITH():
             type_name = self._pop()
             self.scopes.append((type_name.lam, 'one_line_context'))
-        elif ctx.FOREACH():
+        elif ctx.FOREACH() or ctx.FORANY():
+            tns = []
+            lam = None
+            for ch in ctx.children:
+                if isinstance(ch, normParser.VariableContext):
+                    tn = self._pop()
+                    assert(isinstance(tn, ColumnVariable))
+                    tns.append(tn.name)
+                    if lam is None:
+                        lam = tn.lam
+                    else:
+                        assert(tn.lam is lam)
+            self.scopes.append((GroupedLambda(lam, list(reversed(tns))), 'one_line_context'))
+        elif ctx.EXIST():
+            if self.scope is not None and isinstance(self.scope, GroupedLambda):
+                lam = self.scope
+            else:
+                lam = None
             tns = []
             for ch in ctx.children:
                 if isinstance(ch, normParser.VariableContext):
                     tn = self._pop()
                     assert(isinstance(tn, ColumnVariable))
                     tns.append(tn.name)
-            lam, lex = self.scopes.pop()
-            self.scopes.append((GroupedLambda(lam, tns), lex))
-        elif ctx.FORANY():
-            pass
-        elif ctx.EXIST():
-            pass
+                    if lam is None:
+                        lam = tn.lam
+                    else:
+                        assert(tn.lam is lam)
+            if isinstance(lam, GroupedLambda):
+                lam.add_exist_cols(list(reversed(tns)))
+            else:
+                assert(lam is not None)
+                scope = GroupedLambda(lam, [])
+                scope.add_exist_cols(list(reversed(tns)))
+                self.scopes.append((scope, 'one_line_context'))
 
     def exitContextualOneLineExpression(self, ctx:normParser.ContextualOneLineExpressionContext):
         while self.scope_lex == 'one_line_context':
-            self.scopes.pop()
+            scope, lex = self.scopes.pop()
+            if isinstance(scope, GroupedLambda) and len(scope.exist_cols) > 0:
+                expr = self._pop()  # type: NormExpression
+                self._push(ExistQueryExpr(expr, scope.foreach_cols).compile(self))
 
     def exitMultiLineExpression(self, ctx: normParser.MultiLineExpressionContext):
         if ctx.newlineLogicalOperator():
@@ -415,6 +502,10 @@ class NormCompiler(normListener):
             self.scopes.pop()
 
     def enterSpacedLogicalOperator(self, ctx:normParser.SpacedLogicalOperatorContext):
+        expr = self._peek()
+        self.scopes.append((expr.lam, 'lop'))
+
+    def enterNewlineLogicalOperator(self, ctx:normParser.NewlineLogicalOperatorContext):
         expr = self._peek()
         self.scopes.append((expr.lam, 'lop'))
 
