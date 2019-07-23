@@ -89,6 +89,15 @@ class normListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by normParser#unquote_variable.
+    def enterUnquote_variable(self, ctx:normParser.Unquote_variableContext):
+        pass
+
+    # Exit a parse tree produced by normParser#unquote_variable.
+    def exitUnquote_variable(self, ctx:normParser.Unquote_variableContext):
+        pass
+
+
     # Enter a parse tree produced by normParser#variable.
     def enterVariable(self, ctx:normParser.VariableContext):
         pass
@@ -122,6 +131,33 @@ class normListener(ParseTreeListener):
 
     # Exit a parse tree produced by normParser#argumentDeclarations.
     def exitArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#inheritanceArgument.
+    def enterInheritanceArgument(self, ctx:normParser.InheritanceArgumentContext):
+        pass
+
+    # Exit a parse tree produced by normParser#inheritanceArgument.
+    def exitInheritanceArgument(self, ctx:normParser.InheritanceArgumentContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#inheritanceArguments.
+    def enterInheritanceArguments(self, ctx:normParser.InheritanceArgumentsContext):
+        pass
+
+    # Exit a parse tree produced by normParser#inheritanceArguments.
+    def exitInheritanceArguments(self, ctx:normParser.InheritanceArgumentsContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#inheritance.
+    def enterInheritance(self, ctx:normParser.InheritanceContext):
+        pass
+
+    # Exit a parse tree produced by normParser#inheritance.
+    def exitInheritance(self, ctx:normParser.InheritanceContext):
         pass
 
 

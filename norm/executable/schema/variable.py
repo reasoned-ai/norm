@@ -1,7 +1,7 @@
 from norm.models.norm import Status, Lambda
 from norm.executable import NormExecutable
 
-from typing import Union
+from typing import Union, List
 import logging
 logger = logging.getLogger(__name__)
 
@@ -69,6 +69,37 @@ class VariableName(NormExecutable):
                 self.scope = None
                 from norm.executable.expression.evaluation import EvaluationExpr
                 return EvaluationExpr([arg], self)
+
+
+class UnquoteVariable(VariableName):
+
+    def __init__(self, name, unquoted_variables):
+        """
+        The variable and its scope
+        :param name: the name of the variable
+        :type name: str
+        :param unquoted_variables: a list of variables to unquote
+        :type unquoted_variables: List[VariableName]
+        """
+        super().__init__(None, name)
+        self.unquoted_variables: List[VariableName] = unquoted_variables
+
+    def __str__(self):
+        return self.name
+
+    def variable_type(self):
+        raise NotImplementedError
+
+    def compile(self, context):
+        assert(len(self.unquoted_variables) > 0)
+        assert(all([isinstance(v, ColumnVariable) for v in self.unquoted_variables]))
+        lam = self.unquoted_variables[0].lam
+        assert(all([v.lam is lam for v in self.unquoted_variables]))
+        self.lam = lam
+        return self
+
+    def execute(self, context):
+        raise NotImplementedError
 
 
 class ColumnVariable(VariableName):

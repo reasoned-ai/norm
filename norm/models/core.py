@@ -2,7 +2,7 @@
 import json
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from norm.models import Register
 from norm.models.norm import Lambda, Variable, Status
@@ -176,7 +176,7 @@ class ExtractPatternLambda(CoreLambda):
         if pattern is None or string is None:
             return None
         fill_na = inputs.get(self.VAR_FILLNA, None)
-        if fill_na is not None:
+        if fill_na is not None and isinstance(fill_na, Lambda):
             fill_na = fill_na.data
 
         import re
@@ -191,14 +191,17 @@ class ExtractPatternLambda(CoreLambda):
             else:
                 return fill_na
 
-        if isinstance(pattern, DataFrame):
+        if isinstance(pattern, str):
+            data = string.apply(lambda x: match(pattern, x.s), axis=1, result_type='expand')
+        elif isinstance(pattern, DataFrame):
             assert(len(pattern) == len(string))
             pdata = pattern.loc[:, 0]
             sdata = string.loc[:, 0]
             df = DataFrame({'p': pdata, 's': sdata})
-            data = df.apply(lambda x: match(x.p, x.s), axis=1, result_type='expand').drop(columns=['p', 's'])
+            data = df.apply(lambda x: match(x.p, x.s), axis=1, result_type='expand')
+        elif isinstance(pattern, Series) and isinstance(string, Series):
+            df = DataFrame({'p': pattern, 's': string})
+            data = df.apply(lambda x: match(x.p, x.s), axis=1, result_type='expand')
         else:
-            assert(isinstance(pattern, str))
-            f = pattern
-            data = string.apply(lambda x: match(f, x.s), axis=1, result_type='expand')
+            raise NotImplementedError
         return data

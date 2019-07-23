@@ -8,6 +8,7 @@ from textwrap import dedent
 from norm import config
 from norm.executable import NormExecutable
 from norm.executable.command import Command
+from norm.executable.constant import TupleConstant
 from norm.executable.schema.declaration import *
 from norm.executable.expression.arithmetic import *
 from norm.executable.expression.evaluation import *
@@ -16,45 +17,11 @@ from norm.executable.expression.slice import *
 from norm.executable.schema.implementation import *
 from norm.executable.schema.type import *
 from norm.executable.schema.namespace import *
+from norm.executable.schema.variable import UnquoteVariable
 from norm.grammar.literals import AOP, COP, LOP, ImplType, ConstantType, MOP
 from norm.grammar.normLexer import normLexer
 from norm.grammar.normListener import normListener
 from norm.grammar.normParser import normParser
-
-
-class GroupedLambda(object):
-
-    def __init__(self, lam: Lambda, cols: List[str]):
-        self.lam = lam
-        self.cols = cols if cols is not None else []
-        self.exist_cols = []
-
-    def __contains__(self, item):
-        return item in self.lam
-
-    @property
-    def data(self):
-        return self.lam.data.groupby(self.cols)
-
-    @property
-    def foreach_cols(self):
-        if len(self.exist_cols) > 0:
-            return [col for col in self.cols if col not in self.exist_cols]
-        else:
-            return self.cols
-
-    def get_type(self, name):
-        return self.lam.get_type(name)
-
-    def get_grouped_variables(self):
-        from norm.models import lambdas
-        variables = dict((v.name, v) for v in self.lam.variables)
-        return [variables.get(col, lambdas.Any) for col in self.cols]
-
-    def add_exist_cols(self, cols):
-        if cols is not None:
-            self.exist_cols.extend(cols)
-            self.cols.extend(cols)
 
 
 class QType(Enum):
@@ -93,7 +60,7 @@ class QuantifiedLambda(object):
     def quantify(self, df):
         if len(self.cols) == 0 or len(df) == 0:
             return df
-        assert(all([col in df.columns for col in self.cols]))
+        # assert(all([col in df.columns for col in self.cols]))
         while len(self.quantifiers) > 0:
             qtype, begin, end = self.quantifiers.pop()
             if len(df) == 0:
@@ -309,22 +276,24 @@ class NormCompiler(normListener):
         self._push(Constant(ConstantType.DTM, dateparser.parse(ctx.getText()[2:-1], fuzzy=True)))
 
     def exitConstant(self, ctx: normParser.ConstantContext):
-        if ctx.LSBR():
+        if ctx.LSBR() or ctx.LBR():
             constants = list(reversed([self._pop() for ch in ctx.children
                                        if isinstance(ch, normParser.ConstantContext)]))  # type: List[Constant]
-            types = set(constant.type_ for constant in constants)
-            if len(types) > 1:
-                type_ = ConstantType.ANY
+            if ctx.LBR():
+                self._push(TupleConstant(tuple(constant.type_ for constant in constants),
+                                         tuple(constant.value for constant in constants)))
             else:
-                type_ = types.pop()
-            self._push(ListConstant(type_, [constant.value for constant in constants]))
+                types = set(constant.type_ for constant in constants)
+                if len(types) > 1:
+                    type_ = ConstantType.ANY
+                else:
+                    type_ = types.pop()
+                self._push(ListConstant(type_, [constant.value for constant in constants]))
 
     def exitQueryProjection(self, ctx: normParser.QueryProjectionContext):
         variables = list(reversed([self._pop() for ch in ctx.children
                                    if isinstance(ch, normParser.VariableContext)]))
-        to_evaluate = False
-        # TODO: evaluate the variables to get the referred variables
-        self._push(Projection(variables, to_evaluate))
+        self._push(Projection(variables))
 
     def exitComments(self, ctx: normParser.CommentsContext):
         spaces = ' \r\n\t'
@@ -407,16 +376,34 @@ class NormCompiler(normListener):
         else:
             raise ParseError('Not a valid type name definition')
 
+    def exitUnquote_variable(self, ctx:normParser.Unquote_variableContext):
+        unqoted_variables = []
+        template = []
+        for ch in ctx.children:
+            if isinstance(ch, normParser.VariableContext):
+                variable: VariableName = self._pop()
+                unqoted_variables.append(variable)
+            else:
+                template.append(ch.getText())
+        self._push(UnquoteVariable(''.join(template), list(reversed(unqoted_variables))).compile(self))
+
     def exitVariable(self, ctx: normParser.VariableContext):
-        name: str = ''
         if ctx.VARNAME():
             name = ctx.VARNAME().getText()
         elif ctx.COMMAND():
             name = ctx.COMMAND().getText()
         elif ctx.ARGOPT():
             name = ctx.ARGOPT().getText()
-        scope = self._pop() if ctx.variable() else None  # type: VariableName
-        self._push(VariableName(scope, name).compile(self))
+        else:
+            name = None
+
+        if ctx.DOT():
+            # chained variable
+            v: VariableName = self._pop()
+            scope: VariableName = self._pop()
+            self._push(VariableName(scope, v.name).compile(self))
+        elif name is not None:
+            self._push(VariableName(None, name).compile(self))
 
     def exitArgumentExpression(self, ctx: normParser.ArgumentExpressionContext):
         if isinstance(self._peek(), ArgumentExpr):
@@ -511,14 +498,18 @@ class NormCompiler(normListener):
 
     def exitOneLineExpression(self, ctx: normParser.OneLineExpressionContext):
         if ctx.queryProjection():
-            projection = self._pop()
-            expr = self._peek()
+            projection: Projection = self._pop()
+            expr = self._pop()
             if isinstance(expr, VariableName):
-                self._pop()
-                self._push(EvaluationExpr([], expr, projection).compile(self))
+                expr = EvaluationExpr([], expr)
+            elif isinstance(expr, Constant):
+                expr = ConstantAssignmentExpr(expr)
+
+            if projection.with_unquote:
+                expr = PivotQueryExpr(expr, projection)
             else:
                 expr.projection = projection
-                expr.compile(self)
+            self._push(expr.compile(self))
         elif ctx.NOT():
             expr = self._pop()  # type: NormExpression
             self._push(NegatedQueryExpr(expr).compile(self))
@@ -529,6 +520,11 @@ class NormCompiler(normListener):
             self._push(QueryExpr(op, expr1, expr2).compile(self))
             if self.scope_lex == 'lop':
                 self.scopes.pop()
+        elif isinstance(self._peek(), TupleConstant):
+            expr = self._pop()
+            lam = self.scope
+            data = dict((ov.name, v) for ov, v in zip(lam.variables, expr.value))
+            self._push(AddDataEvaluationExpr(lam, data, False))
 
     def exitConditionExpression(self, ctx: normParser.ConditionExpressionContext):
         if ctx.spacedConditionOperator():
@@ -600,8 +596,7 @@ class NormCompiler(normListener):
             rexpr = self._pop()
             lexpr = self._pop()
             self._push(ChainedEvaluationExpr(lexpr, rexpr).compile(self))
-        elif ctx.argumentExpressions(): # or ctx.queryProjection():
-            #projection = self._pop() if ctx.queryProjection() else None
+        elif ctx.argumentExpressions():
             args = self._pop() if ctx.argumentExpressions() else []  # type: List[ArgumentExpr]
             variable = self._pop() if ctx.variable() else None  # type: VariableName
             self._push(EvaluationExpr(args, variable, None).compile(self))

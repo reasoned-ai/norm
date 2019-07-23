@@ -25,13 +25,31 @@ class Constant(object):
         elif self.type_ == ConstantType.DTM:
             return self.value.strftime('"%Y-%m-%d %H:%M:%S"')
         else:
-            raise NotImplementedError
+            return '{}'.format(self.value)
 
     def __repr__(self):
         return str(self)
 
     def execute(self, context):
         return self.value
+
+
+class TupleConstant(Constant):
+
+    def __init__(self, types, values):
+        """
+        A tuple of constants
+        :param types: the list of the types
+        :type types: Tuple
+        :param values: the list of the values
+        :type values: Tuple
+        """
+        assert(isinstance(values, tuple))
+        assert(isinstance(types, tuple))
+        super().__init__(types, values)
+
+    def __str__(self):
+        return '{}'.format(self.value)
 
 
 class ListConstant(Constant):
@@ -45,11 +63,5 @@ class ListConstant(Constant):
         :type values: List[Union[str, int, float, bool, datetime.datetime]]
         """
         assert(isinstance(values, list))
-        super().__init__(type_)
-        self.value: List[Union[str, int, float, bool, datetime.datetime]] = values
+        super().__init__(type_, values)
 
-    def __str__(self):
-        return '[' + ','.join(str(v) for v in self.value) + ']'
-
-    def __repr__(self):
-        return str(self)

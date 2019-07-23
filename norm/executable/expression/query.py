@@ -1,9 +1,10 @@
 from collections import OrderedDict
+from typing import List
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, merge, concat
 
 from norm.executable import NormError
-from norm.executable.constant import ListConstant, Constant
+from norm.executable.constant import ListConstant, Constant, TupleConstant
 from norm.executable.expression import NormExpression
 from norm.executable.expression.condition import ConditionExpr, CombinedConditionExpr
 from norm.executable.expression.evaluation import AddDataEvaluationExpr, DataFrameColumnFunctionExpr
@@ -11,6 +12,8 @@ from norm.grammar.literals import LOP
 
 import logging
 logger = logging.getLogger(__name__)
+
+CROSS_JOIN_KEY = '__key__'
 
 
 class QueryExpr(NormExpression):
@@ -44,6 +47,17 @@ class QueryExpr(NormExpression):
             return value2
         elif isinstance(value1, Constant) and isinstance(value2, Constant):
             return ListConstant(value1.type_, [value1.value, value2.value])
+        elif isinstance(value1, list) and isinstance(value2, list):
+            value1.extend(value2)
+            return value1
+        elif isinstance(value1, list) and not isinstance(value2, list):
+            value1.append(value2)
+            return value1
+        elif not isinstance(value1, list) and isinstance(value2, list):
+            value2.append(value1)
+            return value2
+        elif not isinstance(value1, list) and not isinstance(value2, list):
+            return [value1, value2]
         elif isinstance(value1, AddDataEvaluationExpr) and isinstance(value2, AddDataEvaluationExpr):
             # pushdown the combine operation
             if value1.lam is value2.lam:
@@ -99,16 +113,14 @@ class QueryExpr(NormExpression):
                 if len(cols) > 0:
                     df2[cols] = df1.loc[df2.index, cols]
             else:
-                df1['__join__'] = 1
-                df2['__join__'] = 1
+                df1[CROSS_JOIN_KEY] = 1
+                df2[CROSS_JOIN_KEY] = 1
                 if df1.index.name is not None:
                     df1 = df1.reset_index()
-                df1.set_index('__join__')
                 if df2.index.name is not None:
                     df2 = df2.reset_index()
-                df2.set_index('__join__')
                 cols = [col for col in df1.columns if col not in df2.columns]
-                df2 = df2.join(df1[cols]).reset_index(drop=True)
+                df2 = merge([df2, df1[cols]]).drop(columns=[CROSS_JOIN_KEY])
 
         if df2.index.name != Lambda.VAR_OID and df2.index.name is not None:
             df2 = df2.reset_index()
@@ -116,29 +128,123 @@ class QueryExpr(NormExpression):
         return df2
 
 
-class ExistQueryExpr(NormExpression):
+class ConstantAssignmentExpr(NormExpression):
 
-    def __init__(self, expr, foreach_cols):
+    def __init__(self, constant, projection=None):
         """
-        Pick first row for each combined columns
-        :param expr: the expression to pick
-        :type expr: NormExpression
-        :param foreach_cols: the columns to stratify
-        :type foreach_cols: List[str]
+        Assign constant to a variable and join with the current scope
+        :param constant: the constant to assign
+        :type constant: Constant
+        :param projection: the variable to project to
+        :type projection: Projection
         """
         super().__init__()
-        self.expr = expr
-        self.foreach_cols = foreach_cols
+        from norm.executable import Projection
+        self.constant: Constant = constant
+        self.projection: Projection = projection
+        self.variable_name: str = None
+
+    @property
+    def var_type(self):
+        from norm.models import lambdas
+        return lambdas[self.constant.type_.value.title()]
 
     def compile(self, context):
-        self.eval_lam = self.expr.eval_lam
-        self.lam = self.expr.lam
+        assert(self.projection is not None)
+        if len(self.projection.variables) > 1:
+            return MultipleConstantAssignmentExpr(self.constant, self.projection).compile(context)
+
+        from norm.models.norm import Variable
+        self.variable_name = self.projection.variables[0].name
+        if context.scope is not None:
+            self.eval_lam = context.scope
+            variables = self.eval_lam.variables
+            self.lam = context.temp_lambda(variables + [Variable(self.variable_name, self.var_type)])
+        else:
+            self.eval_lam = None
+            self.lam = context.temp_lambda([Variable(self.variable_name, self.var_type)])
         return self
 
     def execute(self, context):
-        df = self.expr.execute(context)
-        assert(isinstance(df, DataFrame))
-        return df.groupby(self.foreach_cols).apply(lambda x: x.iloc[0]).reset_index(drop=True)
+        if not isinstance(self.constant, ListConstant):
+            if self.eval_lam is not None:
+                df = self.eval_lam.data
+                df[self.variable_name] = self.constant.value
+            else:
+                df = DataFrame(data={self.variable_name: [self.constant.value]})
+        else:
+            if self.eval_lam is not None:
+                df = self.eval_lam.data
+                if self.variable_name not in df.columns:
+                    df[CROSS_JOIN_KEY] = 1
+                    to_join = DataFrame({self.variable_name: self.constant.value})
+                    to_join[CROSS_JOIN_KEY] = 1
+                    df = df.merge(to_join, on=CROSS_JOIN_KEY, how='outer').drop(columns=[CROSS_JOIN_KEY])
+                else:
+                    assert(len(df) == len(self.constant.value))
+                    df[self.variable_name] = self.constant.value
+            else:
+                df = DataFrame(data={self.variable_name: self.constant.value})
+        self.lam.data = df
+        return df
+
+
+class MultipleConstantAssignmentExpr(NormExpression):
+
+    def __init__(self, constant, projection):
+        """
+        Assign constant to a variable and join with the current scope
+        :param constant: the constant to assign
+        :type constant: Constant
+        :param projection: the variables to project to
+        :type projection: Projection
+        """
+        super().__init__()
+        from norm.executable import Projection
+        self.constant: Constant = constant
+        self.projection: Projection = projection
+
+    @property
+    def var_names(self):
+        return [v.name for v in self.projection.variables]
+
+    @property
+    def var_types(self):
+        from norm.models import lambdas
+        return [lambdas[t.value.title()] for t in self.constant.type_]
+
+    def compile(self, context):
+        assert(isinstance(self.constant, ListConstant))
+        assert(isinstance(self.constant.value[0], tuple))
+        assert(len(self.var_names) == len(self.var_types))
+        assert(self.eval_lam is None or all(vn not in self.eval_lam for vn in self.var_names))
+        from norm.models.norm import Variable
+        vs = [Variable(n, t) for n, t in zip(self.var_names, self.var_types)]
+        if context.scope is not None:
+            self.eval_lam = context.scope
+            variables = self.eval_lam.variables
+            self.lam = context.temp_lambda(variables + vs)
+        else:
+            self.eval_lam = None
+            self.lam = context.temp_lambda(vs)
+        return self
+
+    def execute(self, context):
+        if self.eval_lam is not None:
+            df = self.eval_lam.data
+            if any(vn in df.columns for vn in self.var_names):
+                assert(len(df) == len(self.constant.value))
+                df[self.var_names] = self.constant.value
+            else:
+                df[CROSS_JOIN_KEY] = 1
+                to_join = DataFrame(data=self.constant.value,
+                                    columns=self.var_names)
+                to_join[CROSS_JOIN_KEY] = 1
+                df = df.merge(to_join, on=CROSS_JOIN_KEY, how='outer').drop(columns=[CROSS_JOIN_KEY])
+        else:
+            df = DataFrame(data=self.constant.value, columns=self.var_names)
+        self.lam.data = df
+        return df
 
 
 class QuantifiedQueryExpr(NormExpression):
@@ -164,6 +270,50 @@ class QuantifiedQueryExpr(NormExpression):
         df = self.expr.execute(context)
         assert(isinstance(df, DataFrame))
         return self.quantifiers.quantify(df)
+
+
+class PivotQueryExpr(NormExpression):
+
+    def __init__(self, expr, projection):
+        """
+        Unquoted projection essentially does the pivoting
+        :param expr: the expression to evaluate
+        :type expr: NormExpression
+        :param projection: the unquoted projection to pivot
+        :type projection: Projection
+        """
+        super().__init__()
+        self.expr = expr
+        self.projection = projection
+        self.cols = []
+        self.var_name = None
+
+    def compile(self, context):
+        assert(len(self.projection.variables) == 1)
+        from norm.executable.schema.variable import UnquoteVariable
+        v = self.projection.variables[0]
+        assert(isinstance(v, UnquoteVariable))
+        self.cols = [uv.name for uv in v.unquoted_variables]
+        self.var_name = v.name
+        self.lam = self.expr.lam
+        self.eval_lam = v.lam
+        return self
+
+    def execute(self, context):
+        result = self.expr.execute(context)
+        # TODO: this is a hack, have to think about which value columns in general are referred to
+        col_values = [self.expr.lam.variables[-1].name]
+        col_index = [col for col in result.columns if col not in col_values and col not in self.cols]
+        if len(col_index) == 0:
+            col_index = result.index
+        for col in self.cols:
+            if col not in result.columns:
+                result[col] = self.eval_lam.data[col]
+        df = result.pivot_table(values=col_values, columns=self.cols, index=col_index, aggfunc=lambda x: x)
+        df.columns = [self.var_name.format(*col_values) for col_values in zip(*df.columns.levels[1:])]
+        if col_index is not result.index:
+            df = df.reset_index()
+        return df
 
 
 class NegatedQueryExpr(NormExpression):

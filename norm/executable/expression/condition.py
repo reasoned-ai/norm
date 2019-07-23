@@ -1,4 +1,3 @@
-import uuid
 from typing import Union
 
 from norm.executable import NormError

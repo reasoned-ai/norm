@@ -137,7 +137,6 @@ class EvaluationExpr(NormExpression):
         for ov, arg in zip(lam.variables, self.args):  # type: Variable, ArgumentExpr
             if arg.projection is not None:
                 assert(len(arg.projection.variables) <= 1)
-                assert(not arg.projection.to_evaluate)
                 if arg.variable is None:
                     outputs[ov.name] = arg.projection.variables[0].name
                 else:
@@ -147,7 +146,6 @@ class EvaluationExpr(NormExpression):
                         outputs[arg.variable.name] = arg.projection.variables[0].name
         if self.projection is not None:
             assert(len(self.projection.variables) <= 1)
-            assert(not self.projection.to_evaluate)
             if self.projection.num == 1:
                 new_lambda_name = self.projection.variables[0].name
             else:
@@ -297,7 +295,7 @@ class AtomicEvaluationExpr(NormExpression):
         assert(isinstance(lam, Lambda))
         assert(isinstance(inputs, dict))
         self.eval_lam: Lambda = lam
-        self.lam: Lambda = lam.output_type
+        self.lam: Lambda = None
         self.inputs: Dict = inputs
         self.output_projection: str = output_projection
 
@@ -306,27 +304,36 @@ class AtomicEvaluationExpr(NormExpression):
                                                                   in self.inputs.items()))
 
     def compile(self, context):
-        # TODO: infer the output lambda schema
+        from norm.models import Variable, Lambda
+        self.lam = context.temp_lambda([Variable(Lambda.VAR_OUTPUT, self.eval_lam.output_type)])
+        if self.output_projection is None and self.projection is not None:
+            self.output_projection = self.projection.variables[0].name
         return self
 
     def execute(self, context):
         inputs = dict((key, value.execute(context)) for key, value in self.inputs.items())
         result = self.eval_lam(**inputs)
-        if self.output_projection is None and self.projection is not None:
-            self.output_projection = self.projection.variables[0].name
-        if self.output_projection is not None or self.projection is not None:
-            import numpy
+        import numpy
+        if self.output_projection is not None:
             if isinstance(result, (list, numpy.ndarray)):
                 return Series(result, name=self.output_projection)
             elif isinstance(result, (Series, Index)):
                 return result.rename(self.output_projection)
             elif isinstance(result, DataFrame):
-                cols = {col: '{}{}{}'.format(self.output_projection, self.VARIABLE_SEPARATOR, col)
-                        for col in result.columns}
-                return result.loc[result.index.rename(self.output_projection)].rename(columns=cols)
+                if len(result.columns) > 1:
+                    cols = {col: '{}{}{}'.format(self.output_projection, self.VARIABLE_SEPARATOR, col)
+                            for col in result.columns}
+                    return result.loc[result.index.rename(self.output_projection)].rename(columns=cols)
+                else:
+                    result.columns = [self.output_projection]
+                    return result
             else:
                 return Series([result], name=self.output_projection)
-        return result
+        else:
+            if isinstance(result, DataFrame) and len(result.columns) == 1:
+                from norm.models import Lambda
+                result.columns = [Lambda.VAR_OUTPUT]
+            return result
 
 
 class RetrievePartialDataExpr(NormExpression):
@@ -356,7 +363,6 @@ class RetrievePartialDataExpr(NormExpression):
     def _append_projection(self):
         if self.projection is not None:
             assert(len(self.projection.variables) <= 1)
-            assert(not self.projection.to_evaluate)
             if self.projection.num == 1:
                 new_lambda_name = self.projection.variables[0].name
             else:
@@ -470,7 +476,9 @@ class AddDataEvaluationExpr(NormExpression):
         if len(self.data) == 0:
             return DataFrame(data=[self.lam.default])
 
-        data = OrderedDict((key, value.execute(context)) for key, value in self.data.items())
+        from norm.executable.constant import Constant
+        data = OrderedDict((key, value.execute(context) if isinstance(value, Constant) else value)
+                           for key, value in self.data.items())
         data = self.unify(data)
         df = DataFrame(data=data, columns=data.keys())
         query_str = hash_df(df)

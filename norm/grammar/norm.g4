@@ -81,10 +81,13 @@ typeName
     : VARNAME version?
     | LSBR typeName RSBR;
 
+unquote_variable
+    : (VARNAME | COMMAND | ARGOPT)? LCBR variable RCBR ((VARNAME | COMMAND | ARGOPT | '_')? LCBR variable RCBR)*;
+
 variable
     : VARNAME | COMMAND | ARGOPT
-    | variable DOT (VARNAME | COMMAND | ARGOPT)
-    | VARNAME LCBR variable RCBR
+    | variable DOT variable
+    | unquote_variable
     ;
 
 argumentProperty: (WS|NS)? COLON (WS|NS)? ARGOPT WS? (LBR WS? constant WS? RBR)?;
@@ -122,6 +125,7 @@ constant
     | uuid
     | url
     | datetime
+    | LBR constant (WS? COMMA WS? constant)* RBR
     | LSBR constant (WS? COMMA WS? constant)* RSBR
     ;
 

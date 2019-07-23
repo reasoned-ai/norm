@@ -53,17 +53,19 @@ class NormExecutable(object):
 
 class Projection(NormExecutable):
 
-    def __init__(self, variables, to_evaluate=False):
+    def __init__(self, variables):
         """
         The projection definition
         :param variables: a list of variables to project on
         :type variables: List[norm.executable.variable.VariableName]
-        :param to_evaluate: whether to evaluate these variables or not, default to False.
-        :type to_evaluate: Boolean
         """
         super().__init__()
         self.variables = variables
-        self.to_evaluate = to_evaluate
+
+    @property
+    def with_unquote(self):
+        from norm.executable.schema.variable import UnquoteVariable
+        return any(isinstance(v, UnquoteVariable) for v in self.variables)
 
     @property
     def num(self):
