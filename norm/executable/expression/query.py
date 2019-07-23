@@ -56,8 +56,6 @@ class QueryExpr(NormExpression):
         elif not isinstance(value1, list) and isinstance(value2, list):
             value2.append(value1)
             return value2
-        elif not isinstance(value1, list) and not isinstance(value2, list):
-            return [value1, value2]
         elif isinstance(value1, AddDataEvaluationExpr) and isinstance(value2, AddDataEvaluationExpr):
             # pushdown the combine operation
             if value1.lam is value2.lam:
@@ -65,6 +63,8 @@ class QueryExpr(NormExpression):
                 if combined is not None:
                     value1.data = combined
                     return value1
+        elif not isinstance(value1, list) and not isinstance(value2, list):
+            return [value1, value2]
         return None
 
     def __combine_data(self, data1, data2):

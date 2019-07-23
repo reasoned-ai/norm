@@ -474,10 +474,13 @@ class AddDataEvaluationExpr(NormExpression):
 
     def execute(self, context):
         if len(self.data) == 0:
-            return DataFrame(data=[self.lam.default])
+            df = DataFrame(data=[self.lam.default])
+            self._query_str = hash_df(df)
+            return df
 
         from norm.executable.constant import Constant
-        data = OrderedDict((key, value.execute(context) if isinstance(value, Constant) else value)
+        from norm.executable import NormExecutable
+        data = OrderedDict((key, value.execute(context) if isinstance(value, (Constant, NormExecutable)) else value)
                            for key, value in self.data.items())
         data = self.unify(data)
         df = DataFrame(data=data, columns=data.keys())

@@ -523,7 +523,13 @@ class NormCompiler(normListener):
         elif isinstance(self._peek(), TupleConstant):
             expr = self._pop()
             lam = self.scope
-            data = dict((ov.name, v) for ov, v in zip(lam.variables, expr.value))
+            values = expr.value
+            from norm.models.norm import Lambda
+            from norm.models import lambdas
+            variables = [v.name for v in lam.variables]
+            nanonymous = len(values) - len(variables)
+            variables.extend('{}{}'.format(Lambda.VAR_ANONYMOUS_STUB, i) for i in range(nanonymous))
+            data = dict((name, value) for name, value in zip(variables, values))
             self._push(AddDataEvaluationExpr(lam, data, False))
 
     def exitConditionExpression(self, ctx: normParser.ConditionExpressionContext):
