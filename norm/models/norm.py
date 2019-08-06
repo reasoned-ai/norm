@@ -564,7 +564,7 @@ class Lambda(Model, ParametrizedMixin):
         # if OID column is given
         oid_col = self.oid_col
         if oid_col is not None and oid_col in df.columns:
-            df[self.VAR_OID] = df[oid_col].astype('int64')
+            df[self.VAR_OID] = df[oid_col]
             df = df.set_index(self.VAR_OID)
             return df
 

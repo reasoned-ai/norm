@@ -14,7 +14,7 @@ URL = 'https://github.com/reasoned-ai/norm'
 EMAIL = 'xu@reasoned.ai'
 AUTHOR = 'Xu Miao'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.1.5'
+VERSION = '0.1.6'
 
 with io.open('requirements.txt') as f:
     REQUIRED = [line.split('==')[0] for line in f.readlines()]

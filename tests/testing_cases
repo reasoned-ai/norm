@@ -84,7 +84,7 @@ test[2:];
 test[:-2];
 
 // match(s:String, p:Pattern), pivoting
-with(test), ['s', 'sf', 'aa']?p & match(a, p)?pattern_{p};
+with(test), ['s', 'sf', 'aa']?p & extract(a, p)?pattern_{p};
 
 
 // Inheritance
