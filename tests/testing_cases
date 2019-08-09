@@ -65,6 +65,14 @@ test.desc(t);
 tt := with(test).foreach(t), a.mean()?a_mean & a.max()?a_max & b.mean()?b_mean;
 tt := with(test).foreach(t).exist(a), a.sum() > 3;
 
+// Mixed aggregation and regular conditions
+with(test).foreach(t).exist(b) a > a.mean();
+with(test) a > a.mean() + 2 * a.std() | a < a.mean() - 2 * a.std();
+
+// Python code evaluation
+test(a: Integer) := {{ pandas.read_csv("sfsfsf.csv") }}
+test |= {{ pandas.read_csv("sfsfsf.csv" }}
+
 // Extract a pattern on an attribute
 test &= extract(a, p'sf')?sf;
 
