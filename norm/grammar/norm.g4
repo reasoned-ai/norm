@@ -162,6 +162,7 @@ slicedExpression
 
 arithmeticExpression
     : slicedExpression
+    | codeExpression
     | LBR arithmeticExpression RBR
     | MINUS arithmeticExpression
     | arithmeticExpression (WS|NS)? (MOD | EXP) (WS|NS)? arithmeticExpression

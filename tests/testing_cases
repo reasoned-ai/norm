@@ -24,8 +24,8 @@ test &= (a -> b);
 
 // Add another attribute implicitly with values
 utcnow := {{
-    import datetime
-    return datetime.datetime.utcnow
+    from datetime import datetime
+    utcnow = datetime.utcnow
 }};
 
 // automatically adding t2 as a Datetime type (inferred by the now output type)
@@ -70,8 +70,8 @@ with(test).foreach(t).exist(b) a > a.mean();
 with(test) a > a.mean() + 2 * a.std() | a < a.mean() - 2 * a.std();
 
 // Python code evaluation
-test(a: Integer) := {{ pandas.read_csv("sfsfsf.csv") }}
-test |= {{ pandas.read_csv("sfsfsf.csv" }}
+test(a: Integer) := {{ pandas.read_csv("sfsfsf.csv") }};
+test |= {{ pandas.read_csv("sfsfsf.csv" }};
 
 // Extract a pattern on an attribute
 test &= extract(a, p'sf')?sf;
@@ -94,8 +94,10 @@ test[:-2];
 // match(s:String, p:Pattern), pivoting
 with(test), ['s', 'sf', 'aa']?p & extract(a, p)?pattern_{p};
 
+// windowing
+window(test).rolling(10), a.mean()
 
 // Inheritance
 animal(name: String, sound: String, num_of_legs: Integer);
-duck(animal{sound='guagua', num_of_legs=2});
-frog(animal{sound='rubit', num_of_legs=4});
+duck(feather_color: String) extends animal(sound='guagua', num_of_legs=2);
+frog(skin_color: String) extends animal(sound='rubit', num_of_legs=4);
