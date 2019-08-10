@@ -55,6 +55,7 @@ class TypeImplementation(NormExecutable):
         if isinstance(delta, Lambda):
             delta = delta.data
         if isinstance(delta, DataFrame):
+            delta = delta.copy()
             if self.query.lam is not self.lam and self.lam is not self.query.lam.cloned_from:
                 # reset the index name if the output lambda is not the lambda to be revised
                 delta.index.name = ''

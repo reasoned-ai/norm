@@ -46,10 +46,11 @@ def configure(home=None, db_path=None, data_path=None, **kwargs):
         context = NormCompiler(config.context_id, user, config.session)
 
 
-def init_context():
+def init_jupyter():
     from norm.engine import NormCompiler, NormError
     from norm.config import session, context_id
     from norm.security import user, login
+    logging.disable()
     global context
     user = login()
     context = NormCompiler(context_id, user, session)
@@ -131,6 +132,22 @@ def init_colab():
 
 # IPython magics
 if get_ipython() is not None:
+    def update_python_context():
+        context.python_context = ip.user_global_ns
+
+    def try_norma(lines):
+        for i in range(len(lines) - 1, -1, -1):
+            if lines[i].rstrip(' \t\r\n') != '':
+                lines = lines[:(i+1)]
+                break
+        if lines[-1].rstrip(' \t\r\n')[-1] == ';':
+            context.python_context = ip.user_global_ns
+            return ['%%norma\n'] + lines
+        else:
+            return lines
+    ip = get_ipython()
+    ip.input_transformers_cleanup.append(try_norma)
+
     @register_line_cell_magic
     def norma(line, cell=None):
         """
@@ -144,8 +161,6 @@ if get_ipython() is not None:
         import norm.config as config
         try:
             if cell is None:
-                if line.strip('\n\t ')[-1] != ';':
-                    line += ';'
                 result = context.execute(line)
             else:
                 result = context.execute(cell)

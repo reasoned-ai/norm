@@ -1,4 +1,5 @@
 """Unit tests for Norm"""
+from norm.engine import ParseError
 from tests.utils import NormTestCase
 
 
@@ -26,7 +27,7 @@ class CommentsTestCase(NormTestCase):
         Comment 3
         ;
         """
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParseError):
             self.execute(script)
 
     def test_recognize_multi_line_comment1(self):
@@ -65,6 +66,6 @@ class CommentsTestCase(NormTestCase):
             Comment 7
             no end
         """
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParseError):
             self.execute(script)
 

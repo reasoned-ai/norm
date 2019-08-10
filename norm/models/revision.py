@@ -217,6 +217,7 @@ class DeltaRevision(Revision):
     @orm.reconstructor
     def init_on_load(self):
         self._delta = None
+        self.orig_data = None
 
     @property
     def path(self):

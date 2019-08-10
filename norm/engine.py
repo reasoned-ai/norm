@@ -8,12 +8,12 @@ from textwrap import dedent
 from norm import config
 from norm.executable import NormExecutable
 from norm.executable.command import Command
-from norm.executable.constant import TupleConstant
 from norm.executable.schema.declaration import *
 from norm.executable.expression.arithmetic import *
 from norm.executable.expression.evaluation import *
 from norm.executable.expression.query import *
 from norm.executable.expression.slice import *
+from norm.executable.expression.code import *
 from norm.executable.schema.implementation import *
 from norm.executable.schema.type import *
 from norm.executable.schema.namespace import *
@@ -91,9 +91,10 @@ class NormErrorListener(ErrorListener):
 
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
         err_msg = "line " + str(line) + ":" + str(column) + " " + msg
-        raise ValueError(err_msg)
+        raise ParseError(err_msg)
 
 
+error_listener = NormErrorListener()
 walker = ParseTreeWalker()
 
 
@@ -110,6 +111,7 @@ class NormCompiler(normListener):
         self.user_namespace = None
         self.search_namespaces = None
         self.set_namespaces()
+        self._python_context = {}
 
     def set_namespaces(self):
         if self.context_id:
@@ -169,30 +171,53 @@ class NormCompiler(normListener):
         """
         return exe
 
-    def compile(self, script):
+    def parse(self, script):
         if script is None or not isinstance(script, str):
             return None
         script = script.strip(' \r\n\t')
         if script == '':
             return None
+        try:
+            lexer = normLexer(InputStream(script))
+            stream = CommonTokenStream(lexer)
+            parser = normParser(stream)
+            parser.addErrorListener(error_listener)
+            return parser.script()
+        except ParseError as e:
+            msg = 'Can not parse {}'.format(script)
+            logger.error(msg)
+            logger.error(e)
+            raise e
 
-        lexer = normLexer(InputStream(script))
-        stream = CommonTokenStream(lexer)
-        parser = normParser(stream)
-        parser.addErrorListener(NormErrorListener())
-        tree = parser.script()
-        walker.walk(self, tree)
-        # assert(len(self.stack) == 1)  # Ensure that parsing and compilation has finished completely
+    def compile(self, script):
+        tree = self.parse(script)
+        if tree is not None:
+            walker.walk(self, tree)
+            return True
+        else:
+            return False
         # return self.optimize(self._pop())
-        return
 
     def temp_lambda(self, variables):
         return Lambda(self.context_namespace, self.TMP_VARIABLE_STUB + str(uuid.uuid4()), variables=variables)
 
+    @property
+    def python_context(self):
+        return self._python_context
+
+    @python_context.setter
+    def python_context(self, python_context=None):
+        if python_context is None:
+            self._python_context = {}
+        else:
+            self._python_context.update(python_context)
+
     def execute(self, script):
         self.stack = []
         self.scopes = []
-        self.compile(dedent(script))
+        if not self.compile(dedent(script)):
+            return None
+
         results = None
         while len(self.stack) > 0:
             exe = self._pop()
@@ -233,10 +258,14 @@ class NormCompiler(normListener):
             type_ = self._pop()  # type: TypeName
             self._push(RenameTypeDeclaration(type_, renames).compile(self))
         elif ctx.codeExpression():
-            code = self._pop()  # type: str
-            type_ = self._pop()  # type: TypeName
+            code: CodeExpr = self._pop()
+            type_: TypeName = self._pop()
             description = self._pop() if ctx.comments() else ''
-            self._push(CodeTypeDeclaration(type_, code, description).compile(self))
+            op = ImplType(ctx.IMPL().getText())
+            if type_.lam is None and op == ImplType.DEF:
+                self._push(CodeTypeDeclaration(type_, code.code, description).compile(self))
+            else:
+                self._push(TypeImplementation(type_, op, code, description).compile(self))
         elif ctx.imports() or ctx.exports() or ctx.commands() or ctx.multiLineExpression():
             if ctx.comments():
                 expr = self._pop()
@@ -608,4 +637,4 @@ class NormCompiler(normListener):
             self._push(EvaluationExpr(args, variable, None).compile(self))
 
     def exitCodeExpression(self, ctx: normParser.CodeExpressionContext):
-        self._push(ctx.code().getText())
+        self._push(CodeExpr(ctx.code().getText()).compile(self))

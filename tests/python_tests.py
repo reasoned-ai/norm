@@ -105,3 +105,20 @@ class PythonTestCase(NormTestCase):
         self.assertTrue(lam is not None)
         self.assertTrue(isinstance(lam.data, DataFrame))
         self.assertTrue(lam.data['p'] is not None)
+
+    def test_python_code_expression(self):
+        self.execute("test(a: String, b: Integer);")
+        import pandas as pd
+        t1 = pd.DataFrame(data={'a': ['a', 'b', 'c'], 'b': [1, 2, 3]})
+        self.executor.python_context = locals()
+        lam = self.execute("test(a: String, b: Integer) := {{ t1 }};")
+        self.assertTrue(lam is not None)
+        self.assertTrue(all(lam.data['a'] == ['a', 'b', 'c']))
+        self.assertTrue(all(lam.data['b'] == [1, 2, 3]))
+        t2 = t1
+        t2.loc[1, 'a'] = 'e'
+        self.executor.python_context = locals()
+        lam = self.execute("test := {{ t2 }};")
+        self.assertTrue(lam is not None)
+        self.assertTrue(all(lam.data['a'] == ['a', 'e', 'c']))
+        self.assertTrue(all(lam.data['b'] == [1, 2, 3]))

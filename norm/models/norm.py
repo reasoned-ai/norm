@@ -558,8 +558,11 @@ class Lambda(Model, ParametrizedMixin):
         return df
 
     def fill_oid(self, df):
-        if self.VAR_OID in df.columns or df.index.name == self.VAR_OID:
+        if df.index.name == self.VAR_OID:
             return df
+
+        if self.VAR_OID in df.columns:
+            return df.set_index(self.VAR_OID)
 
         # if OID column is given
         oid_col = self.oid_col
@@ -694,6 +697,8 @@ class Lambda(Model, ParametrizedMixin):
 
     @_check_draft_status
     def remove_revisions(self):
+        for rev in self.revisions:
+            rev.undo()
         self.current_revision = -1
         self.revisions = []
 
