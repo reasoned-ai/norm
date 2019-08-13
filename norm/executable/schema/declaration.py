@@ -94,7 +94,8 @@ class TypeDeclaration(NormExecutable):
         else:
             variables = [var_declaration.var for var_declaration in self.argument_declarations]
 
-        if lam is None:
+        if lam is None or (len(variables) > 0 and sorted(lam.variables, key=lambda v: v.name)
+                           != sorted(variables, key=lambda v: v.name)):
             #  Create a new Lambda
             lam = Lambda(namespace=context.context_namespace, name=self.type_name.name)
             lam.description = self.description
@@ -102,18 +103,6 @@ class TypeDeclaration(NormExecutable):
             context.session.add(lam)
             from norm.config import cache
             cache[(context.context_namespace, self.type_name.name, None, None)] = lam
-        else:
-            assert(lam.status == Status.DRAFT)
-            if len(variables) > 0 and \
-                    sorted(lam.variables, key=lambda v: v.name) != sorted(variables, key=lambda v: v.name):
-                # Revise the existing schema
-                new_variables = {v.name: v.type_ for v in variables}
-                current_variables = {v.name: v.type_ for v in lam.variables}
-                lam.delete_variable([v.name for v in lam.variables if new_variables.get(v.name, None) != v.type_])
-                lam.add_variable([v for v in variables if current_variables.get(v.name, None) != v.type_])
-                # TODO: make a doc change revision
-                if self.description:
-                    lam.description = self.description
 
         self.lam = lam
         return self

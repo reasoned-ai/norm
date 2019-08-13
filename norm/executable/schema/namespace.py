@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from norm.executable import NormExecutable, NormError
 from norm.executable.schema.type import TypeName
 
@@ -105,6 +107,9 @@ class Export(NormExecutable):
             lam.name = self.alias
         lam.version = new_version()
         lam.status = Status.READY
+        lam.owner = context.user
+        lam.created_on = datetime.utcnow()
+        lam.changed_on = datetime.utcnow()
 
         # clone this one back to the current context for further modification
         new_lam = lam.clone()

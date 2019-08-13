@@ -105,3 +105,34 @@ class ImplementationTestCase(NormTestCase):
         self.assertTrue(str(lam.data.a.dtype) == 'int64')
         self.assertTrue(str(lam.data.b.dtype) == 'object')
 
+    def test_repeat_implementation(self):
+        script = """
+            student(id: String, name: String, department_name: String, total_credits: Float) 
+            := {{ 
+                import sqlite3
+                import pandas as pd            
+                conn = 'sqlite:////home/ax/Downloads/spider/database/college_2/college_2.sqlite'
+                result = pd.read_sql('SELECT * FROM student;', conn)
+                result = result.rename(columns={'ID': 'id', 'name': 'name', 'dept_name': 'department_name', 
+                                                'tot_cred': 'total_credits'})
+                result
+               }};        
+        """
+        lam = self.execute(script)
+        self.assertTrue(lam is not None)
+        script = """
+            student(stuid: Float, last_name: String, first_name: String, age: Float, sex: String, major: Float, 
+                    advisor: Float, city_code: String) 
+            := {{
+                import sqlite3
+                import pandas as pd
+                conn = 'sqlite:////home/ax/Downloads/spider/database/allergy_1/allergy_1.sqlite'
+                result = pd.read_sql('SELECT * FROM Student;', conn)
+                result = result.rename(columns={'StuID': 'stuid', 'LName': 'last_name', 'Fname': 'first_name', 
+                                                'Age': 'age', 'Sex': 'sex', 'Major': 'major', 'Advisor': 'advisor', 
+                                                'city_code': 'city_code'})
+                result
+               }};
+        """
+        lam2 = self.execute(script)
+        self.assertTrue(lam2 is not lam)

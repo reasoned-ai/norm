@@ -97,7 +97,7 @@ class EvaluationTestCase(NormTestCase):
                                                            lam.namespace.replace('.', '/'),
                                                            lam.name,
                                                            lam.version))
-        self.assertTrue(all(lam.data['time'] == lam.data['timestamp']))
+        self.assertTrue(all(lam.data['time'] == lam.data[lam.VAR_TIMESTAMP]))
 
     def test_ignore_same_revision(self):
         self.execute("wikisql(phase: Integer);")

@@ -291,6 +291,9 @@ class ConjunctionRevision(DeltaRevision):
         assert(self.lam.data.index.name == oid_col)
         data = self.lam.data
         delta = self.delta
+        if delta is None:
+            return
+
         unstored = delta.index.difference(data.index, sort=False)
         stored = delta.index.intersection(data.index, sort=False)
         if len(unstored) > 0:
@@ -333,6 +336,9 @@ class DisjunctionRevision(DeltaRevision):
         assert(self.lam.data.index.name == oid_col)
         data = self.lam.data
         delta = self.delta
+        if delta is None:
+            return
+
         unstored = delta.index.difference(data.index, sort=False)
         stored = delta.index.intersection(data.index, sort=False)
         if len(unstored) > 0:

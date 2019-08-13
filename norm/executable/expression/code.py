@@ -1,3 +1,5 @@
+from textwrap import dedent
+
 from pandas import DataFrame
 
 from norm.executable import NormError
@@ -25,8 +27,8 @@ class CodeExpr(NormExpression):
     def compile(self, context):
         self.lam = context.temp_lambda([])
         lines = [line for line in self.code.split('\n') if line.strip() != '']
-        self.eval_code = lines[-1]
-        self.exec_code = '\n'.join(lines[:-1])
+        self.eval_code = dedent(lines[-1])
+        self.exec_code = dedent('\n'.join(lines[:-1]))
         return self
 
     def execute(self, context):

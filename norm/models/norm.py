@@ -180,17 +180,17 @@ class Lambda(Model, ParametrizedMixin):
     __tablename__ = 'lambdas'
     category = Column(String(128))
 
-    VAR_OUTPUT = 'output'
+    VAR_OUTPUT = '_output'
     # OUTPUT default to the OID, hence the type is integer
-    VAR_LABEL = 'label'
+    VAR_LABEL = '_label'
     VAR_LABEL_T = 'float'
-    VAR_OID = 'oid'
+    VAR_OID = '_oid'
     VAR_OID_T = 'int64'
-    VAR_PROB = 'prob'
+    VAR_PROB = '_prob'
     VAR_PROB_T = 'float'
-    VAR_TIMESTAMP = 'timestamp'
+    VAR_TIMESTAMP = '_timestamp'
     VAR_TIMESTAMP_T = 'datetime64[ns]'
-    VAR_TOMBSTONE = 'tombstone'
+    VAR_TOMBSTONE = '_tombstone'
     VAR_TOMBSTONE_T = 'bool'
     VAR_ANONYMOUS_STUB = 'var'
 
@@ -582,7 +582,7 @@ class Lambda(Model, ParametrizedMixin):
             else:
                 c = c.str.cat(df[col].astype(str))
         if c is not None:
-            df[self.VAR_OID] = c.astype('bytes').apply(zlib.adler32).astype('int64')
+            df[self.VAR_OID] = c.str.encode('utf-8').apply(zlib.adler32).astype('int64')
             df = df.set_index(self.VAR_OID)
         else:
             df.index.rename(self.VAR_OID, inplace=True)
