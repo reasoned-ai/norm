@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from norm.executable import NormExecutable, NormError
 from norm.executable.schema.type import TypeName
 
@@ -110,6 +112,7 @@ class Export(NormExecutable):
         lam.owner = context.user
         lam.created_on = datetime.utcnow()
         lam.changed_on = datetime.utcnow()
+        lam.save()
 
         # clone this one back to the current context for further modification
         new_lam = lam.clone()
@@ -119,6 +122,7 @@ class Export(NormExecutable):
         from norm.config import cache
         cache[(context.context_namespace, new_lam.name, None, None)] = new_lam
         # TODO: possible cascaded exporting. the clone_from object might need to be exported too, or merge into one.
+
         self.lam = lam
         return self
 

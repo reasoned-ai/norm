@@ -111,7 +111,7 @@ class ImplementationTestCase(NormTestCase):
             := {{ 
                 import sqlite3
                 import pandas as pd            
-                conn = 'sqlite:////home/ax/Downloads/spider/database/college_2/college_2.sqlite'
+                conn = 'sqlite:///data/college_2.sqlite'
                 result = pd.read_sql('SELECT * FROM student;', conn)
                 result = result.rename(columns={'ID': 'id', 'name': 'name', 'dept_name': 'department_name', 
                                                 'tot_cred': 'total_credits'})
@@ -126,7 +126,7 @@ class ImplementationTestCase(NormTestCase):
             := {{
                 import sqlite3
                 import pandas as pd
-                conn = 'sqlite:////home/ax/Downloads/spider/database/allergy_1/allergy_1.sqlite'
+                conn = 'sqlite:///data/allergy_1.sqlite'
                 result = pd.read_sql('SELECT * FROM Student;', conn)
                 result = result.rename(columns={'StuID': 'stuid', 'LName': 'last_name', 'Fname': 'first_name', 
                                                 'Age': 'age', 'Sex': 'sex', 'Major': 'major', 'Advisor': 'advisor', 

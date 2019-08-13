@@ -109,3 +109,22 @@ class LambdaTestCase(NormTestCase):
     def test_empty_data_native(self):
         lam = lambdas.String
         self.assertTrue(lam.empty_data() is None)
+
+    def test_save_data(self):
+        script = """
+            student(id: String, name: String, department_name: String, total_credits: Float) 
+            := {{ 
+                import sqlite3
+                import pandas as pd            
+                conn = 'sqlite:///data/college_2.sqlite'
+                result = pd.read_sql('SELECT * FROM student;', conn)
+                result = result.rename(columns={'ID': 'id', 'name': 'name', 'dept_name': 'department_name', 
+                                                'tot_cred': 'total_credits'})
+                result
+               }};        
+        """
+        lam = self.execute(script)
+        lam = self.execute("export student test.spider.college_2;")
+        self.assertTrue(os.path.exists(lam.folder))
+        for revision in lam.revisions:
+            self.assertTrue(os.path.exists(revision.path))

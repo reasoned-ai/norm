@@ -1,4 +1,6 @@
 """A collection of ORM sqlalchemy models for Revision"""
+import zlib
+
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, orm, JSON
 from sqlalchemy import Table
 from sqlalchemy.orm import relationship
@@ -220,8 +222,12 @@ class DeltaRevision(Revision):
         self.orig_data = None
 
     @property
+    def uid(self):
+        return zlib.adler32(self.query.encode('utf-8'))
+
+    @property
     def path(self):
-        return '{}/{}.{}'.format(self.lam.folder, self.id, self.PARQUET_EXT)
+        return '{}/{}.{}'.format(self.lam.folder, self.uid, self.PARQUET_EXT)
 
     @property
     def delta(self):
@@ -257,7 +263,7 @@ class DeltaRevision(Revision):
             return
 
         try:
-            self._delta.to_parquet(self.path)
+            self._delta.to_parquet(self.path, engine='fastparquet')
         except IOError:
             msg = 'IO problem: can not save delta to {}'.format(self.path)
             logger.error(msg)

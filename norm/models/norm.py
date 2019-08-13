@@ -684,7 +684,6 @@ class Lambda(Model, ParametrizedMixin):
         self.current_revision += 1
         self.modified_or_new = True
 
-    @_check_draft_status
     def save(self):
         """
         Save the current version

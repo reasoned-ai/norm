@@ -11,5 +11,6 @@ dist/
 __pycache__/
 .pytest_cache/
 tests/data/norm/tmp/
+tests/data/test/
 docs/_build/
 norm.egg-info/
