@@ -112,19 +112,40 @@ class LambdaTestCase(NormTestCase):
 
     def test_save_data(self):
         script = """
-            student(id: String, name: String, department_name: String, total_credits: Float) 
-            := {{ 
+            player(player_id: String, birth_year: Float, birth_month: Float, birth_day: Float, birth_country: String, 
+                   birth_state: String, birth_city: String, death_year: Float, death_month: Float, death_day: Float, 
+                   death_country: String, death_state: String, death_city: String, name_first: String, 
+                   name_last: String, name_given: String, weight: Float, height: Float, bats: String, 
+                   throws: String, debut: String, final_game: String, retro_id: String, bbref_id: String) 
+            := {{
+                from sqlalchemy import create_engine
                 import sqlite3
-                import pandas as pd            
-                conn = 'sqlite:///data/college_2.sqlite'
-                result = pd.read_sql('SELECT * FROM student;', conn)
-                result = result.rename(columns={'ID': 'id', 'name': 'name', 'dept_name': 'department_name', 
-                                                'tot_cred': 'total_credits'})
+                import pandas as pd
+                engine = create_engine('sqlite:///data/baseball_1.sqlite')
+                conn = engine.raw_connection()
+                def try_str(a):
+                    try:
+                        return a.decode('utf-8')
+                    except:
+                        return 'not utf-8'
+                conn.connection.text_factory = try_str    
+                result = pd.read_sql('SELECT * FROM player;', conn)
+                result = result.rename(columns={'player_id': 'player_id', 'birth_year': 'birth_year', 
+                                                'birth_month': 'birth_month', 'birth_day': 'birth_day', 
+                                                'birth_country': 'birth_country', 'birth_state': 'birth_state', 
+                                                'birth_city': 'birth_city', 'death_year': 'death_year', 
+                                                'death_month': 'death_month', 'death_day': 'death_day', 
+                                                'death_country': 'death_country', 'death_state': 'death_state', 
+                                                'death_city': 'death_city', 'name_first': 'name_first', 
+                                                'name_last': 'name_last', 'name_given': 'name_given', 
+                                                'weight': 'weight', 'height': 'height', 'bats': 'bats', 
+                                                'throws': 'throws', 'debut': 'debut', 'final_game': 'final_game', 
+                                                'retro_id': 'retro_id', 'bbref_id': 'bbref_id'})
                 result
                }};        
         """
         lam = self.execute(script)
-        lam = self.execute("export student test.spider.college_2;")
+        lam = self.execute("export player test.spider.baseball_1;")
         self.assertTrue(os.path.exists(lam.folder))
         for revision in lam.revisions:
             self.assertTrue(os.path.exists(revision.path))

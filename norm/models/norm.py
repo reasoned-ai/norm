@@ -504,6 +504,17 @@ class Lambda(Model, ParametrizedMixin):
 
             # Drop duplicated rows by the index
             delta = df[~df.index.duplicated(keep='first')]
+
+            # Ensure the dtype and fill defaults
+            for v in self.variables:
+                if v.name in delta.columns:
+                    delta[v.name].fillna(v.type_.default)
+                    try:
+                        delta[v.name] = delta[v.name].astype(v.type_.dtype)
+                    except:
+                        # TODO: Should be a smarter way to handle implicit NA fields
+                        delta[v.name] = delta[v.name].apply(lambda x: x if x != '' else v.type_.default)
+                        delta[v.name] = delta[v.name].astype(v.type_.dtype)
         else:
             delta = None
 
@@ -754,7 +765,7 @@ class Lambda(Model, ParametrizedMixin):
         return '{}/{}/{}/{}'.format(config.DATA_STORAGE_ROOT,
                                     self.namespace.replace('.', '/'),
                                     self.name,
-                                    self.version)
+                                    self.version[1:])
 
     @_only_queryable
     def _create_folder(self):

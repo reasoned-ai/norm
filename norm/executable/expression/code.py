@@ -36,7 +36,7 @@ class CodeExpr(NormExpression):
             g = context.python_context
             exec(self.exec_code, g, g)
             df = eval(self.eval_code, g, g)
-            assert(df, DataFrame)
+            assert(isinstance(df, DataFrame))
             self.lam.data = df
             return df
         except Exception:
