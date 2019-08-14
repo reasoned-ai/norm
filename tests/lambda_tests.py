@@ -141,6 +141,14 @@ class LambdaTestCase(NormTestCase):
                                                 'weight': 'weight', 'height': 'height', 'bats': 'bats', 
                                                 'throws': 'throws', 'debut': 'debut', 'final_game': 'final_game', 
                                                 'retro_id': 'retro_id', 'bbref_id': 'bbref_id'})
+                result.loc[result['death_year'] == '', 'death_year'] = '0'
+                result.loc[result['death_month'] == '', 'death_month'] = '0'
+                result.loc[result['death_day'] == '', 'death_day'] = '0'
+                result.loc[result['birth_year'] == '', 'birth_year'] = '0'
+                result.loc[result['birth_month'] == '', 'birth_month'] = '0'
+                result.loc[result['birth_day'] == '', 'birth_day'] = '0'
+                result.loc[result['weight'] == '', 'weight'] = '0'
+                result.loc[result['height'] == '', 'height'] = '0'
                 result
                }};        
         """

@@ -22,7 +22,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(lam.folder == '{}/{}/{}/{}'.format(DATA_STORAGE_ROOT,
                                                            lam.namespace.replace('.', '/'),
                                                            lam.name,
-                                                           lam.version))
+                                                           lam.version[1:]))
 
     def test_read_parquet(self):
         self.execute("alarms(event:String);")
@@ -40,7 +40,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(lam.folder == '{}/{}/{}/{}'.format(DATA_STORAGE_ROOT,
                                                            lam.namespace.replace('.', '/'),
                                                            lam.name,
-                                                           lam.version))
+                                                           lam.version[1:]))
 
     def test_select_primary_columns(self):
         self.execute("test := read('./data/norm/packed_alarms.parquet', ext='parq');")
@@ -58,7 +58,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(lam.folder == '{}/{}/{}/{}'.format(DATA_STORAGE_ROOT,
                                                            lam.namespace.replace('.', '/'),
                                                            lam.name,
-                                                           lam.version))
+                                                           lam.version[1:]))
 
     def test_select_optional_columns(self):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
@@ -77,7 +77,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(lam.folder == '{}/{}/{}/{}'.format(DATA_STORAGE_ROOT,
                                                            lam.namespace.replace('.', '/'),
                                                            lam.name,
-                                                           lam.version))
+                                                           lam.version[1:]))
 
     def test_select_time_columns(self):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
@@ -96,7 +96,7 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(lam.folder == '{}/{}/{}/{}'.format(DATA_STORAGE_ROOT,
                                                            lam.namespace.replace('.', '/'),
                                                            lam.name,
-                                                           lam.version))
+                                                           lam.version[1:]))
         self.assertTrue(all(lam.data['time'] == lam.data[lam.VAR_TIMESTAMP]))
 
     def test_ignore_same_revision(self):

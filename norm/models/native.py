@@ -1,4 +1,6 @@
 """A collection of ORM sqlalchemy models for NativeLambda"""
+from pandas import Series, to_timedelta
+
 from norm.models import Register
 from norm.models.norm import Lambda, Variable, Status
 
@@ -36,7 +38,7 @@ class TypeLambda(NativeLambda):
 
     def __init__(self):
         super().__init__(name='Type',
-                         description='A logical function',
+                         description='A logical type',
                          variables=[])
 
 
@@ -50,6 +52,9 @@ class AnyLambda(NativeLambda):
         super().__init__(name='Any',
                          description='Any type',
                          variables=[])
+
+    def convert(self, data):
+        return data
 
     @property
     def default(self):
@@ -152,7 +157,7 @@ class PatternLambda(NativeLambda):
 
     def __init__(self):
         super().__init__(name='Pattern',
-                         description='Pattern, r"^test[0-9]+"',
+                         description='Pattern, p"^test[0-9]+"',
                          variables=[])
 
     @property
@@ -200,7 +205,7 @@ class DatetimeLambda(NativeLambda):
 
     def __init__(self):
         super().__init__(name='Datetime',
-                         description='Datetime, t"2018-09-01"',
+                         description='Datetime, t"2018-09-01 00:00:00"',
                          variables=[],
                          dtype='datetime64[ns]')
 
@@ -220,6 +225,12 @@ class TimeLambda(NativeLambda):
                          description='Time, t"13:01:00"',
                          variables=[],
                          dtype='timedelta64[ns]')
+
+    def convert(self, data):
+        if not isinstance(data, Series) or self.dtype == data.dtype:
+            return data
+
+        return to_timedelta(data.fillna(self.default))
 
     @property
     def default(self):

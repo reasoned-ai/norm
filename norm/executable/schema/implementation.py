@@ -89,7 +89,7 @@ class TypeImplementation(NormExecutable):
                     vname = delta.name
                     vvalue = delta.values[0]
                     delta = DataFrame(index=lam.data.index)
-                    delta[vname] = vvalue
+                    delta.loc[:, vname] = vvalue
                     delta = lam.fill_time(delta)
                 elif delta.index.name == lam.VAR_OID:
                     delta = DataFrame(delta)

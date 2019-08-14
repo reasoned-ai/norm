@@ -19,7 +19,7 @@ import errno
 import enum
 
 from datetime import datetime
-from pandas import DataFrame, to_timedelta
+from pandas import DataFrame, to_timedelta, Series
 from hashids import Hashids
 import numpy as np
 
@@ -330,6 +330,19 @@ class Lambda(Model, ParametrizedMixin):
         """
         return {v.name: v.type_.default for v in self.variables}
 
+    def convert(self, data):
+        """
+        Convert data to the format of this dtype
+        :param data: an array of values
+        :type data: Series
+        :return: the converted values
+        :rtype: Series
+        """
+        if not isinstance(data, Series) or self.dtype == data.dtype:
+            return data
+
+        return data.fillna(self.default).astype(self.dtype)
+
     @property
     def is_functional(self):
         """
@@ -508,19 +521,12 @@ class Lambda(Model, ParametrizedMixin):
             # Ensure the dtype and fill defaults
             for v in self.variables:
                 if v.name in delta.columns:
-                    delta[v.name].fillna(v.type_.default)
                     try:
-                        if v.type_.dtype == 'timedelta64[ns]':
-                            delta[v.name] = to_timedelta(delta[v.name])
-                        else:
-                            delta[v.name] = delta[v.name].astype(v.type_.dtype)
+                        delta.loc[:, v.name] = v.type_.convert(delta[v.name])
                     except:
-                        # TODO: Should be a smarter way to handle implicit NA fields
-                        delta[v.name] = delta[v.name].apply(lambda x: x if x != '' else v.type_.default)
-                        if v.type_.dtype == 'timedelta64[ns]':
-                            delta[v.name] = to_timedelta(delta[v.name])
-                        else:
-                            delta[v.name] = delta[v.name].astype(v.type_.dtype)
+                        msg = '{} does not comply with the type {}'.format(v.name, v.type_)
+                        logger.error(msg)
+                        raise
         else:
             delta = None
 
