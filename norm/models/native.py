@@ -104,7 +104,7 @@ class FloatLambda(NativeLambda):
         super().__init__(name='Float',
                          description='Integer, -inf..+inf',
                          variables=[],
-                         dtype='float')
+                         dtype='float64')
 
     @property
     def default(self):
@@ -121,7 +121,7 @@ class IntegerLambda(NativeLambda):
         super().__init__(name='Integer',
                          description='Integer, -inf..+inf',
                          variables=[],
-                         dtype='int')
+                         dtype='int64')
 
     @property
     def default(self):
@@ -207,6 +207,23 @@ class DatetimeLambda(NativeLambda):
     @property
     def default(self):
         return np.datetime64(datetime.utcnow())
+
+
+@Register()
+class TimeLambda(NativeLambda):
+    __mapper_args__ = {
+        'polymorphic_identity': 'lambda_native_time'
+    }
+
+    def __init__(self):
+        super().__init__(name='Time',
+                         description='Time, t"13:01:00"',
+                         variables=[],
+                         dtype='timedelta64[ns]')
+
+    @property
+    def default(self):
+        return np.timedelta64(0)
 
 
 def get_type_by_dtype(dtype):

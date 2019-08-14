@@ -19,7 +19,7 @@ import errno
 import enum
 
 from datetime import datetime
-from pandas import DataFrame
+from pandas import DataFrame, to_timedelta
 from hashids import Hashids
 import numpy as np
 
@@ -510,11 +510,17 @@ class Lambda(Model, ParametrizedMixin):
                 if v.name in delta.columns:
                     delta[v.name].fillna(v.type_.default)
                     try:
-                        delta[v.name] = delta[v.name].astype(v.type_.dtype)
+                        if v.type_.dtype == 'timedelta64[ns]':
+                            delta[v.name] = to_timedelta(delta[v.name])
+                        else:
+                            delta[v.name] = delta[v.name].astype(v.type_.dtype)
                     except:
                         # TODO: Should be a smarter way to handle implicit NA fields
                         delta[v.name] = delta[v.name].apply(lambda x: x if x != '' else v.type_.default)
-                        delta[v.name] = delta[v.name].astype(v.type_.dtype)
+                        if v.type_.dtype == 'timedelta64[ns]':
+                            delta[v.name] = to_timedelta(delta[v.name])
+                        else:
+                            delta[v.name] = delta[v.name].astype(v.type_.dtype)
         else:
             delta = None
 
