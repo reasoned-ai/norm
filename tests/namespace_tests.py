@@ -17,6 +17,15 @@ class NamespaceTestCase(NormTestCase):
         self.assertTrue(lam is not None)
         self.assertTrue(lam.namespace == 'norm.test')
 
+    def test_importing_all(self):
+        self.execute("Tester(dummy:Integer);")
+        self.execute("export Tester norm.test;")
+        lam = self.execute("import norm.test.*;")
+        self.assertTrue('norm.test' in self.executor.search_namespaces)
+        self.assertTrue(lam is not None)
+        self.assertTrue(lam.namespace == 'norm.test')
+        self.assertTrue(len(lam.data) > 0)
+
     def test_renaming(self):
         self.execute("Tester(dummy:Integer);")
         self.execute("export Tester norm.test;")

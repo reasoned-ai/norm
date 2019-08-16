@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sqlalchemy import desc
 from sqlalchemy.exc import SQLAlchemyError
 
 from norm.executable import NormExecutable, NormError
@@ -61,8 +62,32 @@ class Import(NormExecutable):
             else:
                 self.lam = lam
         else:
-            from norm.models.norm import Lambda
-            self.lam = Lambda(self.namespace, '*')
+            from norm.models.norm import Lambda, Variable
+            from norm.models import lambdas
+            self.lam = Lambda(self.namespace, '*', variables=[Variable('name', lambdas.String),
+                                                              Variable('type', lambdas.String),
+                                                              Variable('latest', lambdas.String),
+                                                              Variable('#versions', lambdas.Integer),
+                                                              Variable('variables', lambdas.String),
+                                                              Variable('#args', lambdas.Integer),
+                                                              Variable('owner', lambdas.String),
+                                                              Variable('created_on', lambdas.Datetime),
+                                                              Variable('changed_on', lambdas.Datetime)])
+
+            lams = context.session.query(Lambda)\
+                .filter(Lambda.namespace == self.namespace)\
+                .order_by(desc(Lambda.created_on))
+            from pandas import DataFrame
+            results = DataFrame(data=[{'name': lam.name, 'type': 'Lambda', 'latest': lam.version,
+                                       'variables': ', '.join(['{}:{}'.format(v.name, v.type_.name)
+                                                               for v in lam.variables]),
+                                       '#args': lam.nargs,
+                                       'owner': lam.owner, 'created_on': lam.created_on,
+                                       'changed_on': lam.changed_on} for lam in lams])
+            agg_results = results.groupby('name').agg({'latest': ['max', 'count']}).reset_index(drop=True)
+            agg_results.columns = ["latest", "#versions"]
+            self.lam.data = agg_results.join(results.set_index('latest'), on='latest')
+            self.lam.data = self.lam.data[[v.name for v in self.lam.variables]]
         return self
 
 
