@@ -34,3 +34,34 @@ class JoinLambdaTestCase(NormTestCase):
         results = self.execute("Event(name?, ip?eip) & Cluster(ip=eip, name~'App'?cluster_name);")
         self.assertTrue(len(results) == 2)
 
+    def test_combined_join_no_condition(self):
+        self.execute("Event(name: String, ip: String);")
+        self.execute("Event := ('Windows crash', '192.168.0.1')"
+                     "       | ('Windows crash', '192.168.0.102')"
+                     "       | ('Unix crash', '192.168.0.2')"
+                     "       | ('Unix crash', '192.168.0.11')"
+                     "       | ('Windows crash', '192.168.0.3');")
+        self.execute("Cluster(name: String, ip: String);")
+        self.execute("Cluster := ('Application cluster', '192.168.0.11')"
+                     "         | ('Application cluster', '192.168.0.2')"
+                     "         | ('Oracle cluster', '192.168.0.1')"
+                     "         | ('Oracle cluster', '192.168.0.3')"
+                     "         | ('Oracle cluster', '192.168.0.102');")
+        results = self.execute("Event(name?, ip?eip) & Cluster(ip=eip);")
+        self.assertTrue(len(results) > 2)
+
+    def test_combined_join_empty_projection(self):
+        self.execute("Event(name: String, ip: String);")
+        self.execute("Event := ('Windows crash', '192.168.0.1')"
+                     "       | ('Windows crash', '192.168.0.102')"
+                     "       | ('Unix crash', '192.168.0.2')"
+                     "       | ('Unix crash', '192.168.0.11')"
+                     "       | ('Windows crash', '192.168.0.3');")
+        self.execute("Cluster(name: String, ip: String);")
+        self.execute("Cluster := ('Application cluster', '192.168.0.11')"
+                     "         | ('Application cluster', '192.168.0.2')"
+                     "         | ('Oracle cluster', '192.168.0.1')"
+                     "         | ('Oracle cluster', '192.168.0.3')"
+                     "         | ('Oracle cluster', '192.168.0.102');")
+        results = self.execute("Event(name?, ip?eip) & Cluster(ip=eip, name?);")
+        self.assertTrue(len(results) > 2)

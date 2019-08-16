@@ -82,7 +82,7 @@ class LambdaTestCase(NormTestCase):
                      description='Test lambda'
                      )
         lam.queryable = True
-        self.assertTrue(lam.folder == 'data/norm/tmp/{}/Test/{}'.format(self.executor.context_id, lam.version))
+        self.assertTrue(lam.folder == 'data/norm/tmp/{}/Test/{}'.format(self.executor.context_id, lam.version[1:]))
         lam._create_folder()
         self.assertTrue(os.path.exists(lam.folder))
 

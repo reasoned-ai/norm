@@ -36,7 +36,7 @@ class EvaluationExpr(NormExpression):
         self.outputs: Dict[str, str] = None
         self.join_variables: List[JoinVariable] = []
         self.projection: Projection = projection
-        self.equalities: Dict[str, str] = None
+        self.equalities: Dict[str, str] = OrderedDict()
         from norm.models.norm import Lambda
         self.equality_scope: Lambda = None
 
@@ -65,6 +65,25 @@ class EvaluationExpr(NormExpression):
                 return False
         return True
 
+    def equality_arg(self, arg):
+        """
+        Check whether the argument is referring to an equality to the previous context or not
+        :param arg: the argument expr to check
+        :type arg: ArgumentExpr
+        :return: True if it is
+        :rtype: bool
+        """
+        if (arg.is_assign_operator or arg.op is COP.EQ) and isinstance(arg.expr, ColumnVariable) and \
+                isinstance(arg.variable, ColumnVariable):
+            self.equalities[arg.expr.name] = arg.variable.name
+            if self.equality_scope is None:
+                self.equality_scope = arg.expr.lam
+            else:
+                assert (self.equality_scope is arg.expr.lam)
+            return True
+        else:
+            return False
+
     def build_assignment_inputs(self, lam):
         """
         If the arguments are in assignment style, build the inputs as assignments
@@ -82,9 +101,10 @@ class EvaluationExpr(NormExpression):
         inputs = OrderedDict()
         from norm.models.norm import Variable
         for ov, arg in zip(lam.variables, self.args):  # type: Variable, ArgumentExpr
+            if self.equality_arg(arg):
+                continue
             if arg.expr is None:
                 continue
-
             if arg.op is None and arg.variable is not None:
                 keyword_arg = True
             if not keyword_arg:
@@ -99,17 +119,9 @@ class EvaluationExpr(NormExpression):
         :return: a query string
         :rtype: Dict
         """
-        self.equalities = OrderedDict()
-        self.equality_scope = None
         inputs = []
         for arg in self.args:
-            if (arg.is_assign_operator or arg.op is COP.EQ) and isinstance(arg.expr, ColumnVariable) and \
-                    isinstance(arg.variable, ColumnVariable):
-                self.equalities[arg.expr.name] = arg.variable.name
-                if self.equality_scope is None:
-                    self.equality_scope = arg.expr.lam
-                else:
-                    assert(self.equality_scope is arg.expr.lam)
+            if self.equality_arg(arg):
                 continue
             if arg.op is None or arg.expr is None:
                 continue
@@ -241,41 +253,59 @@ class JoinEqualityEvaluationExpr(NormExpression):
         self.eval_lam = lam
         self.scope = scope
         self.equalities = equalities
-        self.condition = condition
+        if isinstance(condition, str) and len(condition.strip()) > 0:
+            self.condition = condition
+        else:
+            self.condition = None
         self.outputs = outputs
 
     def compile(self, context):
         scope = self.scope
-        from norm.models import Lambda, Variable
-        if len(self.outputs) > 0:
-            variables = [Variable(v.name, v.type_) for v in scope.variables
-                         if v.name in self.outputs.keys()]
-            leftover = set(self.outputs.values()).difference(v.name for v in variables)
-            variables += [Variable(self.outputs[v.name], v.type_) for v in self.eval_lam.variables
-                          if self.outputs.get(v.name) in leftover]
+        eval_lam_name = self.eval_lam.name
+        from norm.models import Variable
+        if self.outputs is not None and len(self.outputs) > 0:
+            for v in self.eval_lam.variables:
+                orig_name = self.outputs.get(v.name, None)
+                if orig_name == v.name:
+                    self.outputs[v.name] = self.VARIABLE_SEPARATOR.join([eval_lam_name, v.name])
         else:
-            variables = scope.variables
-            scope_variable_names = set(v.name for v in variables)
-            variables += [v for v in self.eval_lam.variables if v.name not in scope_variable_names]
+            self.outputs = OrderedDict((v.name, self.VARIABLE_SEPARATOR.join([eval_lam_name, v.name]))
+                                       for v in self.eval_lam.variables)
+
+        output_keys = set(self.outputs.keys())
+        variables = [Variable(v.name, v.type_) for v in scope.variables] + \
+                    [Variable(self.outputs[v.name], v.type_) for v in self.eval_lam.variables
+                     if v.name in output_keys]
         self.lam = context.temp_lambda(variables)
         self.lam.cloned_from = scope
         return self
 
+    def prepare_to_merge(self):
+        if self.condition:
+            to_merge = self.eval_lam.data.query(self.condition, engine='python')
+        else:
+            to_merge = self.eval_lam.data
+        cols = list(self.outputs.keys()) + [rc for lc, rc in self.equalities.items() if rc not in self.outputs]
+        return to_merge[cols].rename(columns=self.outputs)
+
     def execute(self, context):
-        inp = self.lam.cloned_from.data
+        inp = self.lam.cloned_from.data.reset_index()
         equal_cols = list(self.equalities.items())
-        to_merge = self.eval_lam.data.query(self.condition, engine='python')
-        if len(self.outputs) > 0:
-            to_merge = to_merge[set(list(self.outputs.keys()) + list(self.equalities.values()))]\
-                        .rename(columns=self.outputs)
         left_col, right_col = equal_cols.pop()
-        joined = inp.reset_index().merge(to_merge, left_on=left_col, right_on=right_col)
+        to_merge = self.prepare_to_merge()
+        joined = inp.merge(to_merge, left_on=left_col, right_on=self.outputs.get(right_col, right_col))
+        if right_col not in self.outputs:
+            joined = joined.drop(columns=[right_col])
         joined = joined.set_index(self.lam.VAR_OID)
-        condition = ' & '.join('({} == {})'.format(left_col, right_col) for left_col, right_col in equal_cols)
+        condition = ' & '.join('({} == {})'.format(left_col, self.outputs.get(right_col, right_col))
+                               for left_col, right_col in equal_cols)
         if condition != '':
             results = joined.query(condition)
         else:
             results = joined
+
+        results = results.drop(columns=[right_col for left_col, right_col in equal_cols
+                                        if right_col not in self.outputs])
         self.lam.data = results
         return results
 
