@@ -34,6 +34,10 @@ class TypeName(NormExecutable):
         Note that user is encoded by the version.
         :rtype: Lambda
         """
+        if self.name == context.THAT_VARIABLE_NAME:
+            self.lam = context.that
+            return self
+
         if self.namespace is None:
             lam = self.try_retrieve_type(context.session, context.context_namespace, self.name, self.version)
             if lam is None:

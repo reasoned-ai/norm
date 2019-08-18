@@ -91,8 +91,9 @@ class Import(NormExecutable):
                 agg_results = results.groupby(['namespace', 'name']).agg({'latest': ['max', 'count']})\
                     .reset_index(drop=True)
                 agg_results.columns = ["latest", "#versions"]
-                self.lam.data = agg_results.join(results.set_index('latest'), on='latest')
-                self.lam.data = self.lam.data[[v.name for v in self.lam.variables]]
+                results = agg_results.join(results.set_index('latest'), on='latest')
+                results = results[[v.name for v in self.lam.variables]]
+                self.lam.data = self.lam.fill_oid(results)
                 for n in results.namespace.unique():
                     if n not in context.search_namespaces:
                         context.search_namespaces.append(n)

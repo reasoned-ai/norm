@@ -100,6 +100,7 @@ walker = ParseTreeWalker()
 
 class NormCompiler(normListener):
     TMP_VARIABLE_STUB = 'tmp_'
+    THAT_VARIABLE_NAME = 'that'
 
     def __init__(self, context_id, user, session=None):
         self.context_id = context_id
@@ -112,6 +113,7 @@ class NormCompiler(normListener):
         self.search_namespaces = None
         self.set_namespaces()
         self._python_context = {}
+        self.that = None
 
     def set_namespaces(self):
         if self.context_id:
@@ -121,13 +123,6 @@ class NormCompiler(normListener):
         from norm.models import NativeLambda, CoreLambda
         self.search_namespaces = [NativeLambda.NAMESPACE, CoreLambda.NAMESPACE, self.context_namespace,
                                   self.user_namespace]
-
-    def set_temp_scope(self):
-        """
-        For a unnamed query, we assign a temporary type for the scope.
-        For a named query, i.e., type implementation, the scope is the type.
-        """
-        self.scopes.append((self.temp_lambda([]), 'temp'))
 
     def get_scope(self, name):
         for scope, scope_lex in reversed(self.scopes):
@@ -219,6 +214,7 @@ class NormCompiler(normListener):
             return None
 
         results = None
+        exe = None
         while len(self.stack) > 0:
             exe = self._pop()
             if isinstance(exe, NormExecutable):
@@ -232,6 +228,8 @@ class NormCompiler(normListener):
             results.columns = results.columns.str.replace(NormExecutable.VARIABLE_SEPARATOR, '.')
         elif isinstance(results, Series):
             results = DataFrame(data={results.name.replace(NormExecutable.VARIABLE_SEPARATOR, '.'): results})
+        if exe is not None:
+            self.that = exe.lam
         return results
 
     def exitStatement(self, ctx: normParser.StatementContext):

@@ -28,6 +28,8 @@ class NamespaceTestCase(NormTestCase):
         self.assertTrue('norm.test2.test2' not in self.executor.search_namespaces)
         self.assertTrue(lam is not None)
         self.assertTrue(len(lam.data) == 2)
+        lam2 = self.execute("that;")
+        self.assertTrue(lam == lam2)
 
     def test_renaming(self):
         self.execute("Tester(dummy:Integer);")

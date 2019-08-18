@@ -31,6 +31,10 @@ class VariableName(NormExecutable):
         return self.lam
 
     def compile(self, context):
+        if self.name == context.THAT_VARIABLE_NAME:
+            self.lam = context.that
+            return self
+
         session = context.session
         if self.scope is None:
             name = self.name
