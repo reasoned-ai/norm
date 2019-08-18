@@ -66,11 +66,14 @@ class TypeImplementation(NormExecutable):
                 delta = lam.fill_oid(delta)
         elif isinstance(delta, Index):
             assert(delta.name == lam.VAR_OID)
-            cols = [v.name for v in lam.variables if v.name in self.query.lam]
-            delta = self.query.lam.data.loc[delta, cols]
-            delta = lam.fill_primary(delta)
-            delta = lam.fill_time(delta)
-            delta = lam.fill_oid(delta.reset_index(drop=True))
+            if len(lam.variables) == 0:
+                delta = self.query.lam.data.loc[delta]
+            else:
+                cols = [v.name for v in lam.variables if v.name in self.query.lam]
+                delta = self.query.lam.data.loc[delta, cols]
+                delta = lam.fill_primary(delta)
+                delta = lam.fill_time(delta)
+                delta = lam.fill_oid(delta.reset_index(drop=True))
         qs = str(self.query)
         if self.op == ImplType.DEF:
             # If the query already exists, the revision is skipped

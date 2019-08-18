@@ -161,3 +161,28 @@ class ImplementationTestCase(NormTestCase):
         self.assertTrue('name' in lam2.data.columns)
         self.assertTrue('department_name' in lam2.data.columns)
         self.assertTrue('total_credits' in lam2.data.columns)
+
+    def test_anonymous_implementation_all_cols(self):
+        script = """
+            student(id: String, name: String, department_name: String, total_credits: Float) 
+            := {{ 
+                import sqlite3
+                import pandas as pd            
+                conn = 'sqlite:///data/college_2.sqlite'
+                result = pd.read_sql('SELECT * FROM student;', conn)
+                result = result.rename(columns={'ID': 'id', 'name': 'name', 'dept_name': 'department_name', 
+                                                'tot_cred': 'total_credits'})
+                result
+               }};        
+        """
+        lam = self.execute(script)
+        self.assertTrue(lam is not None)
+        script = """
+            tmp := student?;
+        """
+        lam2 = self.execute(script)
+        self.assertTrue(lam2 is not lam)
+        self.assertTrue('id' in lam2.data.columns)
+        self.assertTrue('name' in lam2.data.columns)
+        self.assertTrue('department_name' in lam2.data.columns)
+        self.assertTrue('total_credits' in lam2.data.columns)
