@@ -10,7 +10,8 @@ class NormExecutable(object):
         from norm.models.norm import Lambda
         self.lam: Lambda = None
 
-    def try_retrieve_type(self, session, namespaces, name, version=None, status=None):
+    @staticmethod
+    def try_retrieve_type(session, namespaces, name, version=None, status=None):
         current_session_id = session.hash_key
         from norm.config import cache
         from norm.models.norm import retrieve_type, Lambda

@@ -64,30 +64,38 @@ class Import(NormExecutable):
         else:
             from norm.models.norm import Lambda, Variable
             from norm.models import lambdas
-            self.lam = Lambda(self.namespace, '*', variables=[Variable('name', lambdas.String),
-                                                              Variable('type', lambdas.String),
-                                                              Variable('latest', lambdas.String),
-                                                              Variable('#versions', lambdas.Integer),
-                                                              Variable('variables', lambdas.String),
-                                                              Variable('#args', lambdas.Integer),
-                                                              Variable('owner', lambdas.String),
-                                                              Variable('created_on', lambdas.Datetime),
-                                                              Variable('changed_on', lambdas.Datetime)])
 
-            lams = context.session.query(Lambda)\
-                .filter(Lambda.namespace == self.namespace)\
-                .order_by(desc(Lambda.created_on))
-            from pandas import DataFrame
-            results = DataFrame(data=[{'name': lam.name, 'type': 'Lambda', 'latest': lam.version,
-                                       'variables': ', '.join(['{}:{}'.format(v.name, v.type_.name)
-                                                               for v in lam.variables]),
-                                       '#args': lam.nargs,
-                                       'owner': lam.owner, 'created_on': lam.created_on,
-                                       'changed_on': lam.changed_on} for lam in lams])
-            agg_results = results.groupby('name').agg({'latest': ['max', 'count']}).reset_index(drop=True)
-            agg_results.columns = ["latest", "#versions"]
-            self.lam.data = agg_results.join(results.set_index('latest'), on='latest')
-            self.lam.data = self.lam.data[[v.name for v in self.lam.variables]]
+            lams = context.session.query(Lambda).filter(Lambda.namespace.startswith(self.namespace)).all()
+            self.lam = context.temp_lambda([Variable('namespace', lambdas.String),
+                                            Variable('name', lambdas.String),
+                                            Variable('description', lambdas.String),
+                                            Variable('latest', lambdas.String),
+                                            Variable('#versions', lambdas.Integer),
+                                            Variable('variables', lambdas.String),
+                                            Variable('#args', lambdas.Integer),
+                                            Variable('owner', lambdas.String),
+                                            Variable('created_on', lambdas.Datetime),
+                                            Variable('changed_on', lambdas.Datetime)])
+
+            if len(lams) > 0:
+                from pandas import DataFrame
+                results = DataFrame(data=[{'namespace': lam.namespace, 'name': lam.name, 'description': lam.description,
+                                           'latest': lam.version,
+                                           'variables': ', '.join(['{}:{}'.format(v.name, v.type_.name)
+                                                                   for v in lam.variables]),
+                                           '#args': lam.nargs,
+                                           'owner': lam.owner, 'created_on': lam.created_on,
+                                           'changed_on': lam.changed_on} for lam in lams])
+                p = r'{}[^\.]+\.'.format(self.namespace)
+                results = results.drop(results[results.namespace.str.match(p)].index)
+                agg_results = results.groupby(['namespace', 'name']).agg({'latest': ['max', 'count']})\
+                    .reset_index(drop=True)
+                agg_results.columns = ["latest", "#versions"]
+                self.lam.data = agg_results.join(results.set_index('latest'), on='latest')
+                self.lam.data = self.lam.data[[v.name for v in self.lam.variables]]
+                for n in results.namespace.unique():
+                    if n not in context.search_namespaces:
+                        context.search_namespaces.append(n)
         return self
 
 
