@@ -1,5 +1,7 @@
 from typing import Union
 
+from pandas.core.groupby import DataFrameGroupBy
+
 from norm.executable import NormError
 from norm.executable.constant import Constant
 from norm.grammar.literals import COP, ConstantType, LOP
@@ -56,7 +58,11 @@ class ConditionExpr(NormExpression):
     def execute(self, context):
         self.lexpr.execute(context)
         self.rexpr.execute(context)
-        self.lam.data = self.eval_lam.data.query(self._condition, engine='python')
+        data = self.eval_lam.data
+        if isinstance(data, DataFrameGroupBy):
+            self.lam.data = data.apply(lambda x: x.query(self._condition, engine='python')).reset_index(drop=True)
+        else:
+            self.lam.data = data.query(self._condition, engine='python')
         return self.lam.data
 
 
@@ -78,8 +84,6 @@ class CombinedConditionExpr(ConditionExpr):
         if self._condition is not None:
             return self
 
-        # self.lexpr = self.lexpr.compile(context)
-        # self.rexpr = self.rexpr.compile(context)
         self._condition = '({}) {} ({})'.format(self.lexpr, self.op, self.rexpr)
         assert(self.lexpr.eval_lam is self.rexpr.eval_lam or self.lexpr.eval_lam is self.rexpr.eval_lam.cloned_from)
         self.eval_lam = self.lexpr.eval_lam
@@ -88,5 +92,10 @@ class CombinedConditionExpr(ConditionExpr):
         return self
 
     def execute(self, context):
-        self.lam.data = self.eval_lam.data.query(self._condition, engine='python')
+        data = self.eval_lam.data
+        if isinstance(data, DataFrameGroupBy):
+            self.lam.data = data.apply(lambda x: x.query(self._condition, engine='python'))\
+                .reset_index(drop=True)
+        else:
+            self.lam.data = data.query(self._condition, engine='python')
         return self.lam.data

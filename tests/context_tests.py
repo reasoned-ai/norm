@@ -2,7 +2,7 @@
 from tests.utils import NormTestCase
 
 
-class EvaluationTestCase(NormTestCase):
+class ContextTestCase(NormTestCase):
     def test_with_context(self):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         results = self.execute("with(tmp), event~'Unix' & tally > 3;")
@@ -143,3 +143,25 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(result is not None)
         self.assertTrue(len(result) == 1)
         self.assertTrue(all(result['tally.sum'] > 1000))
+
+    def test_exists_context_non_agg(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
+        self.execute("alarms := tmp(event?, ip?, time?, tally?);")
+        result = self.execute("with(alarms), foreach(event), exist(ip), tally > 100;")
+        self.assertTrue(result is not None)
+        self.assertTrue(len(result) > 0)
+        self.assertTrue(all(result['tally'] > 100))
+        self.assertTrue('ip' in result.columns)
+        self.assertTrue(len(result['event'].drop_duplicates()) == len(result))
+
+    def test_exists_context_non_agg_multiple(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
+        self.execute("alarms := tmp(event?, ip?, time?, tally?);")
+        result = self.execute("with(alarms), foreach(event), exist(ip), tally > 100 & tally < 10000;")
+        self.assertTrue(result is not None)
+        self.assertTrue(len(result) > 0)
+        self.assertTrue(all(result['tally'] > 100))
+        self.assertTrue('ip' in result.columns)
+        self.assertTrue(len(result['event'].drop_duplicates()) == len(result))

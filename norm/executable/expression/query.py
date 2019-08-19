@@ -141,10 +141,12 @@ class QueryExpr(NormExpression):
                 cols = [col for col in df1.columns if col not in df2.columns]
                 df2 = merge([df2, df1[cols]]).drop(columns=[CROSS_JOIN_KEY])
             else:
-                cols = [col for col in df1.columns if col not in df2.columns]
-                if len(cols) > 0:
-                    df2[cols] = df1.loc[df2.index, cols]
-                    df2 = df2.dropna()
+                if len(self.common_columns) == 0:
+                    cols = [col for col in df1.columns if col not in df2.columns]
+                    if len(cols) > 0:
+                        df2[cols] = df1.loc[df2.index, cols]
+                else:
+                    df2 = merge(df1, df2, on=self.common_columns)
         elif self.op == LOP.OR:
             if len(self.common_columns) > 0:
                 df2 = merge(df1, df2, on=self.common_columns, how='outer')
