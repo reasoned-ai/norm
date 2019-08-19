@@ -84,6 +84,41 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue('ip' in result.columns)
         self.assertTrue(len(result['event'].drop_duplicates()) == len(result))
 
+    def test_exists_context_combined_and(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
+        self.execute("alarms := tmp(event?, ip?, time?, tally?);")
+        result = self.execute("with(alarms), foreach(event), exist(ip), tally.sum() > 100 & tally.min() < 10;")
+        self.assertTrue(result is not None)
+        self.assertTrue(len(result) > 0)
+        self.assertTrue(all(result['tally.sum'] > 100))
+        self.assertTrue(all(result['tally.min'] < 10))
+        self.assertTrue('ip' in result.columns)
+        self.assertTrue(len(result['event'].drop_duplicates()) == len(result))
+
+    def test_exists_context_combined_and_three(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
+        self.execute("alarms := tmp(event?, ip?, time?, tally?);")
+        result = self.execute("with(alarms), foreach(event), exist(ip), tally.sum() > 100 & tally.min() < 10 & tally.max() > 1000;")
+        self.assertTrue(result is not None)
+        self.assertTrue(len(result) > 0)
+        self.assertTrue(all(result['tally.sum'] > 100))
+        self.assertTrue(all(result['tally.max'] > 1000))
+        self.assertTrue(all(result['tally.min'] < 10))
+        self.assertTrue('ip' in result.columns)
+        self.assertTrue(len(result['event'].drop_duplicates()) == len(result))
+
+    def test_exists_context_combined_or(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
+        self.execute("alarms := tmp(event?, ip?, time?, tally?);")
+        result = self.execute("with(alarms), foreach(event), exist(ip), tally.sum() > 100 | tally.min() < 10;")
+        self.assertTrue(result is not None)
+        self.assertTrue(len(result) > 0)
+        self.assertFalse(all(result['tally.sum'] > 100))
+        self.assertTrue(all(result[(result['tally.sum'] > 100) | (result['tally.min'] < 10)]))
+
     def test_forany_context(self):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")

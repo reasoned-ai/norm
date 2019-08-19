@@ -55,6 +55,7 @@ class ConditionExpr(NormExpression):
 
     def execute(self, context):
         self.lexpr.execute(context)
+        self.rexpr.execute(context)
         self.lam.data = self.eval_lam.data.query(self._condition, engine='python')
         return self.lam.data
 
@@ -77,8 +78,8 @@ class CombinedConditionExpr(ConditionExpr):
         if self._condition is not None:
             return self
 
-        self.lexpr = self.lexpr.compile(context)
-        self.rexpr = self.rexpr.compile(context)
+        # self.lexpr = self.lexpr.compile(context)
+        # self.rexpr = self.rexpr.compile(context)
         self._condition = '({}) {} ({})'.format(self.lexpr, self.op, self.rexpr)
         assert(self.lexpr.eval_lam is self.rexpr.eval_lam or self.lexpr.eval_lam is self.rexpr.eval_lam.cloned_from)
         self.eval_lam = self.lexpr.eval_lam

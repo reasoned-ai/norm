@@ -33,6 +33,7 @@ class QueryExpr(NormExpression):
         self.expr1 = expr1
         self.expr2 = expr2
         self.cross_join = False
+        self.common_columns = []
 
     def __combine_value(self, value1, value2):
         if value1 is None or value2 is None:
@@ -80,6 +81,22 @@ class QueryExpr(NormExpression):
                 data[col] = combined
         return data
 
+    def __same_origin(self):
+        """
+        Decide whether two expressions come from the same origin Lambda. Check the transformation path between two
+        expressions. If there is a node that overlaps, the two expressions have the same origin.
+        :return: True if they are
+        :rtype: bool
+        """
+        if self.expr1.eval_lam is self.expr2.eval_lam:
+            return True
+        if self.expr1.eval_lam.cloned_from is self.expr2.eval_lam.cloned_from:
+            return True
+        if self.expr1.lam is self.expr2.eval_lam:
+            return True
+        if self.expr1.lam is self.expr2.scope:
+            return True
+
     def compile(self, context):
         if isinstance(self.expr1, AddDataEvaluationExpr) and isinstance(self.expr2, AddDataEvaluationExpr)\
                 and self.expr1.lam is self.expr2.lam:
@@ -89,15 +106,15 @@ class QueryExpr(NormExpression):
             if combined is not None:
                 self.expr1.data = combined
                 return self.expr1
-        if isinstance(self.expr1, ConditionExpr) and isinstance(self.expr2, ConditionExpr):
+        if isinstance(self.expr1, ConditionExpr) and isinstance(self.expr2, ConditionExpr) and \
+                (self.expr1.eval_lam is self.expr2.eval_lam or self.expr1.eval_lam is self.expr2.eval_lam.cloned_from):
             return CombinedConditionExpr(self.op, self.expr1, self.expr2).compile(context)
 
         self.lam = context.temp_lambda(self.expr1.lam.variables +
                                        [v for v in self.expr2.lam.variables if v.name not in self.expr1.lam])
         self.eval_lam = self.expr1.eval_lam
-        self.cross_join = self.expr1.eval_lam is not self.expr2.eval_lam and self.expr1.lam is not self.expr2.eval_lam \
-                          and self.expr1.lam is not self.expr2.scope
-
+        self.cross_join = not self.__same_origin()
+        self.common_columns = [v.name for v in self.expr1.lam.variables if v.name in self.expr2.lam]
         return self
 
     def execute(self, context):
@@ -127,6 +144,12 @@ class QueryExpr(NormExpression):
                 cols = [col for col in df1.columns if col not in df2.columns]
                 if len(cols) > 0:
                     df2[cols] = df1.loc[df2.index, cols]
+                    df2 = df2.dropna()
+        elif self.op == LOP.OR:
+            if len(self.common_columns) > 0:
+                df2 = merge(df1, df2, on=self.common_columns, how='outer')
+            else:
+                df2 = concat([df1, df2])
 
         if df2.index.name != Lambda.VAR_OID and df2.index.name is not None:
             df2 = df2.reset_index()

@@ -43,6 +43,10 @@ class QuantifiedLambda(object):
     def __contains__(self, item):
         return item in self.lam
 
+    @property
+    def cloned_from(self):
+        return self.lam.cloned_from
+
     def fill_time(self, df):
         if self.lam.VAR_TIMESTAMP not in df.columns:
             df[self.lam.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())

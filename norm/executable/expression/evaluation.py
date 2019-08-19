@@ -619,6 +619,7 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
             variables = []
         variables.append(Variable(self.var_name, self.var_type))
         self.lam = context.temp_lambda(variables=variables)
+        self.lam.cloned_from = self.eval_lam
         return self
 
     @property
