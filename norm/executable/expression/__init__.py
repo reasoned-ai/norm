@@ -23,6 +23,7 @@ class NormExpression(NormExecutable):
         super().__init__()
         self.projection: Projection = None
         self.eval_lam = None
+        self.scope = None
         self.description: str = None
 
     def unify(self, inputs, strategy=Strategy.LONGEST):

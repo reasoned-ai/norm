@@ -1,5 +1,7 @@
 import re
+import zlib
 
+import numpy as np
 from antlr4 import *
 from antlr4.error.ErrorListener import ErrorListener
 from dateutil import parser as dateparser
@@ -32,17 +34,48 @@ class QType(Enum):
 
 class QuantifiedLambda(object):
 
-    def __init__(self, lam: Lambda):
-        self.lam = lam
+    def __init__(self, expr: NormExpression):
+        self.expr = expr
+        self.lam = expr.lam
         self.cols = []
         self.quantifiers = []
 
     def __contains__(self, item):
         return item in self.lam
 
+    def fill_time(self, df):
+        if self.lam.VAR_TIMESTAMP not in df.columns:
+            df[self.lam.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
+        return df
+
+    def fill_oid(self, df):
+        var_oid = self.lam.VAR_OID
+        if df.index.name == var_oid:
+            return df
+
+        if var_oid in df.columns:
+            return df.set_index(var_oid)
+
+        c = None
+        for col in self.cols:
+            if c is None:
+                c = df[col].astype(str)
+            else:
+                c = c.str.cat(df[col].astype(str))
+        df[var_oid] = c.str.encode('utf-8').apply(zlib.adler32).astype('int64')
+        df = df.set_index(var_oid)
+        return df
+
+    @property
+    def variables(self):
+        return self.lam.variables
+
     @property
     def data(self):
-        return self.lam.data.groupby(self.cols)
+        if len(self.cols) > 0:
+            return self.lam.data.groupby(self.cols)
+        else:
+            return self.lam.data
 
     def get_type(self, name):
         return self.lam.get_type(name)
@@ -57,6 +90,9 @@ class QuantifiedLambda(object):
         self.cols.extend(cols)
         self.quantifiers.append((qtype, pos, pos + len(cols)))
 
+    def execute(self, context):
+        return self.expr.execute(context)
+
     def quantify(self, df):
         if len(self.cols) == 0 or len(df) == 0:
             return df
@@ -69,7 +105,9 @@ class QuantifiedLambda(object):
                 if begin == 0:
                     df = df.iloc[:1]
                 else:
-                    df = df.groupby(self.cols[:begin]).apply(lambda x: x.iloc[0]).reset_index(drop=True)
+                    df = df.groupby(self.cols[:begin]).min().reset_index()
+                    df.index.name = self.lam.VAR_OID
+                    df[self.lam.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
             elif qtype == QType.FORANY:
                 total = len(self.lam.data[self.cols[begin:end]].drop_duplicates())
                 if begin == 0:
@@ -228,7 +266,7 @@ class NormCompiler(normListener):
             results.columns = results.columns.str.replace(NormExecutable.VARIABLE_SEPARATOR, '.')
         elif isinstance(results, Series):
             results = DataFrame(data={results.name.replace(NormExecutable.VARIABLE_SEPARATOR, '.'): results})
-        if exe is not None:
+        if exe is not None and isinstance(exe, NormExecutable):
             self.that = exe.lam
         return results
 
@@ -469,8 +507,8 @@ class NormCompiler(normListener):
 
     def exitContext(self, ctx:normParser.ContextContext):
         if ctx.WITH():
-            type_name = self._pop()
-            self.scopes.append((type_name.lam, 'one_line_context'))
+            expr: NormExpression = self._pop()
+            self.scopes.append((QuantifiedLambda(expr), 'one_line_context'))
         elif ctx.FOREACH() or ctx.FORANY() or ctx.EXIST():
             if self.scope is not None and isinstance(self.scope, QuantifiedLambda):
                 lam = self.scope
@@ -486,9 +524,6 @@ class NormCompiler(normListener):
                         lam = tn.lam
                     else:
                         assert(tn.lam is lam)
-            if not isinstance(lam, QuantifiedLambda):
-                assert(lam is not None)
-                lam = QuantifiedLambda(lam)
             if ctx.FOREACH():
                 qtype = QType.FOREACH
             elif ctx.FORANY():

@@ -53,13 +53,13 @@ COMMAND: HISTORY|UNDO|REDO|DELETE|DESCRIBE;
 ARGOPT:  'optional' | 'primary' | 'oid' | 'time'| 'parameter' | 'state';
 
 context
-    : WITH LBR typeName RBR
+    : WITH LBR oneLineExpression RBR
     | FORANY LBR (variable (WS? COMMA WS? variable)*) RBR
     | FOREACH LBR (variable (WS? COMMA WS? variable)*) RBR
     | EXIST LBR(variable (WS? COMMA WS? variable)*) RBR
     ;
 
-contexts: context (WS? DOT WS? context)* WS? COMMA;
+contexts: context (WS? COMMA WS? context)* WS? COMMA;
 
 EXIST: 'exist' | 'Exist' | 'EXIST';
 
@@ -187,6 +187,7 @@ contextualOneLineExpression
 multiLineExpression
     : contextualOneLineExpression
     | contextualOneLineExpression newlineLogicalOperator multiLineExpression
+    | contexts NS multiLineExpression
     ;
 
 

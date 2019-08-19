@@ -1,20 +1,10 @@
-Sentence(words: [String], np: NP, vp: VP) = Split(words, left?, right?)
-                                        & NP(left)?np & VP(right)?vp | NP(left)?np;
-NP(words: [String], art: Article, adj: Adj, noun: Noun) =
-      (words?rest | Split(words, 1, left?first, right?rest) & Article(first)?art)
-    & Split(rest, left?, right?) & Adj(left)?adj & Noun(right)?noun;
+Sentence(np: NP, vp: VP): String := Split(output)?(left, right) & NP(output=left)?np & VP(output=right)?vp;
+NP(art: Article, nnp: NNP): String := Split(output)?(left, right) & Article(output=left)?art & NNP(output=right)?nnp;
+NNP(adj: Adj, noun: Noun): String := Split(output)?(left, right) & Adj(output=left)?adj & Noun(output=right)?noun;
+VP(verb: Verb, np: NP) := Split(output)?(left, right) & Verb(output=left)?verb & NP(output=right)?np;
+Article: String = ('the') | ('a');
+Verb: String = ('see') | ('go to');
+Noun: String = ('New York') | ('I');
+Adj: String = ('beautiful');
+Sentence(output='I see the beautiful New York', np?, vp?);
 
-VP(words: [String], verb: Verb, np: NP) = Split(words, left?, right?) & Verb(left)?verb & NP(right)?np;
-
-Article(words: [String]) = ['the'] | ['a'];
-
-Verb(words: [String]) = ['see'] | ['go', 'to'];
-
-Noun(words: [String]) = ['New', 'York'] | ['I'];
-
-Adj(words: [String]) = ['beautiful'];
-
-Split(words: [String], pos: Integer, left: [String], right: [String]) =
-    (pos | range(1, 10)?pos) & words[:pos]?left & words[pos:]?right;
-
-Sentence('I see the beautiful New York'.split(), np?, vp?)

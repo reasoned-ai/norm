@@ -195,7 +195,7 @@ def serializedATN():
         buf.write("\3\2\2\2\u011b\u00fb\3\2\2\2\u011b\u0106\3\2\2\2\u011c")
         buf.write("\13\3\2\2\2\u011d\u011e\7\22\2\2\u011e\u011f\5\22\n\2")
         buf.write("\u011f\r\3\2\2\2\u0120\u0121\7\26\2\2\u0121\u0122\7\33")
-        buf.write("\2\2\u0122\u0123\5\22\n\2\u0123\u0124\7\34\2\2\u0124\u015c")
+        buf.write("\2\2\u0122\u0123\5@!\2\u0123\u0124\7\34\2\2\u0124\u015c")
         buf.write("\3\2\2\2\u0125\u0126\7\30\2\2\u0126\u0127\7\33\2\2\u0127")
         buf.write("\u0132\5\26\f\2\u0128\u012a\7\31\2\2\u0129\u0128\3\2\2")
         buf.write("\2\u0129\u012a\3\2\2\2\u012a\u012b\3\2\2\2\u012b\u012d")
@@ -223,7 +223,7 @@ def serializedATN():
         buf.write("\3\2\2\2\u015b\u0125\3\2\2\2\u015b\u0137\3\2\2\2\u015b")
         buf.write("\u0149\3\2\2\2\u015c\17\3\2\2\2\u015d\u0168\5\16\b\2\u015e")
         buf.write("\u0160\7\31\2\2\u015f\u015e\3\2\2\2\u015f\u0160\3\2\2")
-        buf.write("\2\u0160\u0161\3\2\2\2\u0161\u0163\7&\2\2\u0162\u0164")
+        buf.write("\2\u0160\u0161\3\2\2\2\u0161\u0163\7%\2\2\u0162\u0164")
         buf.write("\7\31\2\2\u0163\u0162\3\2\2\2\u0163\u0164\3\2\2\2\u0164")
         buf.write("\u0165\3\2\2\2\u0165\u0167\5\16\b\2\u0166\u015f\3\2\2")
         buf.write("\2\u0167\u016a\3\2\2\2\u0168\u0166\3\2\2\2\u0168\u0169")
@@ -1634,8 +1634,8 @@ class normParser ( Parser ):
         def LBR(self):
             return self.getToken(normParser.LBR, 0)
 
-        def typeName(self):
-            return self.getTypedRuleContext(normParser.TypeNameContext,0)
+        def oneLineExpression(self):
+            return self.getTypedRuleContext(normParser.OneLineExpressionContext,0)
 
 
         def RBR(self):
@@ -1699,7 +1699,7 @@ class normParser ( Parser ):
                 self.state = 287
                 self.match(normParser.LBR)
                 self.state = 288
-                self.typeName()
+                self.oneLineExpression(0)
                 self.state = 289
                 self.match(normParser.RBR)
                 pass
@@ -1848,14 +1848,11 @@ class normParser ( Parser ):
                 return self.getTypedRuleContext(normParser.ContextContext,i)
 
 
-        def COMMA(self):
-            return self.getToken(normParser.COMMA, 0)
-
-        def DOT(self, i:int=None):
+        def COMMA(self, i:int=None):
             if i is None:
-                return self.getTokens(normParser.DOT)
+                return self.getTokens(normParser.COMMA)
             else:
-                return self.getToken(normParser.DOT, i)
+                return self.getToken(normParser.COMMA, i)
 
         def WS(self, i:int=None):
             if i is None:
@@ -1900,7 +1897,7 @@ class normParser ( Parser ):
 
 
                     self.state = 351
-                    self.match(normParser.DOT)
+                    self.match(normParser.COMMA)
                     self.state = 353
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)

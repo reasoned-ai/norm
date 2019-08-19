@@ -32,6 +32,7 @@ class QueryExpr(NormExpression):
         self.op = op
         self.expr1 = expr1
         self.expr2 = expr2
+        self.cross_join = False
 
     def __combine_value(self, value1, value2):
         if value1 is None or value2 is None:
@@ -93,6 +94,10 @@ class QueryExpr(NormExpression):
 
         self.lam = context.temp_lambda(self.expr1.lam.variables +
                                        [v for v in self.expr2.lam.variables if v.name not in self.expr1.lam])
+        self.eval_lam = self.expr1.eval_lam
+        self.cross_join = self.expr1.eval_lam is not self.expr2.eval_lam and self.expr1.lam is not self.expr2.eval_lam \
+                          and self.expr1.lam is not self.expr2.scope
+
         return self
 
     def execute(self, context):
@@ -108,11 +113,8 @@ class QueryExpr(NormExpression):
         if self.op == LOP.AND:
             # both indices are the same, left join to df2
             # if not, cross join df1 and df2
-            if df1.index.name == df2.index.name:
-                cols = [col for col in df1.columns if col not in df2.columns]
-                if len(cols) > 0:
-                    df2[cols] = df1.loc[df2.index, cols]
-            else:
+            if self.cross_join:
+                # TODO: check the logic
                 df1[CROSS_JOIN_KEY] = 1
                 df2[CROSS_JOIN_KEY] = 1
                 if df1.index.name is not None:
@@ -121,6 +123,10 @@ class QueryExpr(NormExpression):
                     df2 = df2.reset_index()
                 cols = [col for col in df1.columns if col not in df2.columns]
                 df2 = merge([df2, df1[cols]]).drop(columns=[CROSS_JOIN_KEY])
+            else:
+                cols = [col for col in df1.columns if col not in df2.columns]
+                if len(cols) > 0:
+                    df2[cols] = df1.loc[df2.index, cols]
 
         if df2.index.name != Lambda.VAR_OID and df2.index.name is not None:
             df2 = df2.reset_index()
@@ -267,9 +273,11 @@ class QuantifiedQueryExpr(NormExpression):
         return self
 
     def execute(self, context):
+        self.quantifiers.execute(context)
         df = self.expr.execute(context)
         assert(isinstance(df, DataFrame))
-        return self.quantifiers.quantify(df)
+        self.lam.data = self.quantifiers.quantify(df)
+        return self.lam.data
 
 
 class PivotQueryExpr(NormExpression):

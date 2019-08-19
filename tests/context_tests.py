@@ -9,11 +9,17 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(results is not None)
         self.assertTrue(len(results) > 1)
 
+    def test_with_expression_context(self):
+        self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
+        results = self.execute("with(tmp(tally < 1000?, event?)), event~'Unix' & tally > 3;")
+        self.assertTrue(results is not None)
+        self.assertTrue(len(results) > 1)
+
     def test_foreach_context(self):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
         self.execute("alarms := tmp(event?, ip?, time?, tally?);")
-        result = self.execute("with(alarms).foreach(event), tally.sum()?total_tally & tally.mean();")
+        result = self.execute("with(alarms), foreach(event), tally.sum()?total_tally & tally.mean();")
         self.assertTrue(result is not None)
         self.assertTrue(len(result) > 0)
         self.assertTrue('tally.mean' in result.columns)
@@ -23,7 +29,7 @@ class EvaluationTestCase(NormTestCase):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
         self.execute("alarms := tmp(event?, ip?, time?, tally?);")
-        result = self.execute("with(alarms).foreach(event, ip), tally.sum()?total_tally & tally.mean();")
+        result = self.execute("with(alarms), foreach(event, ip), tally.sum()?total_tally & tally.mean();")
         self.assertTrue(result is not None)
         self.assertTrue(len(result) > 0)
         self.assertTrue('tally.mean' in result.columns)
@@ -33,7 +39,7 @@ class EvaluationTestCase(NormTestCase):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
         self.execute("alarms := tmp(event?, ip?, time?, tally?);")
-        result = self.execute("with(alarms).foreach(event, ip), tally.sum()?total_tally & tally.mean() & tally.count();")
+        result = self.execute("with(alarms), foreach(event, ip), tally.sum()?total_tally & tally.mean() & tally.count();")
         self.assertTrue(result is not None)
         self.assertTrue(len(result) > 0)
         self.assertTrue('tally.mean' in result.columns)
@@ -45,7 +51,7 @@ class EvaluationTestCase(NormTestCase):
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
         self.execute("alarms := tmp(event?, ip?, time?, tally?);")
         query = """
-        with(alarms).foreach(event, ip), tally.sum()?total_tally & tally.mean() & ip~'1.17';
+        with(alarms), foreach(event, ip), tally.sum()?total_tally & tally.mean() & ip~'1.17';
         """
         result = self.execute(query)
         self.assertTrue(result is not None)
@@ -59,7 +65,7 @@ class EvaluationTestCase(NormTestCase):
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
         self.execute("alarms := tmp(event?, ip?, time?, tally?);")
         query = """
-        with(alarms).foreach(event, ip), tally.sum() > 100;
+        with(alarms), foreach(event, ip), tally.sum() > 100;
         """
         result = self.execute(query)
         self.assertTrue(result is not None)
@@ -71,7 +77,7 @@ class EvaluationTestCase(NormTestCase):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
         self.execute("alarms := tmp(event?, ip?, time?, tally?);")
-        result = self.execute("with(alarms).foreach(event).exist(ip), tally.sum() > 100;")
+        result = self.execute("with(alarms), foreach(event), exist(ip), tally.sum() > 100;")
         self.assertTrue(result is not None)
         self.assertTrue(len(result) > 0)
         self.assertTrue(all(result['tally.sum'] > 100))
@@ -82,7 +88,7 @@ class EvaluationTestCase(NormTestCase):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
         self.execute("alarms := tmp(event?, ip?, time?, tally?);")
-        result = self.execute("with(alarms).exist(ip).forall(event), tally.sum() > 100;")
+        result = self.execute("with(alarms), exist(ip), forall(event), tally.sum() > 100;")
         self.assertTrue(result is not None)
         self.assertTrue(len(result) == 0)
 
@@ -90,7 +96,7 @@ class EvaluationTestCase(NormTestCase):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
         self.execute("alarms := tmp(event?, ip?, time?, tally?);")
-        result = self.execute("with(alarms).forall(event), tally.sum() > 0;")
+        result = self.execute("with(alarms), forall(event), tally.sum() > 0;")
         self.assertTrue(result is not None)
         self.assertTrue(len(result) == 35)
 
@@ -98,7 +104,7 @@ class EvaluationTestCase(NormTestCase):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
         self.execute("alarms := tmp(event?, ip?, time?, tally?);")
-        result = self.execute("with(alarms).exist(event), tally.sum() > 1000;")
+        result = self.execute("with(alarms), exist(event), tally.sum() > 1000;")
         self.assertTrue(result is not None)
         self.assertTrue(len(result) == 1)
         self.assertTrue(all(result['tally.sum'] > 1000))

@@ -23,6 +23,6 @@ class UnquotingTestCase(NormTestCase):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
         self.execute("alarms(event:String, ip:String, time:Datetime, tally:Integer);")
         self.execute("alarms := tmp(event?, ip?, time?, tally?);")
-        result = self.execute("with(alarms).foreach(event, ip), tally.sum() > 1000 ?event_{event};")
+        result = self.execute("with(alarms), foreach(event, ip), tally.sum() > 1000 ?event_{event};")
         self.assertTrue(result is not None)
         self.assertTrue(len(result.columns) == 16)

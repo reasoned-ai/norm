@@ -69,12 +69,12 @@ class Import(NormExecutable):
             self.lam = context.temp_lambda([Variable('namespace', lambdas.String),
                                             Variable('name', lambdas.String),
                                             Variable('description', lambdas.String),
-                                            Variable('latest', lambdas.String),
+                                            Variable('latest', lambdas.String, primary=True),
                                             Variable('#versions', lambdas.Integer),
                                             Variable('variables', lambdas.String),
                                             Variable('#args', lambdas.Integer),
                                             Variable('owner', lambdas.String),
-                                            Variable('created_on', lambdas.Datetime),
+                                            Variable('created_on', lambdas.Datetime, as_time=True),
                                             Variable('changed_on', lambdas.Datetime)])
 
             if len(lams) > 0:
@@ -93,7 +93,9 @@ class Import(NormExecutable):
                 agg_results.columns = ["latest", "#versions"]
                 results = agg_results.join(results.set_index('latest'), on='latest')
                 results = results[[v.name for v in self.lam.variables]]
-                self.lam.data = self.lam.fill_oid(results)
+                results = self.lam.fill_oid(results)
+                results = self.lam.fill_time(results)
+                self.lam.data = results
                 for n in results.namespace.unique():
                     if n not in context.search_namespaces:
                         context.search_namespaces.append(n)
