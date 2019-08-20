@@ -70,9 +70,9 @@ class Import(NormExecutable):
                                             Variable('name', lambdas.String),
                                             Variable('description', lambdas.String),
                                             Variable('latest', lambdas.String, primary=True),
-                                            Variable('#versions', lambdas.Integer),
+                                            Variable('num_versions', lambdas.Integer),
                                             Variable('variables', lambdas.String),
-                                            Variable('#args', lambdas.Integer),
+                                            Variable('num_args', lambdas.Integer),
                                             Variable('owner', lambdas.String),
                                             Variable('created_on', lambdas.Datetime, as_time=True),
                                             Variable('changed_on', lambdas.Datetime)])
@@ -83,14 +83,14 @@ class Import(NormExecutable):
                                            'latest': lam.version,
                                            'variables': ', '.join(['{}:{}'.format(v.name, v.type_.name)
                                                                    for v in lam.variables]),
-                                           '#args': lam.nargs,
+                                           'num_args': lam.nargs,
                                            'owner': lam.owner, 'created_on': lam.created_on,
                                            'changed_on': lam.changed_on} for lam in lams])
                 p = r'{}[^\.]+\.'.format(self.namespace)
                 results = results.drop(results[results.namespace.str.match(p)].index)
                 agg_results = results.groupby(['namespace', 'name']).agg({'latest': ['max', 'count']})\
                     .reset_index(drop=True)
-                agg_results.columns = ["latest", "#versions"]
+                agg_results.columns = ["latest", "num_versions"]
                 results = agg_results.join(results.set_index('latest'), on='latest')
                 results = results[[v.name for v in self.lam.variables]]
                 results = self.lam.fill_oid(results)

@@ -289,7 +289,9 @@ class JoinEqualityEvaluationExpr(NormExpression):
         return to_merge[cols].rename(columns=self.outputs)
 
     def execute(self, context):
-        inp = self.lam.cloned_from.data.reset_index()
+        inp = self.lam.cloned_from.data
+        if inp.index.name == self.lam.VAR_OID:
+            inp = inp.reset_index()
         equal_cols = list(self.equalities.items())
         left_col, right_col = equal_cols.pop()
         to_merge = self.prepare_to_merge()

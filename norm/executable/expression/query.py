@@ -146,7 +146,13 @@ class QueryExpr(NormExpression):
                     if len(cols) > 0:
                         df2[cols] = df1.loc[df2.index, cols]
                 else:
+                    # preserve df1 index if available
+                    if df1.index.name == self.lam.VAR_OID:
+                        df1 = df1.reset_index()
                     df2 = merge(df1, df2, on=self.common_columns)
+                    if self.lam.VAR_OID in df2.columns:
+                        df2 = df2.set_index(self.lam.VAR_OID)
+
         elif self.op == LOP.OR:
             if len(self.common_columns) > 0:
                 df2 = merge(df1, df2, on=self.common_columns, how='outer')

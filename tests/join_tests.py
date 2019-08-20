@@ -65,3 +65,25 @@ class JoinLambdaTestCase(NormTestCase):
                      "         | ('Oracle cluster', '192.168.0.102');")
         results = self.execute("Event(name?, ip?eip) & Cluster(ip=eip, name?);")
         self.assertTrue(len(results) > 2)
+
+    def test_combined_join_multiple(self):
+        self.execute("Event(name: String, ip: String);")
+        self.execute("Event := ('Windows crash', '192.168.0.1')"
+                     "       | ('Windows crash', '192.168.0.102')"
+                     "       | ('Unix crash', '192.168.0.2')"
+                     "       | ('Unix crash', '192.168.0.11')"
+                     "       | ('Windows crash', '192.168.0.3');")
+        self.execute("Cluster(name: String, ip: String);")
+        self.execute("Cluster := ('Application cluster', '192.168.0.11')"
+                     "         | ('Application cluster', '192.168.0.2')"
+                     "         | ('Oracle cluster', '192.168.0.1')"
+                     "         | ('Oracle cluster', '192.168.0.3')"
+                     "         | ('Oracle cluster', '192.168.0.102');")
+        self.execute("Application(name: String, cluster: String);")
+        self.execute("Application := ('Menu', 'Application cluster')"
+                     "             | ('Report', 'Application cluster')"
+                     "             | ('Traffic', 'Application cluster')"
+                     "             | ('Oracle server', 'Oracle cluster')"
+                     "             | ('Oracle monitor', 'Oracle cluster');")
+        results = self.execute("Event(name?, ip?eip) & Cluster(ip=eip, name?cn) & Application(cluster=cn, name?app);")
+        self.assertTrue(len(results) > 2)
