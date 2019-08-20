@@ -165,3 +165,11 @@ class ContextTestCase(NormTestCase):
         self.assertTrue(all(result['tally'] > 100))
         self.assertTrue('ip' in result.columns)
         self.assertTrue(len(result['event'].drop_duplicates()) == len(result))
+
+    def test_conditional_on_aggregation(self):
+        self.execute("test(a: String, b: Integer);")
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3);")
+        result = self.execute("with(test), b > b.mean() & a?;")
+        self.assertTrue(all(result['b'] > 2))

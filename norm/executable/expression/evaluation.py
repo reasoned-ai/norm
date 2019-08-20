@@ -143,7 +143,6 @@ class EvaluationExpr(NormExpression):
         :rtype: Dict
         """
         from norm.models.norm import Lambda
-        assert(isinstance(lam, Lambda))
         outputs = OrderedDict()
         from norm.models.norm import Variable
         for ov, arg in zip(lam.variables, self.args):  # type: Variable, ArgumentExpr
@@ -210,7 +209,8 @@ class EvaluationExpr(NormExpression):
                 return AtomicEvaluationExpr(lam, self.inputs, output_projection).compile(context)
             elif len(self.inputs) == 0:
                 if isinstance(self.variable, ColumnVariable):
-                    return ArgumentExpr(self.variable, None, None, self.projection).compile(context)
+                    self.variable.output_projection = output_projection
+                    return self.variable
                 elif self.projection is not None and len(self.outputs) == 1:
                     return RetrieveAllDataExpr(lam, output_projection).compile(context)
                 else:
@@ -671,7 +671,10 @@ class DataFrameColumnFunctionExpr(EvaluationExpr):
             df = getattr(col, f)(*args, **kwargs)
             from norm.engine import QuantifiedLambda
             if isinstance(self.column_variable.lam, QuantifiedLambda):
-                df = DataFrame(data={self.var_name: df}).reset_index()
+                if isinstance(df, Series):
+                    df = DataFrame(data={self.var_name: df}).reset_index()
+                else:
+                    df = DataFrame(data={self.var_name: df}, index=col.index).reset_index()
             else:
                 df = Series(data=[df], name=self.var_name, dtype=self.var_type.dtype)
         else:

@@ -44,8 +44,28 @@ class QuantifiedLambda(object):
         return item in self.lam
 
     @property
+    def VAR_OID(self):
+        return self.lam.VAR_OID
+
+    @property
     def cloned_from(self):
         return self.lam.cloned_from
+
+    @property
+    def name(self):
+        return self.lam.name
+
+    @property
+    def is_functional(self):
+        return self.lam.is_functional
+
+    @property
+    def atomic(self):
+        return self.lam.atomic
+
+    @property
+    def nargs(self):
+        return self.lam.nargs
 
     def fill_time(self, df):
         if self.lam.VAR_TIMESTAMP not in df.columns:

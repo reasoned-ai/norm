@@ -114,7 +114,15 @@ class QueryExpr(NormExpression):
                                        [v for v in self.expr2.lam.variables if v.name not in self.expr1.lam])
         self.eval_lam = self.expr1.eval_lam
         self.cross_join = not self.__same_origin()
-        self.common_columns = [v.name for v in self.expr1.lam.variables if v.name in self.expr2.lam]
+        from norm.executable.schema.variable import VariableName
+        if isinstance(self.expr2, VariableName) and not isinstance(self.expr1, VariableName):
+            self.common_columns = [self.expr2.name] if self.expr2.name in self.expr1.lam else []
+        elif not isinstance(self.expr2, VariableName) and isinstance(self.expr1, VariableName):
+            self.common_columns = [self.expr1.name] if self.expr1.name in self.expr2.lam else []
+        elif isinstance(self.expr2, VariableName) and isinstance(self.expr1, VariableName):
+            self.common_columns = [self.expr1.name] if self.expr1.name == self.expr2.name else []
+        else:
+            self.common_columns = [v.name for v in self.expr1.lam.variables if v.name in self.expr2.lam]
         return self
 
     def execute(self, context):

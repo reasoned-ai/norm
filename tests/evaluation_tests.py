@@ -254,3 +254,5 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(all(data['a.len'] == [4, 4, 5]))
         data = self.execute("test.a.findall('ere');")
         self.assertTrue(all(data['a.findall'] == [[], ['ere'], ['ere']]))
+
+

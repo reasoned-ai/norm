@@ -20,6 +20,11 @@ class VariableName(NormExecutable):
         from norm.executable.expression.evaluation import EvaluationExpr
         self.scope: Union[VariableName, EvaluationExpr] = scope
         self.name: str = name
+        self.output_projection: str = None
+
+    @property
+    def eval_lam(self):
+        return self.lam
 
     def __str__(self):
         if self.scope is not None:
@@ -131,7 +136,11 @@ class ColumnVariable(VariableName):
         return self
 
     def execute(self, context):
-        return self.lam.data[self.name]
+        result = self.lam.data[self.name]
+        if self.output_projection is not None:
+            return result.rename(self.output_projection)
+        else:
+            return result
 
 
 class JoinVariable(VariableName):

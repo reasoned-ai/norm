@@ -59,6 +59,10 @@ class ConditionExpr(NormExpression):
         self.lexpr.execute(context)
         self.rexpr.execute(context)
         data = self.eval_lam.data
+        if not isinstance(self.rexpr, Constant):
+            additional_cols = [v.name for v in self.rexpr.lam.variables if v.name not in data.columns]
+            if len(additional_cols) > 0:
+                data[additional_cols] = self.rexpr.lam.data.set_index(self.lam.VAR_OID)
         if isinstance(data, DataFrameGroupBy):
             self.lam.data = data.apply(lambda x: x.query(self._condition, engine='python')).reset_index(drop=True)
         else:
