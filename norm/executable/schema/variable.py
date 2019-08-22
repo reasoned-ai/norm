@@ -108,7 +108,30 @@ class UnquoteVariable(VariableName):
         return self
 
     def execute(self, context):
-        raise NotImplementedError
+        # TODO: hacky
+        assert(len(self.unquoted_variables) == 1)
+        vname = self.unquoted_variables[0].name
+        data = self.lam.data
+        from pandas import DataFrame
+
+        def _execute(x):
+            try:
+                result = context.execute(x[vname].values[0])
+                if isinstance(result, DataFrame):
+                    return result
+                else:
+                    return None
+            except:
+                return None
+
+        results = data.groupby(vname).apply(_execute).reset_index()
+        if self.output_projection is not None:
+            cols = dict((col, self.VARIABLE_SEPARATOR.join([self.output_projection, col]))
+                        for col in results.columns if col != vname and col != self.lam.VAR_OID)
+            if self.lam.VAR_OID in results.columns:
+                cols[self.lam.VAR_OID] = self.output_projection
+            results = results.rename(columns=cols)
+        return data.merge(results, on=vname)
 
 
 class ColumnVariable(VariableName):

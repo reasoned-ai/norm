@@ -315,8 +315,11 @@ class QuantifiedQueryExpr(NormExpression):
         self.quantifiers.execute(context)
         df = self.expr.execute(context)
         assert(isinstance(df, DataFrame))
-        self.lam.data = self.quantifiers.quantify(df)
-        return self.lam.data
+        df = self.quantifiers.quantify(df)
+        from norm.models.norm import Lambda
+        if isinstance(self.lam, Lambda):
+            self.lam.data = df
+        return df
 
 
 class PivotQueryExpr(NormExpression):

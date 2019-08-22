@@ -7,7 +7,7 @@ from pandas import DataFrame, Series, Index
 from norm.grammar.literals import COP
 from norm.executable import NormError, Projection
 from norm.executable.expression.argument import ArgumentExpr
-from norm.executable.schema.variable import VariableName, ColumnVariable, JoinVariable
+from norm.executable.schema.variable import VariableName, ColumnVariable, JoinVariable, UnquoteVariable
 from norm.executable.expression import NormExpression
 
 from collections import OrderedDict
@@ -208,7 +208,7 @@ class EvaluationExpr(NormExpression):
             if lam.atomic:
                 return AtomicEvaluationExpr(lam, self.inputs, output_projection).compile(context)
             elif len(self.inputs) == 0:
-                if isinstance(self.variable, ColumnVariable):
+                if isinstance(self.variable, ColumnVariable) or isinstance(self.variable, UnquoteVariable):
                     self.variable.output_projection = output_projection
                     return self.variable
                 elif self.projection is not None and len(self.outputs) == 1:

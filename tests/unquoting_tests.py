@@ -26,3 +26,13 @@ class UnquotingTestCase(NormTestCase):
         result = self.execute("with(alarms), foreach(event, ip), tally.sum() > 1000 ?event_{event};")
         self.assertTrue(result is not None)
         self.assertTrue(len(result.columns) == 16)
+
+    def test_dynamic_code_execution(self):
+        self.execute("test(a: Integer, b: String);")
+        self.execute("test := (1, 'test(a > 1?);')"
+                     "     |  (2, 'test(a > 2?);')"
+                     "     |  (3, 'test(a > 3?);')"
+                     "     ;")
+        result = self.execute("with(test), {b}?r;")
+        self.assertTrue(result is not None)
+        self.assertTrue(len(result) == 3)
