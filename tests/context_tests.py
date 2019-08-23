@@ -173,3 +173,25 @@ class ContextTestCase(NormTestCase):
                      "     |  ('there', 3);")
         result = self.execute("with(test), b > b.mean() & a?;")
         self.assertTrue(all(result['b'] > 2))
+
+    def test_conditional_on_arithmetic(self):
+        self.execute("test(a: String, b: Integer);")
+        self.execute("test := ('test', 1)"
+                     "     |  ('here', 2)"
+                     "     |  ('there', 3);")
+        result = self.execute("with(test), b > b.mean() + 2 * b.std() & a?;")
+        self.assertTrue(all(result['b'] > 2))
+
+    def test_negated_existential_quantifier(self):
+        self.execute("Class(name: String, level: Integer);")
+        self.execute("Teacher(name: String);")
+        self.execute("teach(teacher: Teacher, class: Class);")
+        self.execute("teach := (Teacher('joe'), Class('mathematics', 101))"
+                     "      |  (Teacher('alice'), Class('history', 101))"
+                     "      |  (Teacher('bob'), Class('literature', 101))"
+                     "      |  (Teacher('joe'), Class('computer science', 101))"
+                     "      |  (Teacher('alice'), Class('mathematics', 201))"
+                     "      ;")
+        results = self.execute("foreach(teacher in Teacher), !exist(class), teach(teacher, class);")
+        self.assertTrue(results is not None)
+        self.assertTrue(all(results['teacher'] == [42205503, 100663807]))
