@@ -7,11 +7,8 @@ statement
     | comments? imports
     | comments? exports
     | comments? commands
-    | comments? (WS|NS)? multiLineExpression
-    | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? LBR argumentDeclarations RBR
-    | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? LBR renames RBR
-    | comments? (WS|NS)? typeName (WS|NS)? IMPL (WS|NS)? codeExpression
-    | comments? (WS|NS)? typeDeclaration ((WS|NS)? IMPL (WS|NS)? multiLineExpression)?
+    | comments? (WS|NS)? expression
+    | comments? (WS|NS)? typeDeclaration ((WS|NS)? IMPL (WS|NS)? expression)?
     ;
 
 IMPL: CEQ | OEQ | AEQ;
@@ -52,29 +49,29 @@ fragment DESCRIBE: 'describe'|'Describe'|'DESCRIBE';
 COMMAND: HISTORY|UNDO|REDO|DELETE|DESCRIBE;
 ARGOPT:  'optional' | 'primary' | 'oid' | 'time'| 'parameter' | 'state';
 
+scoped_variable: variable (WS? IN WS? typeName)?;
+
+scoped_variables: scoped_variable ((WS|NS)? COMMA (WS|NS)? scoped_variable)*;
+
 context
-    : WITH LBR oneLineExpression RBR
-    | FORANY LBR (variable (WS? COMMA WS? variable)*) RBR
-    | FOREACH LBR (variable (WS? COMMA WS? variable)*) RBR
-    | EXIST LBR(variable (WS? COMMA WS? variable)*) RBR
+    : WITH LBR scoped_variables RBR
+    | FORANY LBR scoped_variables RBR
+    | EXIST LBR scoped_variables RBR
     ;
 
 contexts: context (WS? COMMA WS? context)* WS? COMMA;
 
 EXIST: 'exist' | 'Exist' | 'EXIST';
 
-WITH: 'with' | 'With' | 'WITH';
-
-FOREACH
-    : 'foreach' | 'forevery'
-    | 'Foreach' | 'Forevery'
-    | 'FOREACH' | 'FOREVERY'
-    ;
+WITH: 'with' | 'With' | 'WITH' | 'regard' | 'Regard' | 'REGARD';
 
 FORANY
     : 'forall' | 'forany'
     | 'Forall' | 'Forany'
     | 'FORALL' | 'FORANY'
+    | 'foreach' | 'forevery'
+    | 'Foreach' | 'Forevery'
+    | 'FOREACH' | 'FOREVERY'
     ;
 
 typeName
@@ -92,15 +89,9 @@ variable
 
 argumentProperty: (WS|NS)? COLON (WS|NS)? ARGOPT WS? (LBR WS? constant WS? RBR)?;
 
-argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName argumentProperty? | inheritance;
+argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName argumentProperty?;
 
 argumentDeclarations: argumentDeclaration ((WS|NS)? COMMA (WS|NS)? argumentDeclaration)*;
-
-inheritanceArgument: arithmeticExpression | variable (WS|NS)? AS (WS|NS)? arithmeticExpression;
-
-inheritanceArguments: inheritanceArgument ((WS|NS)? COMMA (WS|NS)? inheritanceArgument)*;
-
-inheritance : typeName (WS|NS)? (LCBR inheritanceArguments RCBR)?;
 
 rename: variable (WS|NS)? '->' (WS|NS)? variable;
 
@@ -125,6 +116,7 @@ constant
     | uuid
     | url
     | datetime
+    | constant (WS? COMMA WS? constant)+
     | LBR constant (WS? COMMA WS? constant)* RBR
     | LSBR constant (WS? COMMA WS? constant)* RSBR
     ;
@@ -149,7 +141,6 @@ argumentExpressions
 evaluationExpression
     : constant
     | variable
-    | argumentExpressions
     | variable argumentExpressions
     | evaluationExpression (WS|NS)? DOT (WS|NS)? evaluationExpression
     ;
@@ -162,7 +153,6 @@ slicedExpression
 
 arithmeticExpression
     : slicedExpression
-    | codeExpression
     | LBR arithmeticExpression RBR
     | MINUS arithmeticExpression
     | arithmeticExpression (WS|NS)? (MOD | EXP) (WS|NS)? arithmeticExpression
@@ -175,19 +165,15 @@ conditionExpression
     | arithmeticExpression spacedConditionOperator arithmeticExpression
     ;
 
-oneLineExpression
+expression
     : conditionExpression WS? queryProjection?
-    | NOT WS? oneLineExpression
-    | oneLineExpression spacedLogicalOperator oneLineExpression
-    ;
-
-contextualOneLineExpression
-    : contexts? (WS|NS)? oneLineExpression;
-
-multiLineExpression
-    : contextualOneLineExpression
-    | contextualOneLineExpression newlineLogicalOperator multiLineExpression
-    | contexts NS multiLineExpression
+    | codeExpression
+    | argumentDeclarations
+    | renames
+    | NOT WS? expression
+    | expression spacedLogicalOperator expression
+    | contexts (WS|NS)? expression (WS|NS)?
+    | LBR expression RBR
     ;
 
 
@@ -203,9 +189,7 @@ datetime:    DATETIME;
 
 logicalOperator: AND | OR | NOT | XOR | IMP | EQV;
 
-spacedLogicalOperator: WS? logicalOperator WS?;
-
-newlineLogicalOperator: NS logicalOperator WS?;
+spacedLogicalOperator: (WS|NS)? logicalOperator (WS|NS)?;
 
 conditionOperator: EQ | NE | IN | NI | LT | LE | GT | GE | LK;
 

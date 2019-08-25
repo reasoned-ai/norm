@@ -62,6 +62,24 @@ class normListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by normParser#scoped_variable.
+    def enterScoped_variable(self, ctx:normParser.Scoped_variableContext):
+        pass
+
+    # Exit a parse tree produced by normParser#scoped_variable.
+    def exitScoped_variable(self, ctx:normParser.Scoped_variableContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#scoped_variables.
+    def enterScoped_variables(self, ctx:normParser.Scoped_variablesContext):
+        pass
+
+    # Exit a parse tree produced by normParser#scoped_variables.
+    def exitScoped_variables(self, ctx:normParser.Scoped_variablesContext):
+        pass
+
+
     # Enter a parse tree produced by normParser#context.
     def enterContext(self, ctx:normParser.ContextContext):
         pass
@@ -131,33 +149,6 @@ class normListener(ParseTreeListener):
 
     # Exit a parse tree produced by normParser#argumentDeclarations.
     def exitArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#inheritanceArgument.
-    def enterInheritanceArgument(self, ctx:normParser.InheritanceArgumentContext):
-        pass
-
-    # Exit a parse tree produced by normParser#inheritanceArgument.
-    def exitInheritanceArgument(self, ctx:normParser.InheritanceArgumentContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#inheritanceArguments.
-    def enterInheritanceArguments(self, ctx:normParser.InheritanceArgumentsContext):
-        pass
-
-    # Exit a parse tree produced by normParser#inheritanceArguments.
-    def exitInheritanceArguments(self, ctx:normParser.InheritanceArgumentsContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#inheritance.
-    def enterInheritance(self, ctx:normParser.InheritanceContext):
-        pass
-
-    # Exit a parse tree produced by normParser#inheritance.
-    def exitInheritance(self, ctx:normParser.InheritanceContext):
         pass
 
 
@@ -287,30 +278,12 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#oneLineExpression.
-    def enterOneLineExpression(self, ctx:normParser.OneLineExpressionContext):
+    # Enter a parse tree produced by normParser#expression.
+    def enterExpression(self, ctx:normParser.ExpressionContext):
         pass
 
-    # Exit a parse tree produced by normParser#oneLineExpression.
-    def exitOneLineExpression(self, ctx:normParser.OneLineExpressionContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#contextualOneLineExpression.
-    def enterContextualOneLineExpression(self, ctx:normParser.ContextualOneLineExpressionContext):
-        pass
-
-    # Exit a parse tree produced by normParser#contextualOneLineExpression.
-    def exitContextualOneLineExpression(self, ctx:normParser.ContextualOneLineExpressionContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#multiLineExpression.
-    def enterMultiLineExpression(self, ctx:normParser.MultiLineExpressionContext):
-        pass
-
-    # Exit a parse tree produced by normParser#multiLineExpression.
-    def exitMultiLineExpression(self, ctx:normParser.MultiLineExpressionContext):
+    # Exit a parse tree produced by normParser#expression.
+    def exitExpression(self, ctx:normParser.ExpressionContext):
         pass
 
 
@@ -410,15 +383,6 @@ class normListener(ParseTreeListener):
 
     # Exit a parse tree produced by normParser#spacedLogicalOperator.
     def exitSpacedLogicalOperator(self, ctx:normParser.SpacedLogicalOperatorContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#newlineLogicalOperator.
-    def enterNewlineLogicalOperator(self, ctx:normParser.NewlineLogicalOperatorContext):
-        pass
-
-    # Exit a parse tree produced by normParser#newlineLogicalOperator.
-    def exitNewlineLogicalOperator(self, ctx:normParser.NewlineLogicalOperatorContext):
         pass
 
 

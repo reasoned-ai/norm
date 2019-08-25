@@ -1,0 +1,15 @@
+Rethink Execution Engine
+=========================
+
+- NormExecutable should be the same as NormExpression because schema operations should be part of
+  the expressions
+- Every execution unit should have inputs from context and enclosure. The output should join back to the context.
+- Delayed joins and sub-graph should be considered as optimization strategies. But should encourage separate side chain
+  to a separate line to have more straightforward expression.
+- Dynamic execution should be supported, e.g., keep parsing with the existing stack and execute. Conversational execution
+  engine needs this as well.
+- Computation should favor left to right by traversing the computational DAG. Although some language parsed right to left,
+  a canonical form is necessary for consistent experience. If Norm is expanded to those languages, we can flip the execution
+  engine
+- Every expression has a one-to-one serialization so that they can be saved and loaded repeatedly
+- Every single query creates a new Lambda, not every expression
