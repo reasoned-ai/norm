@@ -57,11 +57,14 @@ context
     | FORANY LBR (variable (WS? COMMA WS? variable)*) RBR
     | FOREACH LBR (variable (WS? COMMA WS? variable)*) RBR
     | EXIST LBR(variable (WS? COMMA WS? variable)*) RBR
+    | NEXIST LBR(variable (WS? COMMA WS? variable)*) RBR
     ;
 
 contexts: context (WS? COMMA WS? context)* WS? COMMA;
 
 EXIST: 'exist' | 'Exist' | 'EXIST';
+
+NEXIST: '!exist' | '!Exist' | '!EXIST';
 
 WITH: 'with' | 'With' | 'WITH';
 

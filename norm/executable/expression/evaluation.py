@@ -268,6 +268,15 @@ class JoinEqualityEvaluationExpr(NormExpression):
                 orig_name = self.outputs.get(v.name, None)
                 if orig_name == v.name:
                     self.outputs[v.name] = self.VARIABLE_SEPARATOR.join([eval_lam_name, v.name])
+                    from norm.engine import QuantifiedLambda
+                    if isinstance(self.scope, QuantifiedLambda):
+                        i = -1
+                        for i, col in enumerate(self.scope.cols):
+                            if col == orig_name:
+                                break
+                        if i >= 0:
+                            self.scope.cols[i] = self.outputs[v.name]
+
         else:
             self.outputs = OrderedDict((v.name, self.VARIABLE_SEPARATOR.join([eval_lam_name, v.name]))
                                        for v in self.eval_lam.variables)
@@ -289,16 +298,26 @@ class JoinEqualityEvaluationExpr(NormExpression):
         return to_merge[cols].rename(columns=self.outputs)
 
     def execute(self, context):
-        inp = self.lam.cloned_from.data
-        if inp.index.name == self.lam.VAR_OID:
-            inp = inp.reset_index()
+        from norm.engine import QuantifiedLambda
+        if not isinstance(self.lam.cloned_from, QuantifiedLambda):
+            inp = self.lam.cloned_from.data
+        else:
+            inp = self.lam.cloned_from.execute(context)
+        if isinstance(inp, (DataFrame, Series)):
+            if inp.index.name == self.lam.VAR_OID:
+                inp = inp.reset_index()
+        elif isinstance(inp, Index):
+            inp = DataFrame(data=inp)
         equal_cols = list(self.equalities.items())
         left_col, right_col = equal_cols.pop()
         to_merge = self.prepare_to_merge()
-        joined = inp.merge(to_merge, left_on=left_col, right_on=self.outputs.get(right_col, right_col))
+        joined = inp.merge(to_merge, left_on=left_col, right_on=self.outputs.get(right_col, right_col), how='left')
         if right_col not in self.outputs:
             joined = joined.drop(columns=[right_col])
-        joined = joined.set_index(self.lam.VAR_OID)
+        if self.lam.VAR_OID not in joined.columns:
+            joined.index.name = self.lam.VAR_OID
+        else:
+            joined = joined.set_index(self.lam.VAR_OID)
         condition = ' & '.join('({} == {})'.format(left_col, self.outputs.get(right_col, right_col))
                                for left_col, right_col in equal_cols)
         if condition != '':
@@ -413,8 +432,13 @@ class RetrievePartialDataExpr(NormExpression):
         self._append_projection()
 
         if len(self.outputs) > 0:
-            variables = [Variable(self.outputs[v.name], v.type_) for v in self.eval_lam.variables
-                         if v.name in self.outputs.keys()]
+            if Lambda.VAR_OID in self.outputs.keys():
+                from norm.models import lambdas
+                variables = [Variable(self.outputs[Lambda.VAR_OID], lambdas.Integer)]
+            else:
+                variables = []
+            variables += [Variable(self.outputs[v.name], v.type_) for v in self.eval_lam.variables
+                          if v.name in self.outputs.keys()]
         else:
             variables = self.eval_lam.variables
         self.lam = context.temp_lambda(variables)
@@ -422,15 +446,14 @@ class RetrievePartialDataExpr(NormExpression):
 
     def execute(self, context):
         oid_output_col = self.outputs.get(self.eval_lam.VAR_OID)
-        if oid_output_col is not None:
-            del self.outputs[self.eval_lam.VAR_OID]
+        cols = [col for col in self.outputs.keys() if col != self.eval_lam.VAR_OID]
 
-        result = self.eval_lam.data
-        result = result[self.outputs.keys()].rename(columns=self.outputs)
+        result = self.eval_lam.data[cols].rename(columns=self.outputs)
 
-        self.lam.data = result
         if oid_output_col is not None:
             result.index.rename(oid_output_col, inplace=True)
+            result = result.reset_index()
+        self.lam.data = result
         return result
 
 
@@ -455,13 +478,17 @@ class RetrieveAllDataExpr(NormExpression):
         return '{}?'.format(self.lam.signature)
 
     def compile(self, context):
+        if self.output_projection is not None:
+            from norm.models.norm import Variable
+            from norm.models import lambdas
+            self.lam = context.temp_lambda([Variable(self.output_projection, lambdas.Integer)])
         return self
 
     def execute(self, context):
-        if self.lam.is_functional:
-            result = self.lam.data[self.lam.VAR_OUTPUT]
+        if self.eval_lam.is_functional:
+            result = self.eval_lam.data[self.lam.VAR_OUTPUT]
         else:
-            result = self.lam.data.index
+            result = self.eval_lam.data.index
         if self.output_projection is not None:
             return result.rename(self.output_projection)
         else:

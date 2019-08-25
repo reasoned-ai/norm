@@ -192,6 +192,9 @@ class ContextTestCase(NormTestCase):
                      "      |  (Teacher('joe'), Class('computer science', 101))"
                      "      |  (Teacher('alice'), Class('mathematics', 201))"
                      "      ;")
-        results = self.execute("foreach(teacher in Teacher), !exist(class), teach(teacher, class);")
+        self.execute("Teacher |= ('tony')"
+                     "        |  ('mike')"
+                     "        ;")
+        results = self.execute("with(Teacher(name?)?t), foreach(t), !exist(class), teach(teacher=t, class?);")
         self.assertTrue(results is not None)
-        self.assertTrue(all(results['teacher'] == [42205503, 100663807]))
+        self.assertTrue(all(results['t.name'] == ['tony', 'mike']))

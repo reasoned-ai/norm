@@ -30,6 +30,7 @@ class QType(Enum):
     FOREACH = 0
     FORANY = 1
     EXIST = 2
+    NEXIST = 3
 
 
 class QuantifiedLambda(object):
@@ -130,6 +131,15 @@ class QuantifiedLambda(object):
                     df = df.iloc[:1]
                 else:
                     df = df.groupby(self.cols[:begin]).min().reset_index()
+                    df.index.name = self.lam.VAR_OID
+                    df[self.lam.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
+            elif qtype == QType.NEXIST:
+                if begin == 0:
+                    if not df.empty:
+                        df = df.iloc[:1]
+                        df[self.lam.VAR_LABEL] = 0.0
+                else:
+                    df = df[df[self.cols[begin]].isna()]
                     df.index.name = self.lam.VAR_OID
                     df[self.lam.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
             elif qtype == QType.FORANY:
@@ -533,7 +543,7 @@ class NormCompiler(normListener):
         if ctx.WITH():
             expr: NormExpression = self._pop()
             self.scopes.append((QuantifiedLambda(expr), 'one_line_context'))
-        elif ctx.FOREACH() or ctx.FORANY() or ctx.EXIST():
+        elif ctx.FOREACH() or ctx.FORANY() or ctx.EXIST() or ctx.NEXIST():
             if self.scope is not None and isinstance(self.scope, QuantifiedLambda):
                 lam = self.scope
             else:
@@ -542,18 +552,20 @@ class NormCompiler(normListener):
             for ch in ctx.children:
                 if isinstance(ch, normParser.VariableContext):
                     tn = self._pop()
-                    assert(isinstance(tn, ColumnVariable))
+                    #assert(isinstance(tn, ColumnVariable))
                     tns.append(tn.name)
                     if lam is None:
                         lam = tn.lam
-                    else:
-                        assert(tn.lam is lam)
+                    #else:
+                    #    assert(tn.lam is lam)
             if ctx.FOREACH():
                 qtype = QType.FOREACH
             elif ctx.FORANY():
                 qtype = QType.FORANY
-            else:
+            elif ctx.EXIST():
                 qtype = QType.EXIST
+            else:
+                qtype = QType.NEXIST
             lam.add_cols(qtype, list(reversed(tns)))
             if lam is not self.scope:
                 self.scopes.append((lam, 'one_line_context'))

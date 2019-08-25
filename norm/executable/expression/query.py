@@ -157,7 +157,7 @@ class QueryExpr(NormExpression):
                     # preserve df1 index if available
                     if df1.index.name == self.lam.VAR_OID:
                         df1 = df1.reset_index()
-                    df2 = merge(df1, df2, on=self.common_columns)
+                    df2 = merge(df1, df2, on=self.common_columns).dropna()
                     if self.lam.VAR_OID in df2.columns:
                         df2 = df2.set_index(self.lam.VAR_OID)
 
