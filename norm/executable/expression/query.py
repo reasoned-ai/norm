@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from typing import List
 
-from pandas import DataFrame, Series, merge, concat
+from pandas import DataFrame, Series, merge, concat, Index
 
 from norm.executable import NormError
 from norm.executable.constant import ListConstant, Constant, TupleConstant
@@ -113,7 +113,6 @@ class QueryExpr(NormExpression):
         self.lam = context.temp_lambda(self.expr1.lam.variables +
                                        [v for v in self.expr2.lam.variables if v.name not in self.expr1.lam])
         self.eval_lam = self.expr1.eval_lam
-        self.cross_join = not self.__same_origin()
         from norm.executable.schema.variable import VariableName
         if isinstance(self.expr2, VariableName) and not isinstance(self.expr1, VariableName):
             self.common_columns = [self.expr2.name] if self.expr2.name in self.expr1.lam else []
@@ -123,6 +122,7 @@ class QueryExpr(NormExpression):
             self.common_columns = [self.expr1.name] if self.expr1.name == self.expr2.name else []
         else:
             self.common_columns = [v.name for v in self.expr1.lam.variables if v.name in self.expr2.lam]
+        self.cross_join = not self.__same_origin() and len(self.common_columns) == 0
         return self
 
     def execute(self, context):
@@ -155,8 +155,15 @@ class QueryExpr(NormExpression):
                         df2[cols] = df1.loc[df2.index, cols]
                 else:
                     # preserve df1 index if available
+                    if isinstance(df1, Index):
+                        df1 = self.expr1.lam.data.loc[df1]
+                    if isinstance(df2, Index):
+                        df2 = self.expr2.lam.data.loc[df2, [v.name for v in self.expr2.lam.variables]]
                     if df1.index.name == self.lam.VAR_OID:
                         df1 = df1.reset_index()
+                    for col in self.common_columns:
+                        if df1[col].dtype != df2[col].dtype:
+                            df2[col] = df2[col].astype(df1[col].dtype)
                     df2 = merge(df1, df2, on=self.common_columns).dropna()
                     if self.lam.VAR_OID in df2.columns:
                         df2 = df2.set_index(self.lam.VAR_OID)

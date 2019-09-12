@@ -214,9 +214,12 @@ conditionOperator: EQ | NE | IN | NI | LT | LE | GT | GE | LK;
 
 spacedConditionOperator: (WS|NS)? conditionOperator (WS|NS)?;
 
-WS: [ \t\u000C]+;
+WS: [ \t\u000C\u000B]+;
 
-NS: [ \t\u000C]+ [\r\n] [ \t\u000C]* | [\r\n] [ \t\u000C]*;
+NS
+ : [ \t\u000C\u000B]+ [\r\n] [ \t\u000C\u000B]*
+ | [\r\n] [ \t\u000C\u000B]*
+ ;
 
 LBR: '(' (WS|NS)?;
 RBR: (WS|NS)? ')';
@@ -227,16 +230,16 @@ RCBR: (WS|NS)? '}';
 LSBR: '[' (WS|NS)?;
 RSBR: (WS|NS)? ']';
 
-NONE:      'none' | 'null' | 'na' | 'None' | 'Null' | 'Na' | 'NONE' | 'NULL' | 'NA';
-AS:        'as' | 'As' | 'AS' | '=';
+NONE:      N O N E | N U L L | N A;
+AS:        A S | '=';
 COLON:     ':';
 SEMICOLON: ';';
 COMMA:     ',';
 DOT:       '.';
 DOTDOT:    '..';
 
-IN:        'in'  | 'IN'  | 'In' ;
-NI:        '!in' | '!IN' | '!In';
+IN:        I N;
+NI:        NOT I N;
 EQ:        '==';
 NE:        '!=';
 GE:        '>=';
@@ -252,14 +255,14 @@ DIVIDE:    '/';
 EXP:       '**';
 MOD:       '%';
 
-NOT:       '!'   | 'not' | 'Not' | 'NOT';
-AND:       '&'   | 'and' | 'And' | 'AND';
-OR:        '|'   | 'or'  | 'Or'  | 'OR';
-XOR:       '^'   | 'xor' | 'Xor' | 'XOR';
-IMP:       '=>'  | 'imp' | 'Imp' | 'IMP';
-EQV:       '<=>' | 'eqv' | 'Eqv' | 'EQV';
+NOT:       '!'   | N O T;
+AND:       '&'   | A N D;
+OR:        '|'   | O R;
+XOR:       '^'   | X O R;
+IMP:       '=>'  | I M P;
+EQV:       '<=>' | E Q V;
 
-BOOLEAN:    'true' | 'false' | 'True' | 'False' | 'TRUE' | 'FALSE';
+BOOLEAN:    T R U E | F A L S E;
 INTEGER:    [-]? DIGIT+;
 FLOAT:      [-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
 STRING:     '"' ( ~["\r\n\t] )*? '"' | '\'' ( ~['\r\n\t] )*? '\'' ;
@@ -278,4 +281,30 @@ VARNAME: [a-zA-Z][a-zA-Z0-9_]*;
 fragment DIGIT:      [0] | NONZERO;
 fragment NONZERO:    [1-9];
 
+fragment A : [aA];
+fragment B : [bB];
+fragment C : [cC];
+fragment D : [dD];
+fragment E : [eE];
+fragment F : [fF];
+fragment G : [gG];
+fragment H : [hH];
+fragment I : [iI];
+fragment J : [jJ];
+fragment K : [kK];
+fragment L : [lL];
+fragment M : [mM];
+fragment N : [nN];
+fragment O : [oO];
+fragment P : [pP];
+fragment Q : [qQ];
+fragment R : [rR];
+fragment S : [sS];
+fragment T : [tT];
+fragment U : [uU];
+fragment V : [vV];
+fragment W : [wW];
+fragment X : [xX];
+fragment Y : [yY];
+fragment Z : [zZ];
 
