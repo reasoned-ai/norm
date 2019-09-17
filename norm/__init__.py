@@ -70,7 +70,7 @@ def init_colab():
     access_token = credentials.get_credentials().get_access_token().access_token
     gcloud_tokeninfo = requests.get('https://www.googleapis.com/oauth2/v3/userinfo?access_token=' + access_token).json()
     email = gcloud_tokeninfo['email']
-    last_name = gcloud_tokeninfo['hd']
+    last_name = ''
     first_name = email.split('@')[0]
 
     # Mount the drive
