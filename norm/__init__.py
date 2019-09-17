@@ -146,7 +146,10 @@ if get_ipython() is not None:
         else:
             return lines
     ip = get_ipython()
-    ip.input_transformers_cleanup.append(try_norma)
+    try:
+        ip.input_transformers_cleanup.append(try_norma)
+    except:
+        logging.warning("Input transformers are not available. Magic %norma or %%norma is required")
 
     @register_line_cell_magic
     def norma(line, cell=None):
