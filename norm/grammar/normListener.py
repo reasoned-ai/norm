@@ -26,15 +26,6 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#comments.
-    def enterComments(self, ctx:normParser.CommentsContext):
-        pass
-
-    # Exit a parse tree produced by normParser#comments.
-    def exitComments(self, ctx:normParser.CommentsContext):
-        pass
-
-
     # Enter a parse tree produced by normParser#exports.
     def enterExports(self, ctx:normParser.ExportsContext):
         pass
@@ -188,12 +179,12 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#queryProjection.
-    def enterQueryProjection(self, ctx:normParser.QueryProjectionContext):
+    # Enter a parse tree produced by normParser#projection.
+    def enterProjection(self, ctx:normParser.ProjectionContext):
         pass
 
-    # Exit a parse tree produced by normParser#queryProjection.
-    def exitQueryProjection(self, ctx:normParser.QueryProjectionContext):
+    # Exit a parse tree produced by normParser#projection.
+    def exitProjection(self, ctx:normParser.ProjectionContext):
         pass
 
 
@@ -377,30 +368,12 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#spacedLogicalOperator.
-    def enterSpacedLogicalOperator(self, ctx:normParser.SpacedLogicalOperatorContext):
-        pass
-
-    # Exit a parse tree produced by normParser#spacedLogicalOperator.
-    def exitSpacedLogicalOperator(self, ctx:normParser.SpacedLogicalOperatorContext):
-        pass
-
-
     # Enter a parse tree produced by normParser#conditionOperator.
     def enterConditionOperator(self, ctx:normParser.ConditionOperatorContext):
         pass
 
     # Exit a parse tree produced by normParser#conditionOperator.
     def exitConditionOperator(self, ctx:normParser.ConditionOperatorContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#spacedConditionOperator.
-    def enterSpacedConditionOperator(self, ctx:normParser.SpacedConditionOperatorContext):
-        pass
-
-    # Exit a parse tree produced by normParser#spacedConditionOperator.
-    def exitSpacedConditionOperator(self, ctx:normParser.SpacedConditionOperatorContext):
         pass
 
 

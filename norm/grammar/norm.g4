@@ -1,109 +1,136 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2019 by reasoned.ai
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
 grammar norm;
 
-script: statement (WS|NS)? SEMICOLON ((WS|NS)* statement (WS|NS)? SEMICOLON)* (WS|NS)?;
+script
+    : statement SEMICOLON
+    ( statement SEMICOLON )* EOF;
 
 statement
-    : comments
-    | comments? imports
-    | comments? exports
-    | comments? commands
-    | comments? (WS|NS)? expression
-    | comments? (WS|NS)? typeDeclaration ((WS|NS)? IMPL (WS|NS)? expression)?
+    : command
+    | expr
     ;
 
-IMPL: CEQ | OEQ | AEQ;
-CEQ: ':=';
-OEQ: '|=';
-AEQ: '&=';
+command: COMMAND expr;
 
-SINGLELINE: '//' ~[\r\n]* [\r\n]*;
-MULTILINE: '/*' (.)*? '*/' [\r\n]*;
-
-comments: MULTILINE | SINGLELINE (SINGLELINE)*;
-
-exports
-    : SPACED_EXPORT typeName
-    | SPACED_EXPORT typeName (WS|NS)? VARNAME (DOT VARNAME)* ((WS|NS)? AS (WS|NS)? VARNAME)?
+unquoteVariable
+    : variableName? LCBR variable RCBR
+    ( variableName? LCBR variable RCBR )*
     ;
 
-SPACED_EXPORT: EXPORT [ \t]*;
-EXPORT: 'export'|'Export'|'EXPORT';
+variableName: VARNAME | COMMAND | PROPERTY;
 
-imports
-    : SPACED_IMPORT VARNAME (DOT VARNAME)* DOT '*'
-    | SPACED_IMPORT VARNAME (DOT VARNAME)* DOT typeName ((WS|NS)? AS (WS|NS)? VARNAME)?
-    ;
-
-SPACED_IMPORT: IMPORT [ \t]*;
-IMPORT: 'import'|'Import'|'IMPORT';
-
-commands: SPACED_COMMAND typeName;
-
-SPACED_COMMAND: COMMAND [ \t]+;
-fragment HISTORY: 'history'|'History'|'HISTORY';
-fragment UNDO: 'undo'|'Undo'|'UNDO';
-fragment REDO: 'redo'|'Redo'|'REDO';
-fragment DELETE: 'del'|'Del'|'DEL';
-fragment DESCRIBE: 'describe'|'Describe'|'DESCRIBE';
-
-COMMAND: HISTORY|UNDO|REDO|DELETE|DESCRIBE;
-ARGOPT:  'optional' | 'primary' | 'oid' | 'time'| 'parameter' | 'state';
-
-scoped_variable: variable (WS? IN WS? typeName)?;
-
-scoped_variables: scoped_variable ((WS|NS)? COMMA (WS|NS)? scoped_variable)*;
-
-context
-    : WITH LBR scoped_variables RBR
-    | FORANY LBR scoped_variables RBR
-    | EXIST LBR scoped_variables RBR
-    ;
-
-contexts: context (WS? COMMA WS? context)* WS? COMMA;
-
-EXIST: 'exist' | 'Exist' | 'EXIST';
-
-WITH: 'with' | 'With' | 'WITH' | 'regard' | 'Regard' | 'REGARD';
-
-FORANY
-    : 'forall' | 'forany'
-    | 'Forall' | 'Forany'
-    | 'FORALL' | 'FORANY'
-    | 'foreach' | 'forevery'
-    | 'Foreach' | 'Forevery'
-    | 'FOREACH' | 'FOREVERY'
-    ;
-
-typeName
-    : VARNAME version?
-    | LSBR typeName RSBR;
-
-unquote_variable
-    : (VARNAME | COMMAND | ARGOPT)? LCBR variable RCBR ((VARNAME | COMMAND | ARGOPT | '_')? LCBR variable RCBR)*;
+version: UUID | LATEST | BEST;
 
 variable
-    : VARNAME | COMMAND | ARGOPT
-    | variable DOT variable
-    | unquote_variable
+    : variableName version?
+    | variableName DOT variable
+    | unquoteVariable
     ;
 
-argumentProperty: (WS|NS)? COLON (WS|NS)? ARGOPT WS? (LBR WS? constant WS? RBR)?;
+property: PROPERTY ( LBR constant RBR )?;
 
-argumentDeclaration : variable (WS|NS)? COLON (WS|NS)? typeName argumentProperty?;
+declaration
+    : variableName? COLON ( variable | LSBR variable RSBR )
+                  ( COLON property )?
+    ;
 
-argumentDeclarations: argumentDeclaration ((WS|NS)? COMMA (WS|NS)? argumentDeclaration)*;
+declarationExpr
+    : declaration ( COMMA declaration )*
+    | variableName LBR declaration ( COMMA declaration )* RBR
+    ;
 
-rename: variable (WS|NS)? '->' (WS|NS)? variable;
-
-renames: rename ((WS|NS)? COMMA (WS|NS)? rename)*;
-
-typeDeclaration: typeName (LBR argumentDeclarations RBR)? ((WS|NS)? COLON (WS|NS)? typeName)?;
-
-version: UUID | '$latest' | '$best';
-
-queryProjection
+projection
     : '?' variable?
-    | '?' LBR variable (WS? COMMA WS? variable)* RBR
+    | '?' LBR variable ( COMMA variable )* RBR
+    ;
+
+code: ~( PYTHON_BLOCK | BLOCK_END )*;
+
+codeExpr: PYTHON_BLOCK code BLOCK_END;
+
+argumentExpr
+    : variable? projection
+    | ( variable IS )? arithmeticExpr projection?
+    | variable conditionalRelation arithmeticExpr projection?
+    ;
+
+argumentExprs
+    : LBR RBR
+    | LBR argumentExpr ( COMMA argumentExpr )* RBR
+    ;
+
+evaluationExpr
+    : constant
+    | codeExpr
+    | variable
+    | variable argumentExprs
+    | evaluationExpr LSBR integer_c? DOTDOT? integer_c? RSBR
+    | evaluationExpr DOT evaluationExpr
+    ;
+
+arithmeticExpr
+    : evaluationExpr
+    | LBR arithmeticExpr RBR
+    | MINUS arithmeticExpr
+    | arithmeticExpr ( MOD | EXP ) arithmeticExpr
+    | arithmeticExpr ( TIMES | DIVIDE ) arithmeticExpr
+    | arithmeticExpr ( PLUS | MINUS ) arithmeticExpr
+    ;
+
+conditionExpr
+    : arithmeticExpr
+    | arithmeticExpr conditionalRelation arithmeticExpr
+    ;
+
+implementationExpr: variable IMPL expr;
+
+rangedVariable: variable ( IN expr )?;
+
+scope
+    : WITH rangedVariable
+    | FORANY rangedVariable
+    | EXIST rangedVariable
+    ;
+
+scopes: scope COMMA ( scope COMMA )*;
+
+scopedExpr: scopes expr;
+
+expr
+    : conditionExpr
+    | declarationExpr
+    | implementationExpr
+    | scopedExpr
+    | NOT expr
+    | expr projection
+    | LBR expr RBR
+    | expr logicalRelation expr
     ;
 
 constant
@@ -112,119 +139,82 @@ constant
     | integer_c
     | float_c
     | string_c
-    | pattern
     | uuid
-    | url
     | datetime
-    | constant (WS? COMMA WS? constant)+
-    | LBR constant (WS? COMMA WS? constant)* RBR
-    | LSBR constant (WS? COMMA WS? constant)* RSBR
+    | constant ( COMMA constant )+
+    | LBR constant ( COMMA constant )* RBR
+    | LSBR constant ( COMMA constant )* RSBR
     ;
-
-code: ~(PYTHON_BLOCK|BLOCK_END)*;
-
-codeExpression: PYTHON_BLOCK code BLOCK_END;
-
-argumentExpression
-    : arithmeticExpression
-    | queryProjection
-    | variable queryProjection
-    | variable (WS|NS)? AS (WS|NS)? arithmeticExpression queryProjection?
-    | variable spacedConditionOperator arithmeticExpression queryProjection?
-    ;
-
-argumentExpressions
-    : LBR RBR
-    | LBR argumentExpression ((WS|NS)? COMMA (WS|NS)? argumentExpression)* RBR
-    ;
-
-evaluationExpression
-    : constant
-    | variable
-    | variable argumentExpressions
-    | evaluationExpression (WS|NS)? DOT (WS|NS)? evaluationExpression
-    ;
-
-slicedExpression
-    : evaluationExpression
-    | evaluationExpression LSBR integer_c? (WS|NS)? COLON? (WS|NS)? integer_c? RSBR
-    | evaluationExpression LSBR evaluationExpression RSBR
-    ;
-
-arithmeticExpression
-    : slicedExpression
-    | LBR arithmeticExpression RBR
-    | MINUS arithmeticExpression
-    | arithmeticExpression (WS|NS)? (MOD | EXP) (WS|NS)? arithmeticExpression
-    | arithmeticExpression (WS|NS)? (TIMES | DIVIDE) (WS|NS)? arithmeticExpression
-    | arithmeticExpression (WS|NS)? (PLUS | MINUS) (WS|NS)? arithmeticExpression
-    ;
-
-conditionExpression
-    : arithmeticExpression
-    | arithmeticExpression spacedConditionOperator arithmeticExpression
-    ;
-
-expression
-    : conditionExpression WS? queryProjection?
-    | codeExpression
-    | argumentDeclarations
-    | renames
-    | NOT WS? expression
-    | expression spacedLogicalOperator expression
-    | contexts (WS|NS)? expression (WS|NS)?
-    | LBR expression RBR
-    ;
-
 
 none:        NONE;
 bool_c:      BOOLEAN;
 integer_c:   INTEGER;
 float_c:     FLOAT;
 string_c:    STRING;
-pattern:     PATTERN;
 uuid:        UUID;
-url:         URL;
 datetime:    DATETIME;
 
-logicalOperator: AND | OR | NOT | XOR | IMP | EQV;
+logicalRelation: AND | OR | XOR | IMP | EQV;
 
-spacedLogicalOperator: (WS|NS)? logicalOperator (WS|NS)?;
+conditionalRelation: EQ | NE | IN | NI | LT | LE | GT | GE | LK;
 
-conditionOperator: EQ | NE | IN | NI | LT | LE | GT | GE | LK;
+EXIST: E X I S T;
+WITH: W I T H | W R T;
+FORANY: F O R ( A L L | E A C H | A N Y | E V E R Y )?;
 
-spacedConditionOperator: (WS|NS)? conditionOperator (WS|NS)?;
+COMMAND: HISTORY | UNDO | REDO | DELETE | DESCRIBE | FIT | ANCHOR;
 
-WS: [ \t\u000C]+;
+HISTORY: H I S T O R Y;
+UNDO: U N D O;
+REDO: R E D O;
+DELETE: D E L E T E;
+ANCHOR: A N C H O R;
+DESCRIBE: D E S C R I B E;
+FIT: F I T;
 
-NS: [ \t\u000C]+ [\r\n] [ \t\u000C]* | [\r\n] [ \t\u000C]*;
+PROPERTY:  OPTIONAL | PRIMARY | OID | TIME | PARAMETER | STATE | OUTPUT;
 
-LBR: '(' (WS|NS)?;
-RBR: (WS|NS)? ')';
+OUTPUT: O U T P U T;
+OPTIONAL: O P T I O N A L;
+PRIMARY: P R I M A R Y;
+OID: O I D;
+TIME: T I M E;
+PARAMETER: P A R A M E T E R;
+STATE: S T A T E;
 
-LCBR: '{' (WS|NS)?;
-RCBR: (WS|NS)? '}';
+IMPL: IS | OR IS | AND IS;
 
-LSBR: '[' (WS|NS)?;
-RSBR: (WS|NS)? ']';
+SINGLELINE: '//' ~[\r\n]* [\r\n]* -> channel(HIDDEN);
+MULTILINE: '/*' (.)*? '*/' [\r\n]* -> channel(HIDDEN);
 
-NONE:      'none' | 'null' | 'na' | 'None' | 'Null' | 'Na' | 'NONE' | 'NULL' | 'NA';
-AS:        'as' | 'As' | 'AS' | '=';
+WS: [ \t\u000C\u000B\r\n]+ -> channel(HIDDEN);
+
+LBR: '(';
+RBR: ')';
+
+LCBR: '{';
+RCBR: '}';
+
+LSBR: '[';
+RSBR: ']';
+
+NONE:      N O N E | N U L L | N A;
+IS:        I S | '=';
 COLON:     ':';
 SEMICOLON: ';';
 COMMA:     ',';
 DOT:       '.';
 DOTDOT:    '..';
 
-IN:        'in'  | 'IN'  | 'In' ;
-NI:        '!in' | '!IN' | '!In';
-EQ:        '==';
-NE:        '!=';
-GE:        '>=';
-LE:        '<=';
-GT:        '>';
-LT:        '<';
-LK:        '~';
+IN:        I N;
+NI:        '!' I N | N I N;
+EQ:        '==' | E Q;
+NE:        '!=' | N E Q;
+GE:        '>=' | G E;
+LE:        '<=' | L E;
+GT:        '>' | G T;
+LT:        '<' | L T;
+LK:        '~' | L I K E;
 
 MINUS:     '-';
 PLUS:      '+';
@@ -233,30 +223,55 @@ DIVIDE:    '/';
 EXP:       '**';
 MOD:       '%';
 
-NOT:       '!'   | 'not' | 'Not' | 'NOT';
-AND:       '&'   | 'and' | 'And' | 'AND';
-OR:        '|'   | 'or'  | 'Or'  | 'OR';
-XOR:       '^'   | 'xor' | 'Xor' | 'XOR';
-IMP:       '=>'  | 'imp' | 'Imp' | 'IMP';
-EQV:       '<=>' | 'eqv' | 'Eqv' | 'EQV';
+NOT:       '!'   | N O T;
+AND:       '&'   | A N D;
+OR:        '|'   | O R;
+XOR:       '^'   | X O R;
+IMP:       '=>'  | I M P;
+EQV:       '<=>' | E Q V;
 
-BOOLEAN:    'true' | 'false' | 'True' | 'False' | 'TRUE' | 'FALSE';
+BOOLEAN:    T R U E | F A L S E;
 INTEGER:    [-]? DIGIT+;
 FLOAT:      [-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
 STRING:     '"' ( ~["\r\n\t] )*? '"' | '\'' ( ~['\r\n\t] )*? '\'' ;
 
-PATTERN:   'p' STRING;
 UUID:      '$' [0-9a-zA-Z-]*;
-URL:       'u' STRING;
 DATETIME:  't' STRING;
+LATEST:    '$' L A T E S T;
+BEST:      '$' B E S T;
 
-PYTHON_BLOCK : '{{' WS? [\r\n]?;
-BLOCK_END : (WS|NS)? '}}';
+PYTHON_BLOCK : '{{';
+BLOCK_END : '}}';
 
-VARNAME: [a-zA-Z][a-zA-Z0-9_]*;
+VARNAME: [a-zA-Z_][a-zA-Z0-9_]*;
 
 
 fragment DIGIT:      [0] | NONZERO;
 fragment NONZERO:    [1-9];
 
-
+fragment A : [aA];
+fragment B : [bB];
+fragment C : [cC];
+fragment D : [dD];
+fragment E : [eE];
+fragment F : [fF];
+fragment G : [gG];
+fragment H : [hH];
+fragment I : [iI];
+fragment J : [jJ];
+fragment K : [kK];
+fragment L : [lL];
+fragment M : [mM];
+fragment N : [nN];
+fragment O : [oO];
+fragment P : [pP];
+fragment Q : [qQ];
+fragment R : [rR];
+fragment S : [sS];
+fragment T : [tT];
+fragment U : [uU];
+fragment V : [vV];
+fragment W : [wW];
+fragment X : [xX];
+fragment Y : [yY];
+fragment Z : [zZ];
