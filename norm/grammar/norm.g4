@@ -38,58 +38,86 @@ statement
 
 command: COMMAND expr;
 
-unquoteVariable
-    : variableName? LCBR variable RCBR
-    ( variableName? LCBR variable RCBR )*
-    ;
+validName: NAME | COMMAND | PROPERTY | THIS | THAT | UNICODE_NAME;
 
-variableName: VARNAME | COMMAND | PROPERTY;
+qualifiedName
+    : validName
+    | validName ( DOT qualifiedName )*
+    ;
 
 version: UUID | LATEST | BEST;
 
+type
+    : qualifiedName
+    | qualifiedName version
+    ;
+
 variable
-    : variableName version?
-    | variableName DOT variable
+    : qualifiedName
     | unquoteVariable
     ;
 
-property: PROPERTY ( LBR constant RBR )?;
-
-declaration
-    : variableName? COLON ( variable | LSBR variable RSBR )
-                  ( COLON property )?
+unquoteVariable
+    : LCBR variable RCBR
+    | qualifiedName LCBR variable RCBR
+    | qualifiedName LCBR variable RCBR unquoteVariable*
     ;
 
-declarationExpr
-    : declaration ( COMMA declaration )*
-    | variableName LBR declaration ( COMMA declaration )* RBR
+property
+    : PROPERTY
+    | PROPERTY ( LBR constant RBR )
+    ;
+
+variableDeclaration
+    : validName ISA ( type | LSBR type RSBR )  property*
+    ;
+
+inheritanceDeclaration
+    : ISA type
+    | ISA type type*
+    ;
+
+typeDeclaration
+    : type LBR variableDeclaration ( COMMA variableDeclaration )* RBR
+    | type inheritanceDeclaration LBR variableDeclaration ( COMMA variableDeclaration )* RBR
+    | type inheritanceDeclaration
     ;
 
 projection
-    : '?' variable?
-    | '?' LBR variable ( COMMA variable )* RBR
+    : QUERY
+    | QUERY variable
+    | QUERY LBR variable ( COMMA variable )* RBR
+    ;
+
+positionalArgumentExpr
+    : projection
+    | arithmeticExpr projection?
+    ;
+
+keywordArgumentExpr
+    : validName projection
+    | validName IS arithmeticExpr projection?
+    ;
+
+argumentExprs
+    : LBR RBR
+    | LBR positionalArgumentExpr ( COMMA positionalArgumentExpr )* RBR
+    | LBR keywordArgumentExpr ( COMMA keywordArgumentExpr )* RBR
+    | LBR positionalArgumentExpr ( COMMA positionalArgumentExpr )* COMMA
+          keywordArgumentExpr ( COMMA keywordArgumentExpr )* RBR
+    | argumentExprs projection
     ;
 
 code: ~( PYTHON_BLOCK | BLOCK_END )*;
 
 codeExpr: PYTHON_BLOCK code BLOCK_END;
 
-argumentExpr
-    : variable? projection
-    | ( variable IS )? arithmeticExpr projection?
-    | variable conditionalRelation arithmeticExpr projection?
-    ;
-
-argumentExprs
-    : LBR RBR
-    | LBR argumentExpr ( COMMA argumentExpr )* RBR
-    ;
-
 evaluationExpr
     : constant
     | codeExpr
     | variable
-    | variable argumentExprs
+    | type
+    | type argumentExprs
     | evaluationExpr LSBR integer_c? DOTDOT? integer_c? RSBR
     | evaluationExpr DOT evaluationExpr
     ;
@@ -108,25 +136,33 @@ conditionExpr
     | arithmeticExpr conditionalRelation arithmeticExpr
     ;
 
-implementationExpr: variable IMPL expr;
-
-rangedVariable: variable ( IN expr )?;
-
-scope
-    : WITH rangedVariable
-    | FORANY rangedVariable
-    | EXIST rangedVariable
+typeDefinition
+    : type DEF expr
+    | type ORDEF expr
+    | type ANDDEF expr
     ;
 
-scopes: scope COMMA ( scope COMMA )*;
+domain
+    : constant
+    | qualifiedName
+    | qualifiedName IN expr
+    | qualifiedName IS expr
+    ;
 
-scopedExpr: scopes expr;
+quantifier
+    : FORANY domain
+    | EXIST domain
+    ;
+
+quantifiedExpr: quantifier ( COMMA quantifier )* COMMA expr;
 
 expr
     : conditionExpr
-    | declarationExpr
-    | implementationExpr
-    | scopedExpr
+    | variableDeclaration
+    | typeDeclaration
+    | inheritanceDeclaration
+    | typeDefinition
+    | quantifiedExpr
     | NOT expr
     | expr projection
     | LBR expr RBR
@@ -141,6 +177,7 @@ constant
     | string_c
     | uuid
     | datetime
+    | measurement
     | constant ( COMMA constant )+
     | LBR constant ( COMMA constant )* RBR
     | LSBR constant ( COMMA constant )* RSBR
@@ -153,14 +190,17 @@ float_c:     FLOAT;
 string_c:    STRING;
 uuid:        UUID;
 datetime:    DATETIME;
+measurement: ( integer_c | float_c ) NAME;
 
 logicalRelation: AND | OR | XOR | IMP | EQV;
 
 conditionalRelation: EQ | NE | IN | NI | LT | LE | GT | GE | LK;
 
-EXIST: E X I S T;
-WITH: W I T H | W R T;
+EXIST: E X I S T | E X I S T S;
 FORANY: F O R ( A L L | E A C H | A N Y | E V E R Y )?;
+
+THIS: T H I S;
+THAT: T H A T;
 
 COMMAND: HISTORY | UNDO | REDO | DELETE | DESCRIBE | FIT | ANCHOR;
 
@@ -182,12 +222,10 @@ TIME: T I M E;
 PARAMETER: P A R A M E T E R;
 STATE: S T A T E;
 
-IMPL: IS | OR IS | AND IS;
-
 SINGLELINE: '//' ~[\r\n]* [\r\n]* -> channel(HIDDEN);
 MULTILINE: '/*' (.)*? '*/' [\r\n]* -> channel(HIDDEN);
 
-WS: [ \t\u000C\u000B\r\n]+ -> channel(HIDDEN);
+WS: [ \t\u000B\u000C\r\n]+ -> channel(HIDDEN);
 
 LBR: '(';
 RBR: ')';
@@ -200,7 +238,8 @@ RSBR: ']';
 
 NONE:      N O N E | N U L L | N A;
 IS:        I S | '=';
-COLON:     ':';
+QUERY:     '?';
+ISA:       I S A | ':';
 SEMICOLON: ';';
 COMMA:     ',';
 DOT:       '.';
@@ -230,10 +269,14 @@ XOR:       '^'   | X O R;
 IMP:       '=>'  | I M P;
 EQV:       '<=>' | E Q V;
 
+DEF: IS ':';
+ORDEF: OR ':';
+ANDDEF: AND ':';
+
 BOOLEAN:    T R U E | F A L S E;
 INTEGER:    [-]? DIGIT+;
 FLOAT:      [-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
-STRING:     '"' ( ~["\r\n\t] )*? '"' | '\'' ( ~['\r\n\t] )*? '\'' ;
+STRING:     '"' ( ~["] )*? '"' | '\'' ( ~['] )*? '\'' ;
 
 UUID:      '$' [0-9a-zA-Z-]*;
 DATETIME:  't' STRING;
@@ -243,11 +286,13 @@ BEST:      '$' B E S T;
 PYTHON_BLOCK : '{{';
 BLOCK_END : '}}';
 
-VARNAME: [a-zA-Z_][a-zA-Z0-9_]*;
+NAME: CHAR CHARDIGIT*;
+UNICODE_NAME : [\p{Alpha}\p{General_Category=Other_Letter}] [\p{Alnum}\p{General_Category=Other_Letter}]*;
 
-
-fragment DIGIT:      [0] | NONZERO;
-fragment NONZERO:    [1-9];
+fragment CHARDIGIT: CHAR | DIGIT;
+fragment CHAR:    [a-zA-Z_];
+fragment DIGIT:   [0] | NONZERO;
+fragment NONZERO: [1-9];
 
 fragment A : [aA];
 fragment B : [bB];
