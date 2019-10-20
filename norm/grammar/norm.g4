@@ -33,12 +33,21 @@ script
 
 statement
     : command
+    | typeDeclaration
+    | typeDefinition
+    | typeExport
     | expr
     ;
 
 command: COMMAND expr;
 
-validName: NAME | COMMAND | PROPERTY | THIS | THAT | UNICODE_NAME;
+validName: NAME | COMMAND | VAR_PROPERTY | THIS | THAT | UNICODE_NAME;
+
+typeExport
+    : EXPORT type
+    | EXPORT type TO qualifiedName
+    | EXPORT type TO qualifiedName AS validName
+    ;
 
 qualifiedName
     : validName
@@ -50,6 +59,10 @@ version: UUID | LATEST | BEST;
 type
     : qualifiedName
     | qualifiedName version
+    ;
+
+listType
+    : LSBR type RSBR
     ;
 
 variable
@@ -64,17 +77,17 @@ unquoteVariable
     ;
 
 property
-    : PROPERTY
-    | PROPERTY ( LBR constant RBR )
+    : VAR_PROPERTY
+    | VAR_PROPERTY ( LBR constant RBR )
     ;
 
 variableDeclaration
-    : validName ISA ( type | LSBR type RSBR )  property*
+    : validName ISA ( type | listType )  property*
+    | validName ISA property*
     ;
 
 inheritanceDeclaration
-    : ISA type
-    | ISA type type*
+    : INHERIT type type*
     ;
 
 typeDeclaration
@@ -83,20 +96,30 @@ typeDeclaration
     | type inheritanceDeclaration
     ;
 
+typeDefinition
+    : typeDeclaration DEF expr
+    | type DEF expr
+    | type ORDEF expr
+    | type ANDDEF expr
+    | type RORDEF expr
+    | type RANDDEF expr
+    ;
+
 projection
     : QUERY
+    | QUERY INTEGER
     | QUERY variable
     | QUERY LBR variable ( COMMA variable )* RBR
     ;
 
 positionalArgumentExpr
     : projection
-    | arithmeticExpr projection?
+    | expr projection?
     ;
 
 keywordArgumentExpr
     : validName projection
-    | validName IS arithmeticExpr projection?
+    | validName IS expr projection?
     ;
 
 argumentExprs
@@ -108,9 +131,9 @@ argumentExprs
     | argumentExprs projection
     ;
 
-code: ~( PYTHON_BLOCK | BLOCK_END )*;
+code: ~( CODE_BLOCK_BEGIN | CODE_BLOCK_END )*;
 
-codeExpr: PYTHON_BLOCK code BLOCK_END;
+codeExpr: CODE_BLOCK_BEGIN code CODE_BLOCK_END;
 
 evaluationExpr
     : constant
@@ -136,17 +159,12 @@ conditionExpr
     | arithmeticExpr conditionalRelation arithmeticExpr
     ;
 
-typeDefinition
-    : type DEF expr
-    | type ORDEF expr
-    | type ANDDEF expr
-    ;
+domainVariables : qualifiedName (COMMA qualifiedName)*;
 
 domain
-    : constant
-    | qualifiedName
-    | qualifiedName IN expr
-    | qualifiedName IS expr
+    : domainVariables
+    | domainVariables IN expr
+    | qualifiedName ISA type
     ;
 
 quantifier
@@ -156,13 +174,20 @@ quantifier
 
 quantifiedExpr: quantifier ( COMMA quantifier )* COMMA expr;
 
+scope
+    : WITH type
+    | WITH type AS validName
+    | WITH validName FROM type
+    ;
+
+scopedExpr: scope COMMA expr;
+
 expr
     : conditionExpr
     | variableDeclaration
-    | typeDeclaration
     | inheritanceDeclaration
-    | typeDefinition
     | quantifiedExpr
+    | scopedExpr
     | NOT expr
     | expr projection
     | LBR expr RBR
@@ -194,13 +219,18 @@ measurement: ( integer_c | float_c ) NAME;
 
 logicalRelation: AND | OR | XOR | IMP | EQV;
 
-conditionalRelation: EQ | NE | IN | NI | LT | LE | GT | GE | LK;
+conditionalRelation: EQ | NE | IN | NI | LT | LE | GT | GE | LK | NK;
 
+WITH: W I T H;
 EXIST: E X I S T | E X I S T S;
 FORANY: F O R ( A L L | E A C H | A N Y | E V E R Y )?;
 
 THIS: T H I S;
 THAT: T H A T;
+
+TO: T O;
+FROM: F R O M;
+AS: A S;
 
 COMMAND: HISTORY | UNDO | REDO | DELETE | DESCRIBE | FIT | ANCHOR;
 
@@ -211,8 +241,9 @@ DELETE: D E L E T E;
 ANCHOR: A N C H O R;
 DESCRIBE: D E S C R I B E;
 FIT: F I T;
+EXPORT: E X P O R T;
 
-PROPERTY:  OPTIONAL | PRIMARY | OID | TIME | PARAMETER | STATE | OUTPUT;
+VAR_PROPERTY:  OPTIONAL | PRIMARY | OID | TIME | PARAMETER | STATE | OUTPUT | DESC| ASC;
 
 OUTPUT: O U T P U T;
 OPTIONAL: O P T I O N A L;
@@ -221,6 +252,8 @@ OID: O I D;
 TIME: T I M E;
 PARAMETER: P A R A M E T E R;
 STATE: S T A T E;
+DESC: D E S C;
+ASC: A S C;
 
 SINGLELINE: '//' ~[\r\n]* [\r\n]* -> channel(HIDDEN);
 MULTILINE: '/*' (.)*? '*/' [\r\n]* -> channel(HIDDEN);
@@ -240,6 +273,7 @@ NONE:      N O N E | N U L L | N A;
 IS:        I S | '=';
 QUERY:     '?';
 ISA:       I S A | ':';
+INHERIT:   '::';
 SEMICOLON: ';';
 COMMA:     ',';
 DOT:       '.';
@@ -254,6 +288,7 @@ LE:        '<=' | L E;
 GT:        '>' | G T;
 LT:        '<' | L T;
 LK:        '~' | L I K E;
+NK:        '!~' | N L I K E;
 
 MINUS:     '-';
 PLUS:      '+';
@@ -269,22 +304,26 @@ XOR:       '^'   | X O R;
 IMP:       '=>'  | I M P;
 EQV:       '<=>' | E Q V;
 
-DEF: IS ':';
-ORDEF: OR ':';
-ANDDEF: AND ':';
+DEF: ':=';
+ORDEF: OR '=';
+ANDDEF: AND '=';
+RORDEF: '||=';
+RANDDEF: '&&=';
 
 BOOLEAN:    T R U E | F A L S E;
 INTEGER:    [-]? DIGIT+;
 FLOAT:      [-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
 STRING:     '"' ( ~["] )*? '"' | '\'' ( ~['] )*? '\'' ;
-
 UUID:      '$' [0-9a-zA-Z-]*;
 DATETIME:  't' STRING;
 LATEST:    '$' L A T E S T;
 BEST:      '$' B E S T;
 
-PYTHON_BLOCK : '{{';
-BLOCK_END : '}}';
+CODE_BLOCK_BEGIN: '{{' | PYTHON_BEGIN;
+CODE_BLOCK_END: '}}' | PYTHON_END;
+
+PYTHON_BEGIN: '{python' | '{py';
+PYTHON_END: 'python}' | 'py}';
 
 NAME: CHAR CHARDIGIT*;
 UNICODE_NAME : [\p{Alpha}\p{General_Category=Other_Letter}] [\p{Alnum}\p{General_Category=Other_Letter}]*;
