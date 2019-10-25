@@ -147,10 +147,10 @@ emphasize the newly added parts.
 
 ![factor graph](docs/_static/query_factor_graph.jpg)
 
-Logic relations like ‘<’, ‘~’, not exist and ‘=>’ take the input objects and compute the probability for the output 
+Logic relations like '<', '~', not exist and '=>' take the input objects and compute the probability for the output 
 object. For logic computation, the probability to be either a 0 or 1. For probabilistic computation, logic relation 
 produces a probability between 0 and 1. For example, if we query the record by 'tobacco' instead of 'smoke', 
-the ‘~’ relation can produce a similarity measure to decide whether the record implies a “tobacco” history or not. 
+the '~' relation can produce a similarity measure to decide whether the record implies a “tobacco” history or not. 
 This relation can be as simple as a cosine similarity or as complicated as a Transformer model. Norm utilizes a 
 versioning mechanism to override relations for different definitions either deterministic or probabilistic. 
 People can specify which version to use in the logic expression or rely on an auto machine learning algorithm to 
