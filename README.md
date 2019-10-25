@@ -97,7 +97,7 @@ of objects from Patient. Definition informs the machine about the structure of o
              | @Patient("Adam", 5), "parents are heavy smokers"
              | @Patient("Adam", 5), "had a fever for 3 days";
 
-Here, symbol “:=” denotes **means** relationship, and ‘|’ denotes **or** relationship. Examples above show the 
+Here, symbol ":=" denotes **means** relationship, and "|" denotes **or** relationship. Examples above show the 
 **extensional definition** that constructs objects and label them as positives. If a negative label is required, 
 we can specify it at the end of each row, e.g., `Patient |= "Adam", 34, 0`. An **intensional definition** is a logical 
 expression that can be evaluated to the extensional objects. 
@@ -120,8 +120,8 @@ variables. For example,
     forany p: Patient, p.age < 10 =>
          not exist r in p.History.record, r ~ 'smoke';
          
-This is a first order logic expression, where symbol “=>” denotes **imply** relation, a.k.a., if … then.  
-Symbol “~” denotes the **like** relationship. Any record evaluating to true is returned as a positive. 
+This is a first order logic expression, where symbol "=>" denotes **imply** relation, a.k.a., if … then.  
+Symbol "~" denotes the **like** relationship. Any record evaluating to true is returned as a positive. 
 Any record evaluating to false is returned as a negative. Any failed record is returned as exceptions or unknowns. 
 For the given example, we have the following results where each object is listed as a row in the table. 
 The variable _label represents the witnessed value while _prob represents the inferred value. 
@@ -147,10 +147,10 @@ emphasize the newly added parts.
 
 ![factor graph](docs/_static/query_factor_graph.jpg)
 
-Logic relations like '<', '~', not exist and '=>' take the input objects and compute the probability for the output 
+Logic relations like "<", "~", not exist and "=>" take the input objects and compute the probability for the output 
 object. For logic computation, the probability to be either a 0 or 1. For probabilistic computation, logic relation 
-produces a probability between 0 and 1. For example, if we query the record by 'tobacco' instead of 'smoke', 
-the '~' relation can produce a similarity measure to decide whether the record implies a “tobacco” history or not. 
+produces a probability between 0 and 1. For example, if we query the record by "tobacco" instead of "smoke", 
+the "~" relation can produce a similarity measure to decide whether the record implies a “tobacco” history or not. 
 This relation can be as simple as a cosine similarity or as complicated as a Transformer model. Norm utilizes a 
 versioning mechanism to override relations for different definitions either deterministic or probabilistic. 
 People can specify which version to use in the logic expression or rely on an auto machine learning algorithm to 
