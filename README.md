@@ -71,12 +71,12 @@ Variables are placeholders for objects. A Norm expression is first grounded to f
 then infers the probability of these objects. Norm is a 3-valued logic where na denotes the unknown objects. 
 In many cases, variable can take `na` objects.
 
-### Type of variables
+##### Type of variables
 Every variable has a type which restricts the set of objects to select from. For example, name of Patient is a String. 
 This implies that any string can be a person’s name. We use the symbol “:” to denote the isa relationship between a 
 variable and a type.
 
-### Scope of variables
+##### Scope of variables
 A variable can belong to a type or another variable. For example,
 
     Patient.name;
@@ -171,8 +171,47 @@ At last, a new type can be defined by removing the quantifiers.
 ![factor graph](docs/_static/encapsulate_factor_graph.jpg)
 
 This practice is called encapsulation which is a similar concept in Object Oriented Programming (OOP). 
-Encapsulation not only modularizes the logic expression to reduce the overall code complexity, but it also factors out 
-a lemma from the world. Other logic expressions can sign up the lemma without re-proving it. The more logic expressions 
-depend on this lemma, the higher impact it is. These high impact in-domain or cross-domain lemmas will be the value of 
-proposition. Lemmas can be invented by human experts and verified against data, or by machine intelligence and verified
-by human experts. An effective and efficient interactive lemma invention is the key to facilitate the expert system.
+Encapsulation not only modularizes the logic expression to reduce the overall code complexity, but it also 
+factors out a lemma from the world. Other logic expressions can sign up the lemma without re-proving it. 
+The more logic expressions depend on this lemma, the higher impact it is. These high impact in-domain or 
+cross-domain lemmas will be the value of proposition. Inventing new lemmas from data is the task known as inductive 
+logic programming (ILP). ILP facilitates the machine initiated collaboration that can help discover hidden relations in
+ the world that are overlooked by human experts.
+
+###Relaxation
+Logic expressions are often strict, a.k.a., ‘hard’. These hard rules can be difficult to generalize. Sometimes 
+they are precise, but fail to cover many cases. Sometimes they are brittle and sensitive to the changes of values. 
+The relaxation softens the hard rules through parameterization which can be optimized by machine learning algorithms.
+ Parameterization creates a family of logical relations among objects. The process of fitting searches for the best 
+ value of these parameters with respect to an objective, e.g., the expected accuracy. Sophisticated controls involve 
+ fine-tune cross-validation or calibration hyper-parameters, but people can rely on automatic machine learning (AutoML) 
+ algorithms to obtain the most generalizable parameters. 
+ 
+    ChildNoSmoke(p: Patient, r: String, th: Integer parameter(10)) 
+          := p.age < th => r !~ 'smoke';
+    History.fit();
+
+The above example sets the age threshold as a parameter initialized to 10. Fitting uses witnessed data of the patient’s 
+medical history to minimize the mis-matches between *_prob* and *_label*. 
+
+Not only explicit threshold parameters can be relaxed, relations can be parameterized too. 
+For example,
+
+    // Relax ~ to a glove based similarity operator
+    ChildNoSmoke.relax(~, ~$glove);
+    // Simply relax ~ to any implementation
+    ChildNoSmoke.relax(~);
+
+Here, the ‘like’ operator is replaced with a glove based similarity relation which contains pre-trained parameters. 
+Glove word2vec allows us to compare ‘smoke’ and ‘tobacco’ without enumerating the semantics. However, not all 
+pre-trained parameters generalize to the existing domain. The fitting process adapts these pre-trained parameters 
+accordingly to improve the generalizability. 
+
+Moreover, Norm implements a graph attention layer to relax the generic logical operators like ‘or’, ‘and’, and ‘imp’. 
+The entire logic program can be compiled to a giant neural network that is trained end-to-end. 
+
+Relaxation enables human initiated collaboration that human experts provide knowledge like physical laws or common sense
+ as parameterized relations, while machines optimize these parameters with respect to a specific task. 
+
+Both human and machine initiated collaborations are important for human experts to model the domain. The more efficient 
+learning algorithms, the more effective collaborations. 
