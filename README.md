@@ -178,7 +178,7 @@ cross-domain lemmas will be the value of proposition. Inventing new lemmas from 
 logic programming (ILP). ILP facilitates the machine initiated collaboration that can help discover hidden relations in
  the world that are overlooked by human experts.
 
-###Relaxation
+### Relaxation
 Logic expressions are often strict, a.k.a., ‘hard’. These hard rules can be difficult to generalize. Sometimes 
 they are precise, but fail to cover many cases. Sometimes they are brittle and sensitive to the changes of values. 
 The relaxation softens the hard rules through parameterization which can be optimized by machine learning algorithms.
