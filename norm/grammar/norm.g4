@@ -28,8 +28,8 @@
 grammar norm;
 
 script
-    : statement SEMICOLON
-    ( statement SEMICOLON )* EOF;
+    : statement EMPTYLINE
+    ( statement EMPTYLINE )* EOF;
 
 statement
     : command
@@ -54,11 +54,9 @@ qualifiedName
     | validName ( DOT qualifiedName )*
     ;
 
-version: UUID | LATEST | BEST;
-
 type
     : qualifiedName
-    | qualifiedName version
+    | qualifiedName VERSION
     ;
 
 listType
@@ -200,7 +198,6 @@ constant
     | integer_c
     | float_c
     | string_c
-    | uuid
     | datetime
     | measurement
     | constant ( COMMA constant )+
@@ -213,7 +210,6 @@ bool_c:      BOOLEAN;
 integer_c:   INTEGER;
 float_c:     FLOAT;
 string_c:    STRING;
-uuid:        UUID;
 datetime:    DATETIME;
 measurement: ( integer_c | float_c ) NAME;
 
@@ -257,6 +253,8 @@ ASC: A S C;
 
 SINGLELINE: '//' ~[\r\n]* [\r\n]* -> channel(HIDDEN);
 MULTILINE: '/*' (.)*? '*/' [\r\n]* -> channel(HIDDEN);
+
+EMPTYLINE: [\r\n][\r\n]+;
 
 WS: [ \t\u000B\u000C\r\n]+ -> channel(HIDDEN);
 
@@ -310,14 +308,12 @@ ANDDEF: AND '=';
 RORDEF: '||=';
 RANDDEF: '&&=';
 
-BOOLEAN:    T R U E | F A L S E;
-INTEGER:    [-]? DIGIT+;
-FLOAT:      [-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
-STRING:     '"' ( ~["] )*? '"' | '\'' ( ~['] )*? '\'' ;
-UUID:      '$' [0-9a-zA-Z-]*;
+BOOLEAN:   T R U E | F A L S E;
+INTEGER:   [-]? DIGIT+;
+FLOAT:     [-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
+STRING:    '"' ( ~["] )*? '"' | '\'' ( ~['] )*? '\'' ;
+VERSION:   '$' [0-9a-zA-Z-]*;
 DATETIME:  't' STRING;
-LATEST:    '$' L A T E S T;
-BEST:      '$' B E S T;
 
 CODE_BLOCK_BEGIN: '{{' | PYTHON_BEGIN;
 CODE_BLOCK_END: '}}' | PYTHON_END;
