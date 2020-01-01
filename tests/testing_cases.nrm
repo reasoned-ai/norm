@@ -1,0 +1,199 @@
+
+"""
+Type Declaration
+"""
+
+# Declare relation
+test(a:String, b:Integer)
+
+# Declare function
+test(a: String) -> Integer
+
+test(a: String) -> (b: Integer)
+
+test(a: Person) -> (b: Page, c: Topic)
+
+test(a: Person) -> (Page, Topic)
+
+# Declare a higher order relation
+summary(a: [String]) -> String
+
+# Declare inheritance
+Person(first_name: String,
+       last_name: String,
+       birth_day: DateTime,
+       gender: Gender)
+
+Person:: (first_name: String,
+          last_name: String,
+          birth_day: DateTime,
+          gender: Gender)
+
+atomic Fast (time_to_finish: Time) := time_to_finish < 10 min
+
+Language := Javascript | Python | Java
+
+programmer:: Person Fast (languages: [Language])
+
+"""
+Import Export
+"""
+
+# Export type
+export test$AWeq23 as tt to norm.test
+
+# Import type
+import norm.test.test$AWeq23 as tt
+
+from norm.test import test$AWeq23
+
+"""
+Add/Update data
+"""
+
+# constant construction (similar to type construction)
+test := 'sfs', 4 -> 6
+      | 'fff', 1 -> 7
+
+# evaluation construction
+test('aa', 6) == 9
+
+# overwrite data
+test &= 'sfs', 4 -> 9
+
+# delete data
+test &= !('sfs', 4)
+
+"""
+Python Code
+"""
+
+# bind a python code
+utcnow := {
+    from datetime import datetime
+    return datetime.utcnow
+}
+
+
+test &= u2 = utcnow()
+
+test(a: Integer) := { pandas.read_csv("sfsfsf.csv") }
+
+test |= { pandas.read_csv("sfsfsf.csv") }
+
+"""
+Evaluation
+"""
+
+# create a default object
+test()
+
+# create an object
+test('aa', 6)
+
+# same as the above
+test('aa', b=6)
+
+# query the data where b=6
+test(b=6)?
+
+# same as the above
+test(b==6)?
+
+# query all data
+test?
+
+# retrieve the default object
+test()?
+
+# query for a in all data
+test(a?)
+
+# query for a and b in all data
+test(a?, b?)
+
+# query for b in case a='sfs'
+test(a='sfs', b?)
+
+test(a like 's'?, b > 3)
+
+"""
+Access
+"""
+
+# namespace
+academic.spider.actor.name
+
+# subtypes
+measurement.distance
+
+# evaluation
+"sfsfs".test.b == test("sfsfs", b?)
+
+test.mean == mean(test?)
+
+
+"""
+Assignment
+"""
+
+# right to left language
+test_a, test_b = test(a like 's'?, b > 3)
+
+# left to right language
+test(a like 's'?, b > 3) as test_a, test_b
+
+# dynamic variables (pivoting)
+p = ['s', 'sf', 'aa'] & extract(test.a, p) as f'pattern_{p}'
+
+"""
+Draw Distribution
+"""
+test := a ~ gaussian(mu=2, gamma=0.1)
+
+"""
+Sorting
+"""
+test? & a.desc & b.asc
+
+"""
+Quantified Logic
+"""
+for a, b in test:
+     a.mean as a_mean
+   & a.max  as a_max
+   & b.mean as b_mean
+
+for each b in test:
+  exist a in test:
+    a.sum > 3
+
+# Mixed aggregation and regular conditions
+test.a.mean as a_mean &
+for b in test:
+  exist a in test:
+    a > a_mean
+
+test.a.mean as a_mean & test.a.std as a_std &
+for a in test:
+    abs(a - a_mean) < 2 * a_std
+
+"""
+Slicing
+"""
+test[1]
+
+test[3:7]
+
+test[:9]
+
+test[2:9:2]
+
+test[:-2]
+
+
+"""
+Time Windowing
+"""
+moving_average = test.rolling(10m).mean
+

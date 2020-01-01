@@ -27,119 +27,113 @@
  */
 grammar norm;
 
-script
-    : statement EMPTYLINE
-    ( statement EMPTYLINE )* EOF;
+canon: full_statement ( EMPTYLINES full_statement )* EMPTYLINES* EOF;
+
+full_statement
+    : comments
+    | statement
+    | comments statement
+    ;
+
+comments
+    : SINGLELINE+
+    | MULTILINE
+    ;
 
 statement
-    : command
+    : typeImport
+    | typeExport
     | typeDeclaration
     | typeDefinition
-    | typeExport
-    | expr
+    | compoundExpr
     ;
 
-command: COMMAND expr;
-
-validName: NAME | COMMAND | VAR_PROPERTY | THIS | THAT | UNICODE_NAME;
-
-typeExport
-    : EXPORT type
-    | EXPORT type TO qualifiedName
-    | EXPORT type TO qualifiedName AS validName
-    ;
+validName: NAME | UNICODE_NAME;
 
 qualifiedName
     : validName
-    | validName ( DOT qualifiedName )*
+    | qualifiedName DOT validName
+    | qualifiedName VERSION
     ;
 
 type
     : qualifiedName
-    | qualifiedName VERSION
-    ;
-
-listType
-    : LSBR type RSBR
+    | LSBR type RSBR
     ;
 
 variable
-    : qualifiedName
-    | unquoteVariable
+    : validName
+    | FORMATTED
+    | FORMATTEDRAW
     ;
 
-unquoteVariable
-    : LCBR variable RCBR
-    | qualifiedName LCBR variable RCBR
-    | qualifiedName LCBR variable RCBR unquoteVariable*
+property: validName;
+
+names: qualifiedName (AS variable)? ( COMMA qualifiedName (AS variable)? )* COMMA?;
+
+typeImport
+    : IMPORT names
+    | IMPORT names FROM qualifiedName
+    | FROM qualifiedName IMPORT names
     ;
 
-property
-    : VAR_PROPERTY
-    | VAR_PROPERTY ( LBR constant RBR )
+typeExport
+    : EXPORT names
+    | EXPORT names TO qualifiedName
+    | TO qualifiedName EXPORT names
     ;
 
 variableDeclaration
-    : validName ISA ( type | listType )  property*
-    | validName ISA property*
+    : validName
+    | validName COLON type property*
+    | variableDeclaration IS constant
     ;
 
-inheritanceDeclaration
-    : INHERIT type type*
+inputDeclaration
+    : LBR RBR
+    | LBR variableDeclaration ( COMMA variableDeclaration )* COMMA? RBR
     ;
+
+outputDeclaration
+    : type
+    | LBR type ( COMMA type )* COMMA? RBR
+    | LBR variableDeclaration ( COMMA variableDeclaration )* COMMA? RBR
+    ;
+
+inheritanceDeclaration: INHERIT type*;
 
 typeDeclaration
-    : type LBR variableDeclaration ( COMMA variableDeclaration )* RBR
-    | type inheritanceDeclaration LBR variableDeclaration ( COMMA variableDeclaration )* RBR
-    | type inheritanceDeclaration
+    : ATOMIC? qualifiedName inheritanceDeclaration
+    | ATOMIC? qualifiedName inheritanceDeclaration? MAPTO outputDeclaration
+    | ATOMIC? qualifiedName inheritanceDeclaration? inputDeclaration ( MAPTO outputDeclaration )?
     ;
 
 typeDefinition
-    : typeDeclaration DEF expr
-    | type DEF expr
-    | type ORDEF expr
-    | type ANDDEF expr
-    | type RORDEF expr
-    | type RANDDEF expr
+    : type definitionOperator compoundExpr
+    | typeDeclaration definitionOperator compoundExpr
     ;
 
-projection
-    : QUERY
-    | QUERY INTEGER
-    | QUERY variable
-    | QUERY LBR variable ( COMMA variable )* RBR
+argumentExpr
+    : comparisonExpr
+    | validName IS arithmeticExpr
+    | argumentExpr QUERY
     ;
 
-positionalArgumentExpr
-    : projection
-    | expr projection?
+argumentExprs: LBR argumentExpr ( COMMA argumentExpr )* COMMA? RBR;
+
+queryExpr
+    : type ( LBR RBR )? QUERY?
+    | type argumentExprs QUERY?
     ;
 
-keywordArgumentExpr
-    : validName projection
-    | validName IS expr projection?
-    ;
-
-argumentExprs
-    : LBR RBR
-    | LBR positionalArgumentExpr ( COMMA positionalArgumentExpr )* RBR
-    | LBR keywordArgumentExpr ( COMMA keywordArgumentExpr )* RBR
-    | LBR positionalArgumentExpr ( COMMA positionalArgumentExpr )* COMMA
-          keywordArgumentExpr ( COMMA keywordArgumentExpr )* RBR
-    | argumentExprs projection
-    ;
-
-code: ~( CODE_BLOCK_BEGIN | CODE_BLOCK_END )*;
-
-codeExpr: CODE_BLOCK_BEGIN code CODE_BLOCK_END;
+range: scalar? COLON ( scalar ( COLON scalar )? )?;
 
 evaluationExpr
     : constant
-    | codeExpr
-    | variable
-    | type
-    | type argumentExprs
-    | evaluationExpr LSBR integer_c? DOTDOT? integer_c? RSBR
+    | range
+    | validName
+    | queryExpr
+    | evaluationExpr LSBR simpleExpr RSBR
     | evaluationExpr DOT evaluationExpr
     ;
 
@@ -147,146 +141,120 @@ arithmeticExpr
     : evaluationExpr
     | LBR arithmeticExpr RBR
     | MINUS arithmeticExpr
-    | arithmeticExpr ( MOD | EXP ) arithmeticExpr
+    | arithmeticExpr EXP  arithmeticExpr
+    | arithmeticExpr MOD arithmeticExpr
     | arithmeticExpr ( TIMES | DIVIDE ) arithmeticExpr
     | arithmeticExpr ( PLUS | MINUS ) arithmeticExpr
     ;
 
-conditionExpr
+comparisonExpr
     : arithmeticExpr
-    | arithmeticExpr conditionalRelation arithmeticExpr
+    | arithmeticExpr comparisonOperator arithmeticExpr
     ;
 
-domainVariables : qualifiedName (COMMA qualifiedName)*;
-
-domain
-    : domainVariables
-    | domainVariables IN expr
-    | qualifiedName ISA type
+simpleExpr
+    : comparisonExpr
+    | LBR simpleExpr RBR
+    | NOT simpleExpr
+    | simpleExpr logicalOperator simpleExpr
     ;
 
-quantifier
-    : FORANY domain
-    | EXIST domain
+codeExpr
+    : LCBR ~('\r\n')* RCBR
+    | CODE_BLOCK_BEGIN ~( CODE_BLOCK_BEGIN | CODE_BLOCK_END )* CODE_BLOCK_END
     ;
 
-quantifiedExpr: quantifier ( COMMA quantifier )* COMMA expr;
+returnExpr: RETURN simpleExpr ( COMMA simpleExpr )* COMMA?;
 
-scope
-    : WITH type
-    | WITH type AS validName
-    | WITH validName FROM type
-    ;
-
-scopedExpr: scope COMMA expr;
-
-expr
-    : conditionExpr
-    | variableDeclaration
-    | inheritanceDeclaration
-    | quantifiedExpr
-    | scopedExpr
-    | NOT expr
-    | expr projection
-    | LBR expr RBR
-    | expr logicalRelation expr
+compoundExpr
+    : simpleExpr
+    | codeExpr
+    | returnExpr
+    | quantifier names IN simpleExpr COLON compoundExpr
+    | variable ( COMMA variable )* DRAW compoundExpr
+    | variable ( COMMA variable )* IS compoundExpr
+    | compoundExpr AS variable ( COMMA variable )*
+    | LBR compoundExpr RBR
+    | NOT compoundExpr
+    | compoundExpr logicalOperator compoundExpr
     ;
 
 constant
-    : none
-    | bool_c
-    | integer_c
-    | float_c
-    | string_c
-    | datetime
-    | measurement
-    | constant ( COMMA constant )+
-    | LBR constant ( COMMA constant )* RBR
-    | LSBR constant ( COMMA constant )* RSBR
+    : NONE
+    | BOOLEAN
+    | string
+    | scalar
+    | constant ( COMMA constant )+ COMMA?
+    | LBR constant ( COMMA constant )* COMMA? RBR
+    | LSBR constant ( COMMA constant )* COMMA? RSBR
+    | constant MAPTO constant
     ;
 
-none:        NONE;
-bool_c:      BOOLEAN;
-integer_c:   INTEGER;
-float_c:     FLOAT;
-string_c:    STRING;
-datetime:    DATETIME;
-measurement: ( integer_c | float_c ) NAME;
+measurement: ( INTEGER | FLOAT ) ( NAME | UNICODE_NAME );
 
-logicalRelation: AND | OR | XOR | IMP | EQV;
+scalar: INTEGER | FLOAT | DATETIME | measurement;
 
-conditionalRelation: EQ | NE | IN | NI | LT | LE | GT | GE | LK | NK;
+string: STRING | RAW | FORMATTED | FORMATTEDRAW;
 
-WITH: W I T H;
+definitionOperator: DEF | ANDDEF | ORDEF | RANDDEF | RORDEF;
+
+logicalOperator: AND | OR | XOR | IMP | EPT | ULS | OTW;
+
+comparisonOperator: EQ | NE | IN | NI | LT | LE | GT | GE | LK | NK;
+
+quantifier: EXIST | NEXIST | FORANY;
+
 EXIST: E X I S T | E X I S T S;
-FORANY: F O R ( A L L | E A C H | A N Y | E V E R Y )?;
+NEXIST: N O T [ \t]* ( E X I S T | E X I S T S );
+FORANY: F O R [ \t]* ( A L L | E A C H | A N Y | E V E R Y )?;
 
-THIS: T H I S;
-THAT: T H A T;
-
+IMPORT: I M P O R T;
+EXPORT: E X P O R T;
 TO: T O;
 FROM: F R O M;
 AS: A S;
 
-COMMAND: HISTORY | UNDO | REDO | DELETE | DESCRIBE | FIT | ANCHOR;
+SINGLELINE: '#' ~[\r\n]*;
+MULTILINE: ( '"""' | '\'\'\'')  [\r\n]+ (.)*? ( '"""' | '\'\'\'');
 
-HISTORY: H I S T O R Y;
-UNDO: U N D O;
-REDO: R E D O;
-DELETE: D E L E T E;
-ANCHOR: A N C H O R;
-DESCRIBE: D E S C R I B E;
-FIT: F I T;
-EXPORT: E X P O R T;
+RETURN: R E T U R N;
 
-VAR_PROPERTY:  OPTIONAL | PRIMARY | OID | TIME | PARAMETER | STATE | OUTPUT | DESC| ASC;
+ATOMIC: A T O M I C;
 
-OUTPUT: O U T P U T;
-OPTIONAL: O P T I O N A L;
-PRIMARY: P R I M A R Y;
-OID: O I D;
-TIME: T I M E;
-PARAMETER: P A R A M E T E R;
-STATE: S T A T E;
-DESC: D E S C;
-ASC: A S C;
-
-SINGLELINE: '//' ~[\r\n]* [\r\n]* -> channel(HIDDEN);
-MULTILINE: '/*' (.)*? '*/' [\r\n]* -> channel(HIDDEN);
-
-EMPTYLINE: [\r\n][\r\n]+;
+EMPTYLINES: [ \t]* [\r\n] ( [ \t]* [\r\n] )+ [ \t]*;
 
 WS: [ \t\u000B\u000C\r\n]+ -> channel(HIDDEN);
 
 LBR: '(';
 RBR: ')';
 
-LCBR: '{';
-RCBR: '}';
-
 LSBR: '[';
 RSBR: ']';
 
+LCBR: '{';
+RCBR: '}';
+
+MAPTO:     '->';
+
 NONE:      N O N E | N U L L | N A;
-IS:        I S | '=';
+DRAW:      '~';
+IS:        '=';
 QUERY:     '?';
-ISA:       I S A | ':';
+COLON:     ':';
 INHERIT:   '::';
-SEMICOLON: ';';
 COMMA:     ',';
 DOT:       '.';
-DOTDOT:    '..';
 
 IN:        I N;
-NI:        '!' I N | N I N;
-EQ:        '==' | E Q;
-NE:        '!=' | N E Q;
-GE:        '>=' | G E;
-LE:        '<=' | L E;
-GT:        '>' | G T;
-LT:        '<' | L T;
-LK:        '~' | L I K E;
-NK:        '!~' | N L I K E;
+NI:        NOT [ \t]* IN;
+EQ:        '==';
+NE:        '!=';
+GE:        '>=';
+LE:        '<=';
+GT:        '>';
+LT:        '<';
+LK:        L I K E;
+NK:        NOT [ \t]* LK;
 
 MINUS:     '-';
 PLUS:      '+';
@@ -299,12 +267,14 @@ NOT:       '!'   | N O T;
 AND:       '&'   | A N D;
 OR:        '|'   | O R;
 XOR:       '^'   | X O R;
-IMP:       '=>'  | I M P;
-EQV:       '<=>' | E Q V;
+IMP:       '=>'  | I M P L Y;
+EPT:       E X C E P T;
+ULS:       U N L E S S;
+OTW:       O T H E R W I S E;
 
 DEF: ':=';
-ORDEF: OR '=';
-ANDDEF: AND '=';
+ORDEF: '|=';
+ANDDEF: '&=';
 RORDEF: '||=';
 RANDDEF: '&&=';
 
@@ -312,22 +282,32 @@ BOOLEAN:   T R U E | F A L S E;
 INTEGER:   [-]? DIGIT+;
 FLOAT:     [-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
 STRING:    '"' ( ~["] )*? '"' | '\'' ( ~['] )*? '\'' ;
-VERSION:   '$' [0-9a-zA-Z-]*;
 DATETIME:  't' STRING;
+RAW:       'r' STRING;
+FORMATTED: 'f' STRING;
+FORMATTEDRAW: ( 'fr' | 'rf' ) STRING;
+VERSION:   '$' [0-9a-zA-Z-]*;
 
-CODE_BLOCK_BEGIN: '{{' | PYTHON_BEGIN;
-CODE_BLOCK_END: '}}' | PYTHON_END;
+CODE_BLOCK_BEGIN: SQL_BEGIN | PYTHON_BEGIN;
+CODE_BLOCK_END: SQL_END | PYTHON_END;
+
+SQL_BEGIN: '{sql';
+SQL_END: 'sql}';
 
 PYTHON_BEGIN: '{python' | '{py';
 PYTHON_END: 'python}' | 'py}';
 
 NAME: CHAR CHARDIGIT*;
-UNICODE_NAME : [\p{Alpha}\p{General_Category=Other_Letter}] [\p{Alnum}\p{General_Category=Other_Letter}]*;
+UNICODE_NAME
+    : [\p{Alpha}\p{General_Category=Other_Letter}] [\p{Alnum}\p{General_Category=Other_Letter}]*
+    | COMMON_UNICODE+
+    ;
 
 fragment CHARDIGIT: CHAR | DIGIT;
 fragment CHAR:    [a-zA-Z_];
 fragment DIGIT:   [0] | NONZERO;
 fragment NONZERO: [1-9];
+fragment COMMON_UNICODE: '\u00a1'..'\ud7ff';
 
 fragment A : [aA];
 fragment B : [bB];

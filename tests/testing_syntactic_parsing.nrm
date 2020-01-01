@@ -1,0 +1,19 @@
+Article:: String := 'the' | 'a'
+
+Verb:: String := 'see' | 'go to'
+
+Noun:: String := 'New York' | 'I'
+
+Adj:: String := 'beautiful'
+
+Parsable(partial: String, left: String, right: String) := left, right = Split(partial)
+
+VP:: Parsable -> (Verb, NP) := return Verb(left)?, NP(right)?
+
+NNP:: Parsable -> (Adj, Noun) := return Adj(left)?, Noun(right)?
+
+NP:: Parsable -> (Article, NNP) := return Article(left)?, NNP(right)?
+
+Sentence:: Parsable -> (NP, VP) := return NP(left)?, VP(right)?
+
+Sentence('I see the beautiful New York')

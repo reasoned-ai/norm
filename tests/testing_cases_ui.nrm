@@ -1,0 +1,11 @@
+Template(model: Model, user: User)
+ |= model.isa(DetectObject)
+ &  stream = Choose(Stream(org==user.org))
+ &  locations = Choose(Stream.location.unique)
+ &  frames = stream(location in locations, frame?)
+ &  objects = model(frames)
+ &  for each frame in frames:
+      mean_confidence = objects.mean
+ &  bottom(5, mean_confidence)
+ &  Tabular(frames)
+

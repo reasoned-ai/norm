@@ -5,7 +5,7 @@ from tests.utils import NormTestCase
 class ContextTestCase(NormTestCase):
     def test_with_context(self):
         self.execute("tmp := read('./data/norm/packed_alarms.parquet', ext='parq');")
-        results = self.execute("with(tmp), event~'Unix' & tally > 3;")
+        results = self.execute("with(tmp), event like 'Unix' & tally > 3;")
         self.assertTrue(results is not None)
         self.assertTrue(len(results) > 1)
 
