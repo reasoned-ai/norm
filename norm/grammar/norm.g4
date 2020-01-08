@@ -1,6 +1,6 @@
 grammar norm;
 
-canon: full_statement ( EMPTYLINES full_statement )* EMPTYLINES* EOF;
+module: full_statement ( EMPTYLINES full_statement )* EMPTYLINES* EOF;
 
 full_statement
     : comments
@@ -26,12 +26,12 @@ validName: NAME | UNICODE_NAME;
 qualifiedName
     : validName
     | qualifiedName DOT validName
-    | qualifiedName VERSION
+    | qualifiedName UUID
     ;
 
-type
+type_
     : qualifiedName
-    | LSBR type RSBR
+    | LSBR type_ RSBR
     ;
 
 variable
@@ -39,8 +39,6 @@ variable
     | FORMATTED
     | FORMATTEDRAW
     ;
-
-property: validName;
 
 names: qualifiedName (AS variable)? ( COMMA qualifiedName (AS variable)? )* COMMA?;
 
@@ -58,7 +56,7 @@ typeExport
 
 variableDeclaration
     : validName
-    | validName COLON type property*
+    | validName COLON type_ validName*
     | variableDeclaration IS constant
     ;
 
@@ -68,12 +66,12 @@ inputDeclaration
     ;
 
 outputDeclaration
-    : type
-    | LBR type ( COMMA type )* COMMA? RBR
+    : type_
+    | LBR type_ ( COMMA type_ )* COMMA? RBR
     | LBR variableDeclaration ( COMMA variableDeclaration )* COMMA? RBR
     ;
 
-inheritanceDeclaration: INHERIT type*;
+inheritanceDeclaration: INHERIT type_*;
 
 typeDeclaration
     : ATOMIC? qualifiedName inheritanceDeclaration
@@ -82,7 +80,7 @@ typeDeclaration
     ;
 
 typeDefinition
-    : type definitionOperator compoundExpr
+    : type_ definitionOperator compoundExpr
     | typeDeclaration definitionOperator compoundExpr
     ;
 
@@ -95,15 +93,15 @@ argumentExpr
 argumentExprs: LBR argumentExpr ( COMMA argumentExpr )* COMMA? RBR;
 
 queryExpr
-    : type ( LBR RBR )? QUERY?
-    | type argumentExprs QUERY?
+    : type_ ( LBR RBR )? QUERY?
+    | type_ argumentExprs QUERY?
     ;
 
-range: scalar? COLON ( scalar ( COLON scalar )? )?;
+range_: scalar? COLON ( scalar ( COLON scalar )? )?;
 
 evaluationExpr
     : constant
-    | range
+    | range_
     | validName
     | queryExpr
     | evaluationExpr LSBR simpleExpr RSBR
@@ -165,7 +163,7 @@ constant
 
 measurement: ( INTEGER | FLOAT ) ( NAME | UNICODE_NAME );
 
-scalar: INTEGER | FLOAT | DATETIME | measurement;
+scalar: INTEGER | FLOAT | DATETIME | UUID | measurement;
 
 string: STRING | RAW | FORMATTED | FORMATTEDRAW;
 
@@ -255,11 +253,11 @@ BOOLEAN:   T R U E | F A L S E;
 INTEGER:   [-]? DIGIT+;
 FLOAT:     [-]? DIGIT+ DOT DIGIT+ ('e' [+-]? DIGIT+)?;
 STRING:    '"' ( ~["] )*? '"' | '\'' ( ~['] )*? '\'' ;
-DATETIME:  't' STRING;
 RAW:       'r' STRING;
 FORMATTED: 'f' STRING;
 FORMATTEDRAW: ( 'fr' | 'rf' ) STRING;
-VERSION:   '$' [0-9a-zA-Z-]*;
+DATETIME:  't' [0-9/-]* ([ T] [0-9:]* ('.' [0-9]+)* ('-' [0-9:]+)*)* | 't' FLOAT;
+UUID:   '$' [0-9a-zA-Z-]*;
 
 CODE_BLOCK_BEGIN: SQL_BEGIN | PYTHON_BEGIN;
 CODE_BLOCK_END: SQL_END | PYTHON_END;

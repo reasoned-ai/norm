@@ -1,8 +1,8 @@
 """A collection of ORM sqlalchemy models for NativeLambda"""
-from pandas import Series, to_timedelta
+import traceback
 
-from norm.models import Register
-from norm.models.norm import Lambda, Variable, Status
+from norm.models import store
+from norm.models.norm import Lambda, Variable
 
 from datetime import datetime
 import numpy as np
@@ -15,50 +15,41 @@ class NativeLambda(Lambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native'
     }
-    NAMESPACE = 'norm.native'
 
-    def __init__(self, name, description, variables, dtype='object'):
-        super().__init__(namespace=self.NAMESPACE,
+    def __init__(self, name, description, bindings=None, dtype='object'):
+        super().__init__(module=store.norm.native.latest,
                          name=name,
                          description=description,
-                         variables=variables,
-                         dtype=dtype)
-        self.status = Status.READY
+                         bindings=bindings)
         self.atomic = True
+        self.dtype = dtype
 
     def empty_data(self):
         return None
 
 
-@Register()
-class TypeLambda(NativeLambda):
-    __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_type'
-    }
+class _register(object):
+    types = []
 
-    def __init__(self):
-        super().__init__(name='Type',
-                         description='A logical type',
-                         variables=[])
+    def __call__(self, cls):
+        self.types.append(cls)
+        return cls
 
-
-@Register()
-class AnyLambda(NativeLambda):
-    __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_any'
-    }
-
-    def __init__(self):
-        super().__init__(name='Any',
-                         description='Any type',
-                         variables=[])
-
-    def convert(self, data):
-        return data
-
-    @property
-    def default(self):
-        return None
+    @classmethod
+    def register(cls):
+        from norm.config import session
+        for clz in cls.types:
+            instance = clz()
+            in_store = session.query(NativeLambda).filter(NativeLambda.name == instance.name)
+            if not in_store:
+                logger.info('Registering class {}'.format(instance.name))
+                session.add(instance)
+        try:
+            session.commit()
+        except:
+            logger.error('Type registration failed')
+            logger.debug(traceback.print_exc())
+            session.rollback()
 
 
 class ListLambda(NativeLambda):
@@ -72,17 +63,45 @@ class ListLambda(NativeLambda):
         :param type_: the intern type of the list
         :type type_: Lambda
         """
-        variable = Variable(self.INTERN, type_)
-        super().__init__(name='List[{}]'.format(type_.signature),
-                         description='A list of a certain type',
-                         variables=[variable])
+        super().__init__(name='[{}]'.format(type_.signature),
+                         description='Type of a type, either an type object that produces a list of objects, '
+                                     'or just a list of objects',
+                         bindings=[Variable(self.INTERN, type_)])
 
     @property
     def default(self):
         return []
 
 
-@Register()
+@_register()
+class TypeLambda(NativeLambda):
+    __mapper_args__ = {
+        'polymorphic_identity': 'lambda_native_type'
+    }
+
+    def __init__(self):
+        super().__init__(name='Type', description='The generic higher order type')
+
+    @property
+    def default(self):
+        return None
+
+
+@_register()
+class AnyLambda(NativeLambda):
+    __mapper_args__ = {
+        'polymorphic_identity': 'lambda_native_any'
+    }
+
+    def __init__(self):
+        super().__init__(name='Any', description='The generic type')
+
+    @property
+    def default(self):
+        return None
+
+
+@_register()
 class BooleanLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_boolean'
@@ -91,7 +110,6 @@ class BooleanLambda(NativeLambda):
     def __init__(self):
         super().__init__(name='Boolean',
                          description='Boolean, true/false',
-                         variables=[],
                          dtype='bool')
 
     @property
@@ -99,7 +117,7 @@ class BooleanLambda(NativeLambda):
         return False
 
 
-@Register()
+@_register()
 class FloatLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_float'
@@ -107,8 +125,7 @@ class FloatLambda(NativeLambda):
 
     def __init__(self):
         super().__init__(name='Float',
-                         description='Integer, -inf..+inf',
-                         variables=[],
+                         description='float, -inf..+inf',
                          dtype='float64')
 
     @property
@@ -116,7 +133,7 @@ class FloatLambda(NativeLambda):
         return 0.0
 
 
-@Register()
+@_register()
 class IntegerLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_integer'
@@ -125,7 +142,6 @@ class IntegerLambda(NativeLambda):
     def __init__(self):
         super().__init__(name='Integer',
                          description='Integer, -inf..+inf',
-                         variables=[],
                          dtype='int64')
 
     @property
@@ -133,71 +149,35 @@ class IntegerLambda(NativeLambda):
         return 0
 
 
-@Register()
+@_register()
 class StringLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_string'
     }
 
     def __init__(self):
-        super().__init__(name='String',
-                         description='String, "blahbalh"',
-                         variables=[])
+        super().__init__(name='String', description='String, "blahbalh" or r"\\sfsfs" or f"sfsfs{a}"')
 
     @property
     def default(self):
         return ''
 
 
-@Register()
-class PatternLambda(NativeLambda):
-    __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_pattern'
-    }
-
-    def __init__(self):
-        super().__init__(name='Pattern',
-                         description='Pattern, p"^test[0-9]+"',
-                         variables=[])
-
-    @property
-    def default(self):
-        return ''
-
-
-@Register()
+@_register()
 class UUIDLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_uuid'
     }
 
     def __init__(self):
-        super().__init__(name='UUID',
-                         description='UUID, $"sfsfsfsf"',
-                         variables=[])
+        super().__init__(name='UUID', description='UUID, e.g., $12ffbaf')
 
     @property
     def default(self):
         return ''
 
 
-@Register()
-class URLLambda(NativeLambda):
-    __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_url'
-    }
-
-    def __init__(self):
-        super().__init__(name='URL',
-                         description='URL, l"http://example.com"',
-                         variables=[])
-
-    @property
-    def default(self):
-        return 'http://'
-
-
-@Register()
+@_register()
 class DatetimeLambda(NativeLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native_datetime'
@@ -205,8 +185,10 @@ class DatetimeLambda(NativeLambda):
 
     def __init__(self):
         super().__init__(name='Datetime',
-                         description='Datetime, t"2018-09-01 00:00:00"',
-                         variables=[],
+                         description='Datetime, any dateutils.parser allowed formats. timezone defaults to UTC'
+                                     't2018-09, t09/2018'
+                                     't12-24, t24/12'
+                                     't2019-07-11T02:03:12.2323-04:00',
                          dtype='datetime64[ns]')
 
     @property
@@ -214,27 +196,8 @@ class DatetimeLambda(NativeLambda):
         return np.datetime64(datetime.utcnow())
 
 
-@Register()
-class TimeLambda(NativeLambda):
-    __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_time'
-    }
-
-    def __init__(self):
-        super().__init__(name='Time',
-                         description='Time, t"13:01:00"',
-                         variables=[],
-                         dtype='timedelta64[ns]')
-
-    def convert(self, data):
-        if not isinstance(data, Series) or self.dtype == data.dtype:
-            return data
-
-        return to_timedelta(data.fillna(self.default))
-
-    @property
-    def default(self):
-        return np.timedelta64(0)
+def register_lambdas():
+    _register.register()
 
 
 def get_type_by_dtype(dtype):
@@ -245,10 +208,11 @@ def get_type_by_dtype(dtype):
     :return: the Lambda
     :rtype: Lambda
     """
-    from norm.models import lambdas
     if dtype.name.find('int') > -1:
-        return lambdas.Integer
+        return store.norm.native.Integer.latest
     elif dtype.name.find('float') > -1:
-        return lambdas.Float
+        return store.norm.native.Float.latest
+    elif dtype.name.find('datetime') > -1:
+        return store.norm.native.DateTime.latest
     else:
-        return lambdas.Any
+        return store.norm.native.Any.latest

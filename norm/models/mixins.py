@@ -1,8 +1,16 @@
-from sqlalchemy import Column, Integer, String, Text, exists, and_, TypeDecorator
+from datetime import datetime
+
+from sqlalchemy import Column, Integer, String, Text, exists, and_, TypeDecorator, ForeignKey, DateTime
 
 import json
 import logging
 import traceback
+
+from sqlalchemy.orm import relationship
+
+from norm.models.security import User
+from norm.utils import uuid_int
+
 logger = logging.getLogger(__name__)
 
 
@@ -215,6 +223,19 @@ class ParametrizedMixin(LazyMixin):
         self.invalidate(name)
         self.params = json.dumps(self.parameters)
         return self
+
+
+class AuditableMixin(object):
+    """
+    Basic columns
+    """
+    id = Column(Integer, primary_key=True, default=uuid_int)
+    name = Column(String(256), default='')
+    description = Column(Text, default='')
+    created_by_id = Column(Integer, ForeignKey(User.id))
+    owner = relationship(User, foreign_keys=[created_by_id])
+    created_on = Column(DateTime, default=datetime.utcnow)
+    changed_on = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class ARRAY(TypeDecorator):

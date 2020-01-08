@@ -1,15 +1,17 @@
 from sqlalchemy import Column, Integer, String, DateTime
+
 from norm.models import Model
+from norm.utils import uuid_int
 
 
 class User(Model):
     """
-    Partial declaration to be compatible to the server side
+    User
     """
 
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, default=uuid_int)
     first_name = Column(String(64), nullable=False)
     last_name = Column(String(64), nullable=False)
     username = Column(String(64), unique=True, nullable=False)

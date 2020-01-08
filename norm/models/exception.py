@@ -1,0 +1,3 @@
+class InvalidDeclaration(Exception):
+    pass
+

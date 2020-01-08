@@ -8,12 +8,30 @@ else:
 # This class defines a complete listener for a parse tree produced by normParser.
 class normListener(ParseTreeListener):
 
-    # Enter a parse tree produced by normParser#script.
-    def enterScript(self, ctx:normParser.ScriptContext):
+    # Enter a parse tree produced by normParser#module.
+    def enterModule(self, ctx:normParser.ModuleContext):
         pass
 
-    # Exit a parse tree produced by normParser#script.
-    def exitScript(self, ctx:normParser.ScriptContext):
+    # Exit a parse tree produced by normParser#module.
+    def exitModule(self, ctx:normParser.ModuleContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#full_statement.
+    def enterFull_statement(self, ctx:normParser.Full_statementContext):
+        pass
+
+    # Exit a parse tree produced by normParser#full_statement.
+    def exitFull_statement(self, ctx:normParser.Full_statementContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#comments.
+    def enterComments(self, ctx:normParser.CommentsContext):
+        pass
+
+    # Exit a parse tree produced by normParser#comments.
+    def exitComments(self, ctx:normParser.CommentsContext):
         pass
 
 
@@ -26,84 +44,30 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#exports.
-    def enterExports(self, ctx:normParser.ExportsContext):
+    # Enter a parse tree produced by normParser#validName.
+    def enterValidName(self, ctx:normParser.ValidNameContext):
         pass
 
-    # Exit a parse tree produced by normParser#exports.
-    def exitExports(self, ctx:normParser.ExportsContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#imports.
-    def enterImports(self, ctx:normParser.ImportsContext):
-        pass
-
-    # Exit a parse tree produced by normParser#imports.
-    def exitImports(self, ctx:normParser.ImportsContext):
+    # Exit a parse tree produced by normParser#validName.
+    def exitValidName(self, ctx:normParser.ValidNameContext):
         pass
 
 
-    # Enter a parse tree produced by normParser#commands.
-    def enterCommands(self, ctx:normParser.CommandsContext):
+    # Enter a parse tree produced by normParser#qualifiedName.
+    def enterQualifiedName(self, ctx:normParser.QualifiedNameContext):
         pass
 
-    # Exit a parse tree produced by normParser#commands.
-    def exitCommands(self, ctx:normParser.CommandsContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#scoped_variable.
-    def enterScoped_variable(self, ctx:normParser.Scoped_variableContext):
-        pass
-
-    # Exit a parse tree produced by normParser#scoped_variable.
-    def exitScoped_variable(self, ctx:normParser.Scoped_variableContext):
+    # Exit a parse tree produced by normParser#qualifiedName.
+    def exitQualifiedName(self, ctx:normParser.QualifiedNameContext):
         pass
 
 
-    # Enter a parse tree produced by normParser#scoped_variables.
-    def enterScoped_variables(self, ctx:normParser.Scoped_variablesContext):
+    # Enter a parse tree produced by normParser#type_.
+    def enterType_(self, ctx:normParser.Type_Context):
         pass
 
-    # Exit a parse tree produced by normParser#scoped_variables.
-    def exitScoped_variables(self, ctx:normParser.Scoped_variablesContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#context.
-    def enterContext(self, ctx:normParser.ContextContext):
-        pass
-
-    # Exit a parse tree produced by normParser#context.
-    def exitContext(self, ctx:normParser.ContextContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#contexts.
-    def enterContexts(self, ctx:normParser.ContextsContext):
-        pass
-
-    # Exit a parse tree produced by normParser#contexts.
-    def exitContexts(self, ctx:normParser.ContextsContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#typeName.
-    def enterTypeName(self, ctx:normParser.TypeNameContext):
-        pass
-
-    # Exit a parse tree produced by normParser#typeName.
-    def exitTypeName(self, ctx:normParser.TypeNameContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#unquote_variable.
-    def enterUnquote_variable(self, ctx:normParser.Unquote_variableContext):
-        pass
-
-    # Exit a parse tree produced by normParser#unquote_variable.
-    def exitUnquote_variable(self, ctx:normParser.Unquote_variableContext):
+    # Exit a parse tree produced by normParser#type_.
+    def exitType_(self, ctx:normParser.Type_Context):
         pass
 
 
@@ -116,48 +80,66 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#argumentProperty.
-    def enterArgumentProperty(self, ctx:normParser.ArgumentPropertyContext):
+    # Enter a parse tree produced by normParser#names.
+    def enterNames(self, ctx:normParser.NamesContext):
         pass
 
-    # Exit a parse tree produced by normParser#argumentProperty.
-    def exitArgumentProperty(self, ctx:normParser.ArgumentPropertyContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#argumentDeclaration.
-    def enterArgumentDeclaration(self, ctx:normParser.ArgumentDeclarationContext):
-        pass
-
-    # Exit a parse tree produced by normParser#argumentDeclaration.
-    def exitArgumentDeclaration(self, ctx:normParser.ArgumentDeclarationContext):
+    # Exit a parse tree produced by normParser#names.
+    def exitNames(self, ctx:normParser.NamesContext):
         pass
 
 
-    # Enter a parse tree produced by normParser#argumentDeclarations.
-    def enterArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
+    # Enter a parse tree produced by normParser#typeImport.
+    def enterTypeImport(self, ctx:normParser.TypeImportContext):
         pass
 
-    # Exit a parse tree produced by normParser#argumentDeclarations.
-    def exitArgumentDeclarations(self, ctx:normParser.ArgumentDeclarationsContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#rename.
-    def enterRename(self, ctx:normParser.RenameContext):
-        pass
-
-    # Exit a parse tree produced by normParser#rename.
-    def exitRename(self, ctx:normParser.RenameContext):
+    # Exit a parse tree produced by normParser#typeImport.
+    def exitTypeImport(self, ctx:normParser.TypeImportContext):
         pass
 
 
-    # Enter a parse tree produced by normParser#renames.
-    def enterRenames(self, ctx:normParser.RenamesContext):
+    # Enter a parse tree produced by normParser#typeExport.
+    def enterTypeExport(self, ctx:normParser.TypeExportContext):
         pass
 
-    # Exit a parse tree produced by normParser#renames.
-    def exitRenames(self, ctx:normParser.RenamesContext):
+    # Exit a parse tree produced by normParser#typeExport.
+    def exitTypeExport(self, ctx:normParser.TypeExportContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#variableDeclaration.
+    def enterVariableDeclaration(self, ctx:normParser.VariableDeclarationContext):
+        pass
+
+    # Exit a parse tree produced by normParser#variableDeclaration.
+    def exitVariableDeclaration(self, ctx:normParser.VariableDeclarationContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#inputDeclaration.
+    def enterInputDeclaration(self, ctx:normParser.InputDeclarationContext):
+        pass
+
+    # Exit a parse tree produced by normParser#inputDeclaration.
+    def exitInputDeclaration(self, ctx:normParser.InputDeclarationContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#outputDeclaration.
+    def enterOutputDeclaration(self, ctx:normParser.OutputDeclarationContext):
+        pass
+
+    # Exit a parse tree produced by normParser#outputDeclaration.
+    def exitOutputDeclaration(self, ctx:normParser.OutputDeclarationContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#inheritanceDeclaration.
+    def enterInheritanceDeclaration(self, ctx:normParser.InheritanceDeclarationContext):
+        pass
+
+    # Exit a parse tree produced by normParser#inheritanceDeclaration.
+    def exitInheritanceDeclaration(self, ctx:normParser.InheritanceDeclarationContext):
         pass
 
 
@@ -170,21 +152,111 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#version.
-    def enterVersion(self, ctx:normParser.VersionContext):
+    # Enter a parse tree produced by normParser#typeDefinition.
+    def enterTypeDefinition(self, ctx:normParser.TypeDefinitionContext):
         pass
 
-    # Exit a parse tree produced by normParser#version.
-    def exitVersion(self, ctx:normParser.VersionContext):
+    # Exit a parse tree produced by normParser#typeDefinition.
+    def exitTypeDefinition(self, ctx:normParser.TypeDefinitionContext):
         pass
 
 
-    # Enter a parse tree produced by normParser#projection.
-    def enterProjection(self, ctx:normParser.ProjectionContext):
+    # Enter a parse tree produced by normParser#argumentExpr.
+    def enterArgumentExpr(self, ctx:normParser.ArgumentExprContext):
         pass
 
-    # Exit a parse tree produced by normParser#projection.
-    def exitProjection(self, ctx:normParser.ProjectionContext):
+    # Exit a parse tree produced by normParser#argumentExpr.
+    def exitArgumentExpr(self, ctx:normParser.ArgumentExprContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#argumentExprs.
+    def enterArgumentExprs(self, ctx:normParser.ArgumentExprsContext):
+        pass
+
+    # Exit a parse tree produced by normParser#argumentExprs.
+    def exitArgumentExprs(self, ctx:normParser.ArgumentExprsContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#queryExpr.
+    def enterQueryExpr(self, ctx:normParser.QueryExprContext):
+        pass
+
+    # Exit a parse tree produced by normParser#queryExpr.
+    def exitQueryExpr(self, ctx:normParser.QueryExprContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#range_.
+    def enterRange_(self, ctx:normParser.Range_Context):
+        pass
+
+    # Exit a parse tree produced by normParser#range_.
+    def exitRange_(self, ctx:normParser.Range_Context):
+        pass
+
+
+    # Enter a parse tree produced by normParser#evaluationExpr.
+    def enterEvaluationExpr(self, ctx:normParser.EvaluationExprContext):
+        pass
+
+    # Exit a parse tree produced by normParser#evaluationExpr.
+    def exitEvaluationExpr(self, ctx:normParser.EvaluationExprContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#arithmeticExpr.
+    def enterArithmeticExpr(self, ctx:normParser.ArithmeticExprContext):
+        pass
+
+    # Exit a parse tree produced by normParser#arithmeticExpr.
+    def exitArithmeticExpr(self, ctx:normParser.ArithmeticExprContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#comparisonExpr.
+    def enterComparisonExpr(self, ctx:normParser.ComparisonExprContext):
+        pass
+
+    # Exit a parse tree produced by normParser#comparisonExpr.
+    def exitComparisonExpr(self, ctx:normParser.ComparisonExprContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#simpleExpr.
+    def enterSimpleExpr(self, ctx:normParser.SimpleExprContext):
+        pass
+
+    # Exit a parse tree produced by normParser#simpleExpr.
+    def exitSimpleExpr(self, ctx:normParser.SimpleExprContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#codeExpr.
+    def enterCodeExpr(self, ctx:normParser.CodeExprContext):
+        pass
+
+    # Exit a parse tree produced by normParser#codeExpr.
+    def exitCodeExpr(self, ctx:normParser.CodeExprContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#returnExpr.
+    def enterReturnExpr(self, ctx:normParser.ReturnExprContext):
+        pass
+
+    # Exit a parse tree produced by normParser#returnExpr.
+    def exitReturnExpr(self, ctx:normParser.ReturnExprContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#compoundExpr.
+    def enterCompoundExpr(self, ctx:normParser.CompoundExprContext):
+        pass
+
+    # Exit a parse tree produced by normParser#compoundExpr.
+    def exitCompoundExpr(self, ctx:normParser.CompoundExprContext):
         pass
 
 
@@ -197,165 +269,39 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#code.
-    def enterCode(self, ctx:normParser.CodeContext):
+    # Enter a parse tree produced by normParser#measurement.
+    def enterMeasurement(self, ctx:normParser.MeasurementContext):
         pass
 
-    # Exit a parse tree produced by normParser#code.
-    def exitCode(self, ctx:normParser.CodeContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#codeExpression.
-    def enterCodeExpression(self, ctx:normParser.CodeExpressionContext):
-        pass
-
-    # Exit a parse tree produced by normParser#codeExpression.
-    def exitCodeExpression(self, ctx:normParser.CodeExpressionContext):
+    # Exit a parse tree produced by normParser#measurement.
+    def exitMeasurement(self, ctx:normParser.MeasurementContext):
         pass
 
 
-    # Enter a parse tree produced by normParser#argumentExpression.
-    def enterArgumentExpression(self, ctx:normParser.ArgumentExpressionContext):
+    # Enter a parse tree produced by normParser#scalar.
+    def enterScalar(self, ctx:normParser.ScalarContext):
         pass
 
-    # Exit a parse tree produced by normParser#argumentExpression.
-    def exitArgumentExpression(self, ctx:normParser.ArgumentExpressionContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#argumentExpressions.
-    def enterArgumentExpressions(self, ctx:normParser.ArgumentExpressionsContext):
-        pass
-
-    # Exit a parse tree produced by normParser#argumentExpressions.
-    def exitArgumentExpressions(self, ctx:normParser.ArgumentExpressionsContext):
+    # Exit a parse tree produced by normParser#scalar.
+    def exitScalar(self, ctx:normParser.ScalarContext):
         pass
 
 
-    # Enter a parse tree produced by normParser#evaluationExpression.
-    def enterEvaluationExpression(self, ctx:normParser.EvaluationExpressionContext):
+    # Enter a parse tree produced by normParser#string.
+    def enterString(self, ctx:normParser.StringContext):
         pass
 
-    # Exit a parse tree produced by normParser#evaluationExpression.
-    def exitEvaluationExpression(self, ctx:normParser.EvaluationExpressionContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#slicedExpression.
-    def enterSlicedExpression(self, ctx:normParser.SlicedExpressionContext):
-        pass
-
-    # Exit a parse tree produced by normParser#slicedExpression.
-    def exitSlicedExpression(self, ctx:normParser.SlicedExpressionContext):
+    # Exit a parse tree produced by normParser#string.
+    def exitString(self, ctx:normParser.StringContext):
         pass
 
 
-    # Enter a parse tree produced by normParser#arithmeticExpression.
-    def enterArithmeticExpression(self, ctx:normParser.ArithmeticExpressionContext):
+    # Enter a parse tree produced by normParser#definitionOperator.
+    def enterDefinitionOperator(self, ctx:normParser.DefinitionOperatorContext):
         pass
 
-    # Exit a parse tree produced by normParser#arithmeticExpression.
-    def exitArithmeticExpression(self, ctx:normParser.ArithmeticExpressionContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#conditionExpression.
-    def enterConditionExpression(self, ctx:normParser.ConditionExpressionContext):
-        pass
-
-    # Exit a parse tree produced by normParser#conditionExpression.
-    def exitConditionExpression(self, ctx:normParser.ConditionExpressionContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#expression.
-    def enterExpression(self, ctx:normParser.ExpressionContext):
-        pass
-
-    # Exit a parse tree produced by normParser#expression.
-    def exitExpression(self, ctx:normParser.ExpressionContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#none.
-    def enterNone(self, ctx:normParser.NoneContext):
-        pass
-
-    # Exit a parse tree produced by normParser#none.
-    def exitNone(self, ctx:normParser.NoneContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#bool_c.
-    def enterBool_c(self, ctx:normParser.Bool_cContext):
-        pass
-
-    # Exit a parse tree produced by normParser#bool_c.
-    def exitBool_c(self, ctx:normParser.Bool_cContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#integer_c.
-    def enterInteger_c(self, ctx:normParser.Integer_cContext):
-        pass
-
-    # Exit a parse tree produced by normParser#integer_c.
-    def exitInteger_c(self, ctx:normParser.Integer_cContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#float_c.
-    def enterFloat_c(self, ctx:normParser.Float_cContext):
-        pass
-
-    # Exit a parse tree produced by normParser#float_c.
-    def exitFloat_c(self, ctx:normParser.Float_cContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#string_c.
-    def enterString_c(self, ctx:normParser.String_cContext):
-        pass
-
-    # Exit a parse tree produced by normParser#string_c.
-    def exitString_c(self, ctx:normParser.String_cContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#pattern.
-    def enterPattern(self, ctx:normParser.PatternContext):
-        pass
-
-    # Exit a parse tree produced by normParser#pattern.
-    def exitPattern(self, ctx:normParser.PatternContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#uuid.
-    def enterUuid(self, ctx:normParser.UuidContext):
-        pass
-
-    # Exit a parse tree produced by normParser#uuid.
-    def exitUuid(self, ctx:normParser.UuidContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#url.
-    def enterUrl(self, ctx:normParser.UrlContext):
-        pass
-
-    # Exit a parse tree produced by normParser#url.
-    def exitUrl(self, ctx:normParser.UrlContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#datetime.
-    def enterDatetime(self, ctx:normParser.DatetimeContext):
-        pass
-
-    # Exit a parse tree produced by normParser#datetime.
-    def exitDatetime(self, ctx:normParser.DatetimeContext):
+    # Exit a parse tree produced by normParser#definitionOperator.
+    def exitDefinitionOperator(self, ctx:normParser.DefinitionOperatorContext):
         pass
 
 
@@ -368,12 +314,21 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#conditionOperator.
-    def enterConditionOperator(self, ctx:normParser.ConditionOperatorContext):
+    # Enter a parse tree produced by normParser#comparisonOperator.
+    def enterComparisonOperator(self, ctx:normParser.ComparisonOperatorContext):
         pass
 
-    # Exit a parse tree produced by normParser#conditionOperator.
-    def exitConditionOperator(self, ctx:normParser.ConditionOperatorContext):
+    # Exit a parse tree produced by normParser#comparisonOperator.
+    def exitComparisonOperator(self, ctx:normParser.ComparisonOperatorContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#quantifier.
+    def enterQuantifier(self, ctx:normParser.QuantifierContext):
+        pass
+
+    # Exit a parse tree produced by normParser#quantifier.
+    def exitQuantifier(self, ctx:normParser.QuantifierContext):
         pass
 
 
