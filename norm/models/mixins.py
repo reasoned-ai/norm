@@ -9,7 +9,7 @@ import traceback
 from sqlalchemy.orm import relationship
 
 from norm.models.security import User
-from norm.utils import uuid_int
+from norm.utils import uuid_int, new_version
 
 logger = logging.getLogger(__name__)
 
@@ -232,8 +232,8 @@ class AuditableMixin(object):
     id = Column(Integer, primary_key=True, default=uuid_int)
     name = Column(String(256), default='')
     description = Column(Text, default='')
-    created_by_id = Column(Integer, ForeignKey(User.id))
-    owner = relationship(User, foreign_keys=[created_by_id])
+    version = Column(String(32), default=new_version, nullable=False)
+
     created_on = Column(DateTime, default=datetime.utcnow)
     changed_on = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

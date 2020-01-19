@@ -2,75 +2,195 @@ class NormError(RuntimeError):
     pass
 
 
+class Results(object):
+    @property
+    def positives(self):
+        """
+        Positive results
+        """
+        raise NotImplementedError
+
+    @property
+    def negatives(self):
+        """
+        Negative results
+        """
+        raise NotImplementedError
+
+    @property
+    def unknowns(self):
+        """
+        Unknown results
+        """
+        raise NotImplementedError
+
+
 class NormExecutable(object):
 
-    VARIABLE_SEPARATOR = '__dot__'
-
-    def __init__(self):
-        from norm.models.norm import Lambda
-        self.lam: Lambda = None
-
-    @staticmethod
-    def try_retrieve_type(session, namespaces, name, version=None, status=None):
-        current_session_id = session.hash_key
-        from norm.config import cache
-        from norm.models.norm import retrieve_type, Lambda
-        if isinstance(namespaces, str):
-            key = namespaces
-        else:
-            key = ''.join(sorted(namespaces))
-        key = (key, name, version, status)
-        lam = cache.get(key)
-        if lam is not None:
-            if lam._sa_instance_state.session_id != current_session_id:
-                new_lam: Lambda = session.merge(lam)
-                # TODO: might have other states need to be kept
-                new_lam._data = lam._data
-                lam = new_lam
-            return lam
-        lam = retrieve_type(namespaces, name, version, status)
-        cache[key] = lam
-        return lam
-
-    def compile(self, context):
+    def __init__(self, context):
         """
-        Compile the command with the given context
-        :param context: the context of the executable
-        :type context: norm.engine.NormCompiler
-        :return: An NormExecutable
-        :rtype: NormExecutable
+        :param context: Compiler provides context for execution, e.g., existing bindings
+        :type context: norm.compiler.Compiler
         """
-        return self
+        self.stack = []
+        self.context = context
 
-    def execute(self, context):
+    def push(self, exe):
+        """
+        :type exe: norm.executable.NormExecutable
+        """
+        self.stack.append(exe)
+
+    def pop(self):
+        self.stack.pop()
+
+    def peek(self):
+        return self.stack[-1]
+
+    def compute(self):
         """
         Execute the command with given context
-        :param context: the context of the executable
-        :type context: norm.engine.NormCompiler
-        :return: the result
+        :return: the results
+        :rtype: Results
         """
-        return self.lam
+        raise NotImplementedError
 
 
-class Projection(NormExecutable):
-
-    def __init__(self, variables):
-        """
-        The projection definition
-        :param variables: a list of variables to project on
-        :type variables: List[norm.executable.variable.VariableName]
-        """
-        super().__init__()
-        self.variables = variables
-
-    @property
-    def with_unquote(self):
-        from norm.executable.schema.variable import UnquoteVariable
-        return any(isinstance(v, UnquoteVariable) for v in self.variables)
-
-    @property
-    def num(self):
-        return len(self.variables)
+class TypeDeclaration(NormExecutable):
+    """
+    Declare a type
+    """
+    pass
 
 
+class LoadData(NormExecutable):
+    """
+    Full scan of the data, optionally with filters
+    """
+    pass
 
+
+class Filter(NormExecutable):
+    """
+    Filter data with conditions
+    """
+    pass
+
+
+class Join(NormExecutable):
+    """
+    Join two or more executables together.
+    """
+    pass
+
+
+class ConditionJoin(Join):
+    """
+    Join under conditions.
+    """
+    pass
+
+
+class WindowJoin(ConditionJoin):
+    """
+    Join with windowing conditions
+    """
+    pass
+
+
+class CrossJoin(Join):
+    """
+    Cross join two or more executables.
+    """
+    pass
+
+
+class Union(NormExecutable):
+    """
+    Combine two or more executables together.
+    """
+    pass
+
+
+class Difference(NormExecutable):
+    """
+    Negate rows from the first executable which appear in the second executable
+    """
+    pass
+
+
+class Aggregate(NormExecutable):
+    """
+    Quantified executions
+    """
+    pass
+
+
+class Pivot(NormExecutable):
+    """
+    Value to variable expansion
+    """
+    pass
+
+
+class Unique(NormExecutable):
+    """
+    Unique values
+    """
+    pass
+
+
+class Project(NormExecutable):
+    """
+    Rename or assign variables
+    """
+    pass
+
+
+class Construction(NormExecutable):
+    """
+    Construct objects and fill values
+    """
+    pass
+
+
+class Code(NormExecutable):
+    """
+    Load relation from other code, e.g., python or sql
+    """
+    pass
+
+
+class Import(NormExecutable):
+    """
+    Import a type from a different module
+    """
+    pass
+
+
+class Export(NormExecutable):
+    """
+    Export the type to a different module
+    """
+    pass
+
+
+class Return(NormExecutable):
+    """
+    Assign results to return outputs
+    """
+    pass
+
+
+class Implication(NormExecutable):
+    """
+    Implication blocks
+    """
+    pass
+
+
+class Negation(NormExecutable):
+    """
+    Negate results
+    """
+    pass

@@ -2,8 +2,9 @@ from pandas import DataFrame
 from uuid import uuid1
 from hashids import Hashids
 from zlib import adler32
-VERSION_MIN_LENGTH = 10
-h = Hashids(min_length=VERSION_MIN_LENGTH)
+from norm.config import HASH_MIN_LENGTH
+
+h = Hashids(min_length=HASH_MIN_LENGTH)
 
 
 def hash_df(df):
@@ -23,7 +24,7 @@ def hash_df(df):
 def uuid_int():
     """
     Create a 64 bit integer from uuid
-    :return: int64
+    :rtype: int
     """
     return uuid1().int >> 64
 
@@ -31,7 +32,7 @@ def uuid_int():
 def new_version():
     """
     Create a random version
-    :return:
+    :rtype: str
     """
     return h.encode(uuid_int())
 
@@ -39,6 +40,15 @@ def new_version():
 def random_name():
     """
     Create a random name
-    :return:
+    :rtype: str
     """
     return Hashids().encode(uuid1().int >> 96)
+
+
+def local_url(qualified_name, sep):
+    """
+    Create the local url for the qualified name. The local url is relative to the NORM root
+    :rtype: str
+    """
+    return f"file://{{DATA_STORAGE_ROOT}}/{qualified_name.replace(sep, '/')}/"
+

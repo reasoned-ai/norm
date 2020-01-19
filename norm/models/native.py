@@ -1,8 +1,7 @@
 """A collection of ORM sqlalchemy models for NativeLambda"""
-import traceback
-
-from norm.models import store
-from norm.models.norm import Lambda, Variable
+from norm.models import store, Registrable, Register
+from norm.models.norm import Lambda, Module
+from norm.models.variable import Input, Output
 
 from datetime import datetime
 import numpy as np
@@ -10,73 +9,48 @@ import numpy as np
 import logging
 logger = logging.getLogger(__name__)
 
+__version__ = '1'
 
-class NativeLambda(Lambda):
+
+@Register()
+class NativeModule(Module):
+    __mapper_args__ = {
+        'polymorphic_identity': 'module_native'
+    }
+
+    def __init__(self):
+        super().__init__('norm.native', description='Norm native namespace', version=__version__)
+
+
+store_native = store.norm.native
+
+
+class NativeLambda(Lambda, Registrable):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native'
     }
 
     def __init__(self, name, description, bindings=None, dtype='object'):
-        super().__init__(module=store.norm.native.latest,
+        super().__init__(module=store_native.latest,
                          name=name,
                          description=description,
+                         version=__version__,
                          bindings=bindings)
         self.atomic = True
         self.dtype = dtype
+
+    def exists(self):
+        return [NativeLambda.name == self.name,
+                NativeLambda.version == self.version]
 
     def empty_data(self):
         return None
 
 
-class _register(object):
-    types = []
-
-    def __call__(self, cls):
-        self.types.append(cls)
-        return cls
-
-    @classmethod
-    def register(cls):
-        from norm.config import session
-        for clz in cls.types:
-            instance = clz()
-            in_store = session.query(NativeLambda).filter(NativeLambda.name == instance.name)
-            if not in_store:
-                logger.info('Registering class {}'.format(instance.name))
-                session.add(instance)
-        try:
-            session.commit()
-        except:
-            logger.error('Type registration failed')
-            logger.debug(traceback.print_exc())
-            session.rollback()
-
-
-class ListLambda(NativeLambda):
-    __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_list'
-    }
-    INTERN = 'intern'
-
-    def __init__(self, type_):
-        """
-        :param type_: the intern type of the list
-        :type type_: Lambda
-        """
-        super().__init__(name='[{}]'.format(type_.signature),
-                         description='Type of a type, either an type object that produces a list of objects, '
-                                     'or just a list of objects',
-                         bindings=[Variable(self.INTERN, type_)])
-
-    @property
-    def default(self):
-        return []
-
-
-@_register()
+@Register()
 class TypeLambda(NativeLambda):
     __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_type'
+        'polymorphic_identity': 'native_type'
     }
 
     def __init__(self):
@@ -87,10 +61,10 @@ class TypeLambda(NativeLambda):
         return None
 
 
-@_register()
+@Register()
 class AnyLambda(NativeLambda):
     __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_any'
+        'polymorphic_identity': 'native_any'
     }
 
     def __init__(self):
@@ -101,10 +75,10 @@ class AnyLambda(NativeLambda):
         return None
 
 
-@_register()
+@Register()
 class BooleanLambda(NativeLambda):
     __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_boolean'
+        'polymorphic_identity': 'native_boolean'
     }
 
     def __init__(self):
@@ -117,10 +91,10 @@ class BooleanLambda(NativeLambda):
         return False
 
 
-@_register()
+@Register()
 class FloatLambda(NativeLambda):
     __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_float'
+        'polymorphic_identity': 'native_float'
     }
 
     def __init__(self):
@@ -133,10 +107,10 @@ class FloatLambda(NativeLambda):
         return 0.0
 
 
-@_register()
+@Register()
 class IntegerLambda(NativeLambda):
     __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_integer'
+        'polymorphic_identity': 'native_integer'
     }
 
     def __init__(self):
@@ -149,10 +123,10 @@ class IntegerLambda(NativeLambda):
         return 0
 
 
-@_register()
+@Register()
 class StringLambda(NativeLambda):
     __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_string'
+        'polymorphic_identity': 'native_string'
     }
 
     def __init__(self):
@@ -163,10 +137,10 @@ class StringLambda(NativeLambda):
         return ''
 
 
-@_register()
+@Register()
 class UUIDLambda(NativeLambda):
     __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_uuid'
+        'polymorphic_identity': 'native_uuid'
     }
 
     def __init__(self):
@@ -177,10 +151,10 @@ class UUIDLambda(NativeLambda):
         return ''
 
 
-@_register()
+@Register()
 class DatetimeLambda(NativeLambda):
     __mapper_args__ = {
-        'polymorphic_identity': 'lambda_native_datetime'
+        'polymorphic_identity': 'native_datetime'
     }
 
     def __init__(self):
@@ -196,8 +170,66 @@ class DatetimeLambda(NativeLambda):
         return np.datetime64(datetime.utcnow())
 
 
-def register_lambdas():
-    _register.register()
+class OperatorLambda(NativeLambda):
+    __mapper_args__ = {
+        'polymorphic_identity': 'native_operator'
+    }
+
+    LHS = 'lhs'
+    RHS = 'rhs'
+    OUT = 'out'
+
+    @property
+    def default(self):
+        return None
+
+
+@Register(name='not', description='negation of logic')
+@Register(name='-', description='negation of arithmetic')
+class UnaryOperator(OperatorLambda):
+    __mapper_args__ = {
+        'polymorphic_identity': 'operator_unary'
+    }
+
+    def __init__(self, name, description):
+        super().__init__(name, description,
+                         bindings=[Input(store_native.Any, self.RHS), Output(store_native.Any, self.OUT)])
+
+
+@Register(name='and', description='conjunction of logic')
+@Register(name='or', description='disjunction of logic')
+@Register(name='xor', description='mutual exclusion of logic')
+@Register(name='imply', description='implication of logic')
+@Register(name='except', description='exception of logic')
+@Register(name='unless', description='unless of logic')
+@Register(name='otherwise', description='otherwise of logic')
+@Register(name='+', description='addition of arithmetic')
+@Register(name='-', description='subtraction of arithmetic')
+@Register(name='*', description='multiplication of arithmetic')
+@Register(name='/', description='division of arithmetic')
+@Register(name='%', description='modulo of arithmetic')
+@Register(name='**', description='power of arithmetic')
+@Register(name='>', description='greater than of arithmetic')
+@Register(name='>=', description='greater than or equal to of arithmetic')
+@Register(name='<', description='less than of arithmetic')
+@Register(name='<=', description='less than or equal to of arithmetic')
+@Register(name='==', description='equal to of arithmetic')
+@Register(name='!=', description='not equal to of arithmetic')
+@Register(name='in', description='within or between of arithmetic')
+@Register(name='!in', description='not within or between of arithmetic')
+@Register(name='like', description='similar to of arithmetic')
+@Register(name='unlike', description='not similar to of arithmetic')
+@Register(name='.', description='access sub and variable')
+class BinaryOperator(OperatorLambda):
+    __mapper_args__ = {
+        'polymorphic_identity': 'operator_binary'
+    }
+
+    def __init__(self, name, description):
+        super().__init__(name, description,
+                         bindings=[Input(store_native.Any, self.LHS),
+                                   Input(store_native.Any, self.RHS),
+                                   Output(store_native.Any, self.OUT)])
 
 
 def get_type_by_dtype(dtype):
@@ -209,10 +241,10 @@ def get_type_by_dtype(dtype):
     :rtype: Lambda
     """
     if dtype.name.find('int') > -1:
-        return store.norm.native.Integer.latest
+        return store_native.Integer.latest
     elif dtype.name.find('float') > -1:
-        return store.norm.native.Float.latest
+        return store_native.Float.latest
     elif dtype.name.find('datetime') > -1:
-        return store.norm.native.DateTime.latest
+        return store_native.DateTime.latest
     else:
-        return store.norm.native.Any.latest
+        return store_native.Any.latest

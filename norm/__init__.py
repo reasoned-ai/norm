@@ -1,16 +1,14 @@
-from datetime import datetime
-from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.pool import StaticPool
+import logging
+import os
 
 from IPython import get_ipython
-from IPython.core.magic import register_line_magic, register_cell_magic, register_line_cell_magic
+from IPython.core.magic import register_line_cell_magic
+from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
 
-import os
-import logging
+from norm.utils import random_name, new_version
+
 logger = logging.getLogger(__name__)
-
-context = None
 
 
 def configure(home=None, db_path=None, data_path=None, **kwargs):
@@ -24,7 +22,6 @@ def configure(home=None, db_path=None, data_path=None, **kwargs):
     :type data_path: str
     :param kwargs: other parameters
     """
-    from norm.config import Session
     from norm import config
 
     if home is not None:
@@ -37,23 +34,7 @@ def configure(home=None, db_path=None, data_path=None, **kwargs):
         config.DATA_STORAGE_ROOT = data_path
     if home is not None or db_path is not None:
         config.engine = create_engine('sqlite:///{}'.format(config.DB_PATH), poolclass=StaticPool)
-        Session.configure(bind=config.engine)
-        config.session = Session()
-        config.context_id = str(datetime.utcnow().strftime('%m%d%Y.%H%M%S'))
-        global context
-        from norm.security import user
-        from norm.engine import NormCompiler, NormError
-        context = NormCompiler(config.context_id, user, config.session)
-
-
-def init_jupyter():
-    from norm.engine import NormCompiler, NormError
-    from norm.config import session, context_id
-    from norm.security import user, login
-    logging.disable()
-    global context
-    user = login()
-    context = NormCompiler(context_id, user, session)
+        config.Session.configure(bind=config.engine)
 
 
 def init_colab():
@@ -63,19 +44,10 @@ def init_colab():
     # Login the user
     from google.colab import auth
     from google.colab import drive
+    # Authenticate user
     auth.authenticate_user()
-    import requests
-    from gcloud import credentials
-    logging.basicConfig(level=logging.DEBUG)
-    access_token = credentials.get_credentials().get_access_token().access_token
-    gcloud_tokeninfo = requests.get('https://www.googleapis.com/oauth2/v3/userinfo?access_token=' + access_token).json()
-    email = gcloud_tokeninfo['email']
-    last_name = gcloud_tokeninfo['hd']
-    first_name = email.split('@')[0]
-
     # Mount the drive
     drive.mount('/content/drive')
-
     # Configure the database
     home = '/content/drive/My Drive/.norm/'
     if not os.path.exists(home):
@@ -84,8 +56,7 @@ def init_colab():
     else:
         logging.info("Directory " + home + " already exists")
 
-    from norm.config import Session
-    from norm import config, security
+    from norm import config
 
     config.NORM_HOME = home
 
@@ -113,40 +84,19 @@ def init_colab():
         logging.info("File " + config.DB_PATH + " already exists")
 
     config.engine = create_engine('sqlite:///{}'.format(config.DB_PATH), poolclass=StaticPool)
-    Session.configure(bind=config.engine)
-    config.session = Session()
-    config.context_id = str(datetime.utcnow().strftime('%m%d%Y.%H%M%S'))
-
-    from norm.security import login
-    user = login({'first_name': first_name,
-                  'last_name': last_name,
-                  'username': email,
-                  'email': email})
-
-    logging.info(user.username + ' logged in')
-
-    global context
-    from norm.engine import NormCompiler, NormError
-    context = NormCompiler(config.context_id, user, config.session)
+    config.Session.configure(bind=config.engine)
 
 
 # IPython magics
 if get_ipython() is not None:
-    def update_python_context():
-        context.python_context = ip.user_global_ns
-
-    def try_norma(lines):
-        for i in range(len(lines) - 1, -1, -1):
-            if lines[i].rstrip(' \t\r\n') != '':
-                lines = lines[:(i+1)]
-                break
-        if lines[-1].rstrip(' \t\r\n')[-1] == ';':
-            context.python_context = ip.user_global_ns
-            return ['%%norma\n'] + lines
-        else:
-            return lines
     ip = get_ipython()
-    ip.input_transformers_cleanup.append(try_norma)
+    context = {'module_name': random_name(),
+               'module_version': new_version()}
+
+    def init_context():
+        context.clear()
+        context['module_name'] = random_name()
+        context['module_version'] = new_version()
 
     @register_line_cell_magic
     def norma(line, cell=None):
@@ -157,19 +107,8 @@ if get_ipython() is not None:
         :param cell: a multi-line of norm command
         :type cell: str
         """
-        from norm.engine import NormCompiler, NormError
-        import norm.config as config
-        try:
-            if cell is None:
-                result = context.execute(line)
-            else:
-                result = context.execute(cell)
-
-            config.session.commit()
-            return result
-        except SQLAlchemyError as e:
-            config.session.rollback()
-            msg = 'Session commit failed on {}'.format(config.engine)
-            logger.error(msg)
-            logger.error(e)
-            raise NormError(msg)
+        from norm.engine import execute
+        module_name = context.get('module_name')
+        module_version = context.get('module_version')
+        script = cell or line
+        return execute(script, module_name, module_version, ip.user_global_ns)

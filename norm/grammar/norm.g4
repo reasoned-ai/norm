@@ -14,14 +14,14 @@ comments
     ;
 
 statement
-    : typeImport
-    | typeExport
-    | typeDeclaration
-    | typeDefinition
+    : typeImports
+    | typeExports
+    | typeDeclarations
+    | typeDefinitions
     | compoundExpr
     ;
 
-validName: NAME | UNICODE_NAME;
+validName: NAME | UNICODE_NAME | ATOMIC | BINARY | UNARY;
 
 qualifiedName
     : validName
@@ -48,11 +48,15 @@ typeImport
     | FROM qualifiedName IMPORT names
     ;
 
+typeImports: (ATOMIC? typeImport)+;
+
 typeExport
     : EXPORT names
     | EXPORT names TO qualifiedName
     | TO qualifiedName EXPORT names
     ;
+
+typeExports: (ATOMIC? typeExport)+;
 
 variableDeclaration
     : validName
@@ -74,18 +78,24 @@ outputDeclaration
 inheritanceDeclaration: INHERIT type_*;
 
 typeDeclaration
-    : ATOMIC? qualifiedName inheritanceDeclaration
-    | ATOMIC? qualifiedName inheritanceDeclaration? MAPTO outputDeclaration
-    | ATOMIC? qualifiedName inheritanceDeclaration? inputDeclaration ( MAPTO outputDeclaration )?
+    : qualifiedName inheritanceDeclaration
+    | qualifiedName inheritanceDeclaration? MAPTO outputDeclaration
+    | qualifiedName inheritanceDeclaration? inputDeclaration ( MAPTO outputDeclaration )?
+    | UNARY STRING inputDeclaration MAPTO outputDeclaration
+    | BINARY STRING inputDeclaration MAPTO outputDeclaration
     ;
+
+typeDeclarations: (ATOMIC? typeDeclaration)+;
 
 typeDefinition
     : type_ definitionOperator compoundExpr
     | typeDeclaration definitionOperator compoundExpr
     ;
 
+typeDefinitions: (ATOMIC? typeDefinition)+;
+
 argumentExpr
-    : comparisonExpr
+    : simpleExpr
     | validName IS arithmeticExpr
     | argumentExpr QUERY
     ;
@@ -97,12 +107,12 @@ queryExpr
     | type_ argumentExprs QUERY?
     ;
 
-range_: scalar? COLON ( scalar ( COLON scalar )? )?;
+rangeExpr: scalar? COLON ( scalar ( COLON scalar )? )?;
 
 evaluationExpr
     : constant
-    | range_
     | validName
+    | rangeExpr
     | queryExpr
     | evaluationExpr LSBR simpleExpr RSBR
     | evaluationExpr DOT evaluationExpr
@@ -118,16 +128,9 @@ arithmeticExpr
     | arithmeticExpr ( PLUS | MINUS ) arithmeticExpr
     ;
 
-comparisonExpr
+simpleExpr
     : arithmeticExpr
     | arithmeticExpr comparisonOperator arithmeticExpr
-    ;
-
-simpleExpr
-    : comparisonExpr
-    | LBR simpleExpr RBR
-    | NOT simpleExpr
-    | simpleExpr logicalOperator simpleExpr
     ;
 
 codeExpr
@@ -135,7 +138,10 @@ codeExpr
     | CODE_BLOCK_BEGIN ~( CODE_BLOCK_BEGIN | CODE_BLOCK_END )* CODE_BLOCK_END
     ;
 
-returnExpr: RETURN simpleExpr ( COMMA simpleExpr )* COMMA?;
+returnExpr
+    : RETURN simpleExpr ( COMMA simpleExpr )* COMMA?
+    | RETURN variable IS simpleExpr ( COMMA variable IS simpleExpr )* COMMA?
+    | RETURN simpleExpr AS variable ( COMMA simpleExpr AS variable )* COMMA?;
 
 compoundExpr
     : simpleExpr
@@ -147,7 +153,8 @@ compoundExpr
     | compoundExpr AS variable ( COMMA variable )*
     | LBR compoundExpr RBR
     | NOT compoundExpr
-    | compoundExpr logicalOperator compoundExpr
+    | compoundExpr complexLogicalOperator compoundExpr
+    | compoundExpr simpleLogicalOperator compoundExpr
     ;
 
 constant
@@ -169,7 +176,9 @@ string: STRING | RAW | FORMATTED | FORMATTEDRAW;
 
 definitionOperator: DEF | ANDDEF | ORDEF | RANDDEF | RORDEF;
 
-logicalOperator: AND | OR | XOR | IMP | EPT | ULS | OTW;
+simpleLogicalOperator: AND | OR | XOR | OTW;
+
+complexLogicalOperator: IMP | EPT;
 
 comparisonOperator: EQ | NE | IN | NI | LT | LE | GT | GE | LK | NK;
 
@@ -191,6 +200,8 @@ MULTILINE: ( '"""' | '\'\'\'')  [\r\n]+ (.)*? ( '"""' | '\'\'\'');
 RETURN: R E T U R N;
 
 ATOMIC: A T O M I C;
+BINARY: B I N A R Y;
+UNARY: U N A R Y;
 
 EMPTYLINES: [ \t]* [\r\n] ( [ \t]* [\r\n] )+ [ \t]*;
 
@@ -225,7 +236,7 @@ LE:        '<=';
 GT:        '>';
 LT:        '<';
 LK:        L I K E;
-NK:        NOT [ \t]* LK;
+NK:        U N L I K E | NOT [ \t]* LK;
 
 MINUS:     '-';
 PLUS:      '+';
@@ -240,7 +251,6 @@ OR:        '|'   | O R;
 XOR:       '^'   | X O R;
 IMP:       '=>'  | I M P L Y;
 EPT:       E X C E P T;
-ULS:       U N L E S S;
 OTW:       O T H E R W I S E;
 
 DEF: ':=';

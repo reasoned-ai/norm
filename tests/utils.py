@@ -28,12 +28,12 @@ def user_tester():
 class NormTestCase(unittest.TestCase):
 
     def setUp(self):
-        from norm.engine import NormCompiler
+        from norm.engine import NormEngine
         self.session = session
         # override norm configuration
         self.user = user_tester()
         self.context_id = hashid.encode(int(time.time() * 1000))
-        self.executor = NormCompiler(self.context_id, self.user, self.session)
+        self.executor = NormEngine(self.context_id, self.user, self.session)
 
     def tearDown(self):
         self.session.rollback()

@@ -1,142 +1,118 @@
 """A collection of ORM sqlalchemy models for Lambda"""
-import zlib
-
-import norm.config as config
-from norm.models.exception import InvalidDeclaration
-from norm.models.mixins import lazy_property, AuditableMixin
-from norm.models.license import License
-from norm.models.security import User
-from norm.models import Model
-from norm.models.storage import Storage
-from norm.utils import uuid_int, new_version, random_name
-
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, desc, UniqueConstraint, \
-    orm, LargeBinary, JSON
-from sqlalchemy import Table
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.orderinglist import ordering_list
-
-import os
-import errno
-import enum
-
-from datetime import datetime
-from pandas import DataFrame, to_timedelta, Series
-import numpy as np
-
-from typing import List, Dict
-
 import logging
+import os
+import zlib
+from datetime import datetime
+from typing import Dict
+from typing import List
+
+import numpy as np
+from pandas import DataFrame
+from sqlalchemy import Column, Integer, ForeignKey, Text
+from sqlalchemy import String, Boolean, desc, orm
+from sqlalchemy.ext.orderinglist import ordering_list
+from sqlalchemy.orm import relationship, backref
+
+from norm.models import Model, SEPARATOR, Registrable
+from norm.models.license import License
+from norm.models.mixins import AuditableMixin
+from norm.models.mixins import lazy_property
+from norm.models.variable import Variable, Output, Input, Parameter, Parent
+from norm.utils import uuid_int, new_version, local_url
+
 logger = logging.getLogger(__name__)
 
 metadata = Model.metadata
 
 
-class VariableSorting(enum.Enum):
-    desc = 1
-    asc = 2
-    none = 3
+class Module(Model, AuditableMixin, Registrable):
+    """Module is a Norm namespace"""
+    __tablename__ = 'modules'
 
+    category = Column(String(64))
 
-class VariableCategory(enum.Enum):
-    input = 1        # input free variable, stateless primary unless specified as optional
-    output = 2       # output bound variable, stateless primary unless specified as optional
-    internal = 3     # internal bound variable, stateless optional unless specified as primary
-    dependent = 4    # dependent type variable, stateless optional
-    parameter = 5    # parameter bound variable, stateful optional
+    __mapper_args__ = {
+        'polymorphic_identity': 'module',
+        'polymorphic_on': category,
+        'with_polymorphic': '*'
+    }
 
+    full_name = Column(Text, default='')
+    url = Column(String)
+    parent_id = Column(Integer, ForeignKey('modules.id'))
+    children = relationship("Module", backref=backref('parent', remote_side=[id]))
+    lambdas = relationship("Lambda", back_populates="module")
+    license_id = Column(Integer, ForeignKey(License.id))
+    license = relationship(License, foreign_keys=[license_id])
+    script = Column(Text)
 
-class Variable(Model, AuditableMixin):
-    """Variable placeholder"""
-
-    __tablename__ = 'variables'
-
-    VAR_ANONYMOUS_STUB = 'var'
-
-    KEY_DEFAULT = 'default'
-    KEY_STATE = 'current'
-
-    as_primary = Column(Boolean, default=False)
-    as_oid = Column(Boolean, default=False)
-    as_time = Column(Boolean, default=False)
-    stateful = Column(Boolean, default=False)
-    sorting = Column(VariableSorting, default=VariableSorting.none)
-    category = Column(VariableCategory, default=VariableCategory.dependent)
-    position = Column(Integer)
-    values = Column(JSON)
-    type_id = Column(Integer, ForeignKey('lambdas.id'))
-    type_ = relationship('Lambda', foreign_keys=[type_id])
-
-    def __init__(self, name, type_, description='', as_primary=None, as_oid=None, as_time=None, stateful=None,
-                 category=VariableCategory.dependent, sorting=VariableSorting.none, values=None):
-        """
-        Construct the variable
-        :param name: the name of the variable
-        :type name: str
-        :param type_: the type of the variable
-        :type type_: Lambda
-        :param description: the description of the variable
-        :type description: str
-        :param as_primary: whether the variable is a primary variable, i.e., used to generate oid
-        :type as_primary: bool
-        :param as_oid: whether the variable is treated as oid, i.e., _oid value is generated from this variable
-        :type as_oid: bool
-        :param as_time: whether the variable is treated as time, i.e., _timestamp is a copy of this variable
-        :type as_time: bool
-        :param stateful: whether the variable is stateful, default to False
-        :type stateful: bool
-        :param category: what kind of variable, ['dependent', 'internal', 'input', 'output', 'parameter']
-        :type category: VariableCategory
-        :param sorting: how to sort the objects according to the value of this variable, ['desc', 'asc', 'none']
-        :type sorting: VariableSorting
-        :param values: json object to store default and state values, e.g., {'default': 2, 'state': 3}
-        :type values: dict
-        """
-        self.id = uuid_int()
-        self.name = name or self.VAR_ANONYMOUS_STUB + random_name()
-        self.type_ = type_
-        self.description = description
-        self.category = category
-        self.as_primary = as_primary or (category is VariableCategory.input) or (category is VariableCategory.output)
-        self.as_oid = as_oid or False
-        self.as_time = as_time or False
-        self.stateful = stateful or category is VariableCategory.parameter
-        self.sorting = sorting
-        self.values = values or {}
+    def __init__(self, full_name, script=None, description=None, url=None, version=None):
+        self.id: int = uuid_int()
+        self.script: str = script or ''
+        self.name: str = full_name.split(SEPARATOR)[-1]
+        self.full_name: str = full_name
+        self.url: str = url or local_url(full_name, SEPARATOR)
+        self.sub_modules: List[Module] = []
+        self.lambdas: list = []
+        self.version: str = version or new_version()
+        self.set_description(description)
 
     def __repr__(self):
-        return '{}: {}'.format(self.name, self.type_)
+        return str(self)
 
     def __str__(self):
-        return self.__repr__()
+        return self.full_name
 
-    @property
-    def default(self):
-        return self.values.get(self.KEY_DEFAULT, None) or self.type_.default
+    def __hash__(self):
+        if self.id is not None:
+            return self.id
+        h = hash(self.full_name) << 7
+        if self.version:
+            h += hash(self.version)
+        return h
 
-    @property
-    def value(self):
-        return self.values.get(self.KEY_STATE, None) or self.default
+    def __eq__(self, other):
+        return self.__class__ is not other.__class__ and hash(self) == hash(other)
 
-    @value.setter
-    def value(self, v):
-        self.values[self.KEY_STATE] = v
+    def set_description(self, description):
+        if description:
+            self.description = description
+            return
 
+        script = self.script
+        if not script:
+            return
 
-lambda_variable = Table(
-    'lambda_variable', metadata,
-    Column('id', Integer, primary_key=True, default=uuid_int()),
-    Column('lambda_id', Integer, ForeignKey('lambdas.id')),
-    Column('variable_id', Integer, ForeignKey('variables.id')),
-)
+        lines = script.strip(' ').split('/n')
+        if lines[0].startswith(('"""', "'''")):
+            description = []
+            for line in lines[1:]:
+                description.append(line)
+                if line.endswith(('"""', "'''")):
+                    break
+            if not description[-1].endswith(('"""', "'''")):
+                msg = f'{script} does not close the multi-line comments'
+                logger.error(msg)
+                raise ValueError(msg)
+            self.description = ''.join(description)
+
+    def exists(self):
+        return [Module.full_name == self.full_name,
+                Module.version == self.version]
 
 
 class Lambda(Model, AuditableMixin):
-    """Lambda model is a function"""
+    """Lambda models a relation in Norm"""
+
     __tablename__ = 'lambdas'
 
     category = Column(String(64))
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'lambda',
+        'polymorphic_on': category,
+        'with_polymorphic': '*'
+    }
 
     VAR_LABEL = '_label'
     VAR_LABEL_T = 'float'
@@ -151,37 +127,24 @@ class Lambda(Model, AuditableMixin):
 
     module_id = Column(Integer, ForeignKey(Module.id), nullable=False)
     module = relationship(Module, back_populates='lambdas')
-    bindings = relationship(Variable, order_by=Variable.position, collection_class=ordering_list('position'),
-                            secondary=lambda_variable)
+    bindings = relationship(Variable, order_by=Variable.position, collection_class=ordering_list('position'))
     definition = Column(Text, default='')
-    parent_id = Column(Integer, ForeignKey('lambdas.id'))
-    children = relationship('Lambda', backref=backref('parent', remote_side=[id]))
     atomic = Column(Boolean, default=False)
-    version = Column(String(32), default=new_version, nullable=False)
 
-    __mapper_args__ = {
-        'polymorphic_identity': 'lambda',
-        'polymorphic_on': category,
-        'with_polymorphic': '*'
-    }
-
-    def __init__(self, module=None, name='', description='', bindings=None, user=None):
+    def __init__(self, module=None, name='', description='', version='', atomic=False, bindings=None):
         self.module: Module = module
-        self.id: str = uuid_int()
+        self.id: int = uuid_int()
         self.name: str = name
         self.description: str = description
-        self.version: str = new_version()
-        self.owner: User = user
+        self.version: str = version or new_version()
         self.bindings: List[Variable] = bindings or []
-        self.atomic: bool = False
+        self.atomic: bool = atomic
         self.definition: str = ''
         self._data: DataFrame or None = None
-        self.modified_or_new: bool = True
 
     @orm.reconstructor
     def init_on_load(self):
         self._data = None
-        self.modified_or_new = False
 
     def __repr__(self):
         return str(self)
@@ -231,16 +194,16 @@ class Lambda(Model, AuditableMixin):
         Whether the Lambda has any output variables
         :rtype: bool
         """
-        return any(v.category is VariableCategory.output for v in self.bindings)
+        return any(isinstance(v, Output) for v in self.bindings)
 
     @lazy_property
     def output_type(self):
         """
         Return the output type. If no output variable defined, return itself
         :return: the output type
-        :rtype: Lambda
+        :rtype: Tuple[Lambda]
         """
-        return tuple(v.type_ for v in self.bindings if v.category is VariableCategory.output) or self
+        return tuple(v.type_ for v in self.bindings if isinstance(v, Output)) or self
 
     @lazy_property
     def oid_col(self):
@@ -250,7 +213,7 @@ class Lambda(Model, AuditableMixin):
         :rtype: str or None
         """
         for v in self.bindings:
-            if v.as_oid:
+            if isinstance(v, Input) and v.as_oid:
                 return v.name
         return None
 
@@ -262,9 +225,13 @@ class Lambda(Model, AuditableMixin):
         :rtype: str or None
         """
         for v in self.bindings:
-            if v.as_time:
+            if isinstance(v, Input) and v.as_time:
                 return v.name
         return None
+
+    @lazy_property
+    def declared_bindings(self):
+        return [v for v in self.bindings if isinstance(v, (Parent, Input, Output, Parameter))]
 
     @property
     def data(self):
@@ -284,99 +251,7 @@ class Lambda(Model, AuditableMixin):
 
     @property
     def signature(self):
-        return self.module + '.' + self.name + '$' + self.version
-
-    def clone(self):
-        """
-        Clone itself and bump up the version. Make sure updates are done after clone.
-        :return: the cloned version of it
-        :rtype: Lambda
-        """
-        lam = self.__class__(namespace=self.namespace, name=self.name, description=self.description,
-                             params=self.params, variables=self.variables)
-        lam.cloned_from = self
-        lam.anchor = False
-        lam.atomic = self.atomic
-        lam.queryable = self.queryable
-        lam.adaptable = self.adaptable
-        if self._data is not None:
-            lam._data = self._data
-        return lam
-
-    def _add_optional_variables(self, df):
-        from norm.models.native import get_type_by_dtype
-        current_variable_names = set(self._all_columns)
-        vars_to_add = [Variable(col, get_type_by_dtype(dtype)) for col, dtype in zip(df.columns, df.dtypes)
-                       if col not in current_variable_names]
-        if len(vars_to_add) > 0:
-            from norm.models.revision import AddVariableRevision
-            self._add_revision(AddVariableRevision(vars_to_add, self))
-
-    def revise(self, query, description, df, op):
-        """
-        Revise the Lambda by a given query and its result. If the query is an action, result is None.
-        :param query: the given query string grounded with specific versions
-        :type query: str
-        :param description: the comment on the revision
-        :type description: str
-        :param df: the result data
-        :type df: DataFrame
-        :param op: the type of revision, conjunction or disjunction
-        :type op: RevisionType
-        :return: revised data or None
-        :rtype: DataFrame
-        """
-        # If the query already exists, the revision is skipped
-        if any((rev.query == query for rev in self.revisions)):
-            return self.data.loc[df.index] if df is not None else None
-
-        if df is not None and isinstance(df, DataFrame):
-            assert(df.index.name == self.VAR_OID)
-            assert(self.VAR_TIMESTAMP in df.columns)
-
-            # Add new optional variables if the data contains variables that are not declared in this Lambda
-            self._add_optional_variables(df)
-
-            # Drop duplicated rows by the index
-            delta = df[~df.index.duplicated(keep='first')]
-
-            # Ensure the dtype and fill defaults
-            for v in self.variables:
-                if v.name in delta.columns:
-                    try:
-                        delta.loc[:, v.name] = v.type_.convert(delta[v.name])
-                    except:
-                        msg = '{} does not comply with the type {}'.format(v.name, v.type_)
-                        logger.error(msg)
-                        raise
-        else:
-            delta = None
-
-        # Apply corresponding revisions
-        from norm.models.revision import ConjunctionRevision, DisjunctionRevision
-        if op == RevisionType.DISJUNCTION:
-            self._add_revision(DisjunctionRevision(query, description, self, delta))
-        elif op == RevisionType.CONJUNCTION:
-            self._add_revision(ConjunctionRevision(query, description, self, delta))
-        else:
-            msg = 'Revision {} has not been implemented yet'.format(op)
-            logger.error(msg)
-            raise NotImplementedError(msg)
-
-        # Enable queryable
-        if not self.queryable:
-            self.queryable = True
-
-        return self.data.loc[df.index] if delta is not None else None
-
-    def fit(self):
-        """
-        Fit the model with all the existing data or given data
-        """
-        from norm.models.revision import FitRevision
-        # TODO: implement the query
-        revision = FitRevision('', '', self)
-        self._add_revision(revision)
+        return f"{self.module}.{self.name}${self.version}"
 
     def fill_na(self, df):
         """
@@ -580,7 +455,6 @@ class Lambda(Model, AuditableMixin):
         self._data = self._data[self._all_columns[1:]][~self._data[self.VAR_TOMBSTONE]]
         return self._data
 
-    @_only_queryable
     def _save_data(self):
         """
         Save all revisions' data
@@ -591,7 +465,6 @@ class Lambda(Model, AuditableMixin):
         for revision in self.revisions:
             revision.save()
 
-    @_only_adaptable
     def _build_model(self):
         """
         Build an adaptable model
@@ -599,7 +472,6 @@ class Lambda(Model, AuditableMixin):
         """
         pass
 
-    @_only_adaptable
     def _load_model(self):
         """
         Load an adapted model
@@ -608,7 +480,6 @@ class Lambda(Model, AuditableMixin):
         """
         pass
 
-    @_only_adaptable
     def _save_model(self):
         """
         Save an adapted model

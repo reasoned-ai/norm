@@ -1,3 +1,0 @@
-class InvalidDeclaration(Exception):
-    pass
-

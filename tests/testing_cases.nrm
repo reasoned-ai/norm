@@ -6,6 +6,9 @@ Type Declaration
 # Declare relation
 test(a:String, b:Integer)
 
+# Atomic Declaration
+atomic test(a: String)
+
 # Declare function
 test(a: String) -> Integer
 
@@ -29,6 +32,7 @@ Person:: (first_name: String,
           birth_day: DateTime,
           gender: Gender)
 
+# Atomic definition
 atomic Fast (time_to_finish: Time) := time_to_finish < 10 min
 
 Language := Javascript | Python | Java
@@ -42,10 +46,14 @@ Import Export
 # Export type
 export test$AWeq23 as tt to norm.test
 
+atomic export test to norm.test
+
 # Import type
 import norm.test.test$AWeq23 as tt
 
 from norm.test import test$AWeq23
+
+atomic import norm.test as tt
 
 """
 Add/Update data
@@ -197,3 +205,15 @@ Time Windowing
 """
 moving_average = test.rolling(10m).mean
 
+for e in Event(name=='test').rolling(10m):
+    e.ip.unique.count > 10
+
+
+"""
+Anti-join
+"""
+
+  StarIn(star_name?, movie_title?)
+& Movie(title=movie_title, studio_name?, movie_year>=2000)
+& not Star(name=star_name, birth_date==1960)
+& return movie_title, studio_name

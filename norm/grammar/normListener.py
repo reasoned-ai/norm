@@ -98,12 +98,30 @@ class normListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by normParser#typeImports.
+    def enterTypeImports(self, ctx:normParser.TypeImportsContext):
+        pass
+
+    # Exit a parse tree produced by normParser#typeImports.
+    def exitTypeImports(self, ctx:normParser.TypeImportsContext):
+        pass
+
+
     # Enter a parse tree produced by normParser#typeExport.
     def enterTypeExport(self, ctx:normParser.TypeExportContext):
         pass
 
     # Exit a parse tree produced by normParser#typeExport.
     def exitTypeExport(self, ctx:normParser.TypeExportContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#typeExports.
+    def enterTypeExports(self, ctx:normParser.TypeExportsContext):
+        pass
+
+    # Exit a parse tree produced by normParser#typeExports.
+    def exitTypeExports(self, ctx:normParser.TypeExportsContext):
         pass
 
 
@@ -152,12 +170,30 @@ class normListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by normParser#typeDeclarations.
+    def enterTypeDeclarations(self, ctx:normParser.TypeDeclarationsContext):
+        pass
+
+    # Exit a parse tree produced by normParser#typeDeclarations.
+    def exitTypeDeclarations(self, ctx:normParser.TypeDeclarationsContext):
+        pass
+
+
     # Enter a parse tree produced by normParser#typeDefinition.
     def enterTypeDefinition(self, ctx:normParser.TypeDefinitionContext):
         pass
 
     # Exit a parse tree produced by normParser#typeDefinition.
     def exitTypeDefinition(self, ctx:normParser.TypeDefinitionContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#typeDefinitions.
+    def enterTypeDefinitions(self, ctx:normParser.TypeDefinitionsContext):
+        pass
+
+    # Exit a parse tree produced by normParser#typeDefinitions.
+    def exitTypeDefinitions(self, ctx:normParser.TypeDefinitionsContext):
         pass
 
 
@@ -188,12 +224,12 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#range_.
-    def enterRange_(self, ctx:normParser.Range_Context):
+    # Enter a parse tree produced by normParser#rangeExpr.
+    def enterRangeExpr(self, ctx:normParser.RangeExprContext):
         pass
 
-    # Exit a parse tree produced by normParser#range_.
-    def exitRange_(self, ctx:normParser.Range_Context):
+    # Exit a parse tree produced by normParser#rangeExpr.
+    def exitRangeExpr(self, ctx:normParser.RangeExprContext):
         pass
 
 
@@ -212,15 +248,6 @@ class normListener(ParseTreeListener):
 
     # Exit a parse tree produced by normParser#arithmeticExpr.
     def exitArithmeticExpr(self, ctx:normParser.ArithmeticExprContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#comparisonExpr.
-    def enterComparisonExpr(self, ctx:normParser.ComparisonExprContext):
-        pass
-
-    # Exit a parse tree produced by normParser#comparisonExpr.
-    def exitComparisonExpr(self, ctx:normParser.ComparisonExprContext):
         pass
 
 
@@ -305,12 +332,21 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#logicalOperator.
-    def enterLogicalOperator(self, ctx:normParser.LogicalOperatorContext):
+    # Enter a parse tree produced by normParser#simpleLogicalOperator.
+    def enterSimpleLogicalOperator(self, ctx:normParser.SimpleLogicalOperatorContext):
         pass
 
-    # Exit a parse tree produced by normParser#logicalOperator.
-    def exitLogicalOperator(self, ctx:normParser.LogicalOperatorContext):
+    # Exit a parse tree produced by normParser#simpleLogicalOperator.
+    def exitSimpleLogicalOperator(self, ctx:normParser.SimpleLogicalOperatorContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#complexLogicalOperator.
+    def enterComplexLogicalOperator(self, ctx:normParser.ComplexLogicalOperatorContext):
+        pass
+
+    # Exit a parse tree produced by normParser#complexLogicalOperator.
+    def exitComplexLogicalOperator(self, ctx:normParser.ComplexLogicalOperatorContext):
         pass
 
 
