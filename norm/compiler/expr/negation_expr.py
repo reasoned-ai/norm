@@ -1,14 +1,13 @@
-from typing import List
-from norm.compiler import NormCompilable, Variable
+from norm.compiler import NormCompiler
+from norm.executable import NormExecutable
 from norm.grammar.normParser import normParser
 
 
-class NegationExpr(NormCompilable):
-
-    def compile(self, compound_expr):
-        """
-        :type compound_expr: normParser.CompoundExprContext
-        :rtype: List[norm.executable.NormExecutable]
-        """
-        pass
+def compile_negation_expr(compiler, compound_expr):
+    """
+    :type compiler: NormCompiler
+    :type compound_expr: normParser.CompoundExprContext
+    :rtype: NormExecutable
+    """
+    pass
 

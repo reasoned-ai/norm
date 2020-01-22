@@ -59,7 +59,7 @@ atomic import norm.test as tt
 Add/Update data
 """
 
-# constant construction (similar to type construction)
+# constant construction
 test := 'sfs', 4 -> 6
       | 'fff', 1 -> 7
 

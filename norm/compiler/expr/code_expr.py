@@ -1,13 +1,13 @@
-from norm.compiler import NormCompilable
+from norm.compiler import NormCompiler
+from norm.executable import NormExecutable
 from norm.grammar.normParser import normParser
 
 
-class CodeExpr(NormCompilable):
-
-    def compile(self, code_expr):
-        """
-        :type code_expr: normParser.CodeExprContext
-        :rtype: List[NormExecutable]
-        """
-        pass
+def compile_code_expr(compiler, code_expr):
+    """
+    :type compiler: NormCompiler
+    :type code_expr: normParser.CodeExprContext
+    :rtype: NormExecutable
+    """
+    pass
 

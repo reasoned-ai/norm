@@ -1,18 +1,15 @@
-from typing import List
-from norm.compiler import NormCompilable
 from norm.grammar.normParser import normParser
 
 
-class TypeExport(NormCompilable):
-
-    def compile(self, atomic, type_export, comments):
-        """
-        :type atomic: bool
-        :type type_export: normParser.TypeExportContext
-        :type comments: str
-        :rtype: List[NormExecutable]
-        """
-        pass
+def compile_type_export(compiler, atomic, type_export, comments):
+    """
+    :type compiler: norm.compiler.NormCompiler
+    :type atomic: bool
+    :type type_export: normParser.TypeExportContext
+    :type comments: str
+    :rtype: norm.models.norm.Lambda
+    """
+    pass
 
 
 

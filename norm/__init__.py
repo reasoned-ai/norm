@@ -37,7 +37,7 @@ def configure(home=None, db_path=None, data_path=None, **kwargs):
         config.Session.configure(bind=config.engine)
 
 
-def init_colab():
+try:
     """
     Setting the configurations in Colab (Google)
     """
@@ -85,6 +85,9 @@ def init_colab():
 
     config.engine = create_engine('sqlite:///{}'.format(config.DB_PATH), poolclass=StaticPool)
     config.Session.configure(bind=config.engine)
+except:
+    # not in colab environment
+    pass
 
 
 # IPython magics

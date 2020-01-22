@@ -1,14 +1,13 @@
-from typing import List
-from norm.compiler import NormCompilable
+from norm.compiler import NormCompiler
+from norm.executable import NormExecutable
 from norm.grammar.normParser import normParser
 
 
-class SimpleExpr(NormCompilable):
-
-    def compile(self, simple_expr):
-        """
-        :type simple_expr: normParser.SimpleExprContext
-        :rtype: List[NormExecutable]
-        """
-        pass
+def compile_simple_expr(compiler, simple_expr):
+    """
+    :type compiler: NormCompiler
+    :type simple_expr: normParser.SimpleExprContext
+    :rtype: NormExecutable
+    """
+    pass
 

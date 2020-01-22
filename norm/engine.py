@@ -1,28 +1,14 @@
 import logging
 import traceback
-import datetime
 
 from sqlalchemy.exc import SQLAlchemyError
-from functools import lru_cache
 
-from norm.compiler import NormCompiler
-from norm.models.norm import Module
-from norm.executable import Results
-from norm.config import Session, MAX_MODULE_CACHE_SIZE
+from norm.compiler import build_compiler, ParseError, CompileError
+from norm.config import Session
+from norm.executable import Results, NormError
 from norm.utils import random_name, new_version
 
 logger = logging.getLogger(__name__)
-
-
-@lru_cache(MAX_MODULE_CACHE_SIZE)
-def build_compiler(module):
-    """
-    :param module: the module for the compiler
-    :type module: Module
-    :return: the compiler
-    :rtype: NormCompiler
-    """
-    return NormCompiler(module)
 
 
 def execute(script, name=None, version=None, python_context=None):
@@ -37,7 +23,7 @@ def execute(script, name=None, version=None, python_context=None):
     :param python_context: the python context
     :type python_context: dict
     :return: the results to return
-    :rtype: Results
+    :rtype: Results or None
     """
     if script is None or not isinstance(script, str):
         return None
@@ -45,32 +31,28 @@ def execute(script, name=None, version=None, python_context=None):
     # establish a db session
     session = Session()
     try:
-        # retrieve or create a module
-        if name and version:
-            module = session.query(Module).filter(Module.full_name == name,
-                                                  Module.version == version).scalar()
-            if module:
-                module.script += f'\n# + {datetime.datetime.utcnow()} \n{script}'
-            else:
-                module = Module(name, script, version=version)
-                session.add(module)
-        else:
-            name = name or random_name()
-            version = version or new_version()
-            module = Module(name, script, version=version)
-            session.add(module)
-
-        compiler = build_compiler(module)\
+        name = name or random_name()
+        version = version or new_version()
+        compiler = build_compiler(name, version)\
             .set_python_context(python_context)\
             .set_session(session)
 
-        exes = compiler.compile(script)
-        results = [exe.compute() for exe in exes]
+        results = None
+        for exe in compiler.compile(script):
+            results = exe.compute()
+
         session.commit()
         return results
-    except SQLAlchemyError as e:
-        logger.error('Object registration failed')
-        logger.error(e)
+    except (ParseError, CompileError):
+        logger.error('Norm parsing or compilation failed')
+        logger.debug(traceback.print_exc())
+        session.rollback()
+    except NormError:
+        logger.error('Norm execution failed')
+        logger.debug(traceback.print_exc())
+        session.rollback()
+    except SQLAlchemyError:
+        logger.error('Norm db operation failed; Try it again.')
         logger.debug(traceback.print_exc())
         session.rollback()
     finally:

@@ -39,6 +39,8 @@ class Variable(Model):
     asc = Column(Boolean)
     position = Column(Integer)
     values = Column(JSON)
+    scope_id = Column(Integer, ForeignKey('lambdas.id'))
+    scope = relationship('Lambda', foreign_keys=[scope_id])
     type_id = Column(Integer, ForeignKey('lambdas.id'))
     type_ = relationship('Lambda', foreign_keys=[type_id])
 
@@ -180,19 +182,23 @@ class Output(Variable):
     }
 
     as_primary = Column(Boolean, default=False)
+    group = Column(Integer, default=0)
 
-    def __init__(self, type_, name='', default=None, asc=None, level=0,  as_primary=True):
+    def __init__(self, type_, name='', default=None, asc=None, level=0, group=0, as_primary=True):
         """
         :type type_: norm.models.norm.Lambda
         :type name: str
         :type default: object
         :type asc: bool
         :type level: int
+        :param group: the group number of outputs for multiple outputs, e.g. ()->(a:String, b:Integer)->String
+        :type group: int
         :param as_primary: whether the variable is a primary variable, i.e., used to generate oid
         :type as_primary: bool
         """
         super().__init__(type_, name, default, asc, level)
         self.as_primary = as_primary
+        self.group = group
 
 
 class Internal(Variable):

@@ -1,4 +1,4 @@
-# Generated from /home/ax/Workspace/norm/norm/grammar/norm.g4 by ANTLR 4.7.2
+# Generated from /home/ax/Workspace/norm/norm/grammar/norm.g4 by ANTLR 4.8
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .normParser import normParser
@@ -149,15 +149,6 @@ class normListener(ParseTreeListener):
 
     # Exit a parse tree produced by normParser#outputDeclaration.
     def exitOutputDeclaration(self, ctx:normParser.OutputDeclarationContext):
-        pass
-
-
-    # Enter a parse tree produced by normParser#inheritanceDeclaration.
-    def enterInheritanceDeclaration(self, ctx:normParser.InheritanceDeclarationContext):
-        pass
-
-    # Exit a parse tree produced by normParser#inheritanceDeclaration.
-    def exitInheritanceDeclaration(self, ctx:normParser.InheritanceDeclarationContext):
         pass
 
 
@@ -368,3 +359,5 @@ class normListener(ParseTreeListener):
         pass
 
 
+
+del normParser

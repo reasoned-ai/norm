@@ -1,8 +1,20 @@
+from typing import List
+
+
 class NormError(RuntimeError):
     pass
 
 
 class Results(object):
+    @property
+    def bindings(self):
+        """
+        Variable bindings
+        :return: all variables involved in the computation
+        :rtype: List[norm.models.norm.variable.Variable]
+        """
+        raise NotImplementedError
+
     @property
     def positives(self):
         """
@@ -27,31 +39,56 @@ class Results(object):
 
 class NormExecutable(object):
 
-    def __init__(self, context):
+    def __init__(self, context, dependents=None):
         """
         :param context: Compiler provides context for execution, e.g., existing bindings
-        :type context: norm.compiler.Compiler
+        :type context: norm.compiler.NormCompiler
+        :param dependents: dependent executables
+        :type dependents: List[NormExecutable]
         """
-        self.stack = []
+        self.stack = dependents or []
+        self._lam = None
         self.context = context
 
     def push(self, exe):
         """
-        :type exe: norm.executable.NormExecutable
+        :type exe: NormExecutable
         """
         self.stack.append(exe)
 
     def pop(self):
+        """
+        :rtype: NormExecutable
+        """
         self.stack.pop()
 
     def peek(self):
+        """
+        :rtype: NormExecutable
+        """
         return self.stack[-1]
+
+    @property
+    def lam(self):
+        """
+        Get the Lambda for the results
+        :rtype: norm.models.norm.Lambda or None
+        """
+        raise NotImplementedError
+
+    @lam.setter
+    def lam(self, o):
+        """
+        Set the Lambda for the results
+        :type o: norm.models.norm.Lambda
+        """
+        self._lam = o
 
     def compute(self):
         """
         Execute the command with given context
         :return: the results
-        :rtype: Results
+        :rtype: Results or None
         """
         raise NotImplementedError
 
@@ -79,7 +116,7 @@ class Filter(NormExecutable):
 
 class Join(NormExecutable):
     """
-    Join two or more executables together.
+    Join two or more executables together. If only one provided, it joins the current scope.
     """
     pass
 
@@ -130,7 +167,13 @@ class Pivot(NormExecutable):
     """
     Value to variable expansion
     """
-    pass
+    def __init__(self, context, dependents=None, variable=None):
+        """
+        :param variable: the name of the variable to pivot on
+        :type variable: str
+        """
+        super().__init__(context, dependents=dependents)
+        self.variable = variable
 
 
 class Unique(NormExecutable):
@@ -144,7 +187,12 @@ class Project(NormExecutable):
     """
     Rename or assign variables
     """
-    pass
+    def __init__(self, context, dependents=None, variables=None):
+        """
+        :type variables: List[str]
+        """
+        super().__init__(context, dependents)
+        self.variables: List[str] = variables
 
 
 class Construction(NormExecutable):
@@ -157,20 +205,6 @@ class Construction(NormExecutable):
 class Code(NormExecutable):
     """
     Load relation from other code, e.g., python or sql
-    """
-    pass
-
-
-class Import(NormExecutable):
-    """
-    Import a type from a different module
-    """
-    pass
-
-
-class Export(NormExecutable):
-    """
-    Export the type to a different module
     """
     pass
 
@@ -192,5 +226,12 @@ class Implication(NormExecutable):
 class Negation(NormExecutable):
     """
     Negate results
+    """
+    pass
+
+
+class DefineType(NormExecutable):
+    """
+    Define a Lambda
     """
     pass

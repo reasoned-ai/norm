@@ -1,6 +1,7 @@
 import re
-from typing import Tuple, List
-from norm.compiler.exception import error_on
+from typing import Tuple
+
+from norm.compiler import error_on
 from norm.grammar.normParser import normParser
 
 
@@ -53,21 +54,8 @@ def parse_type(type_, context):
     while type_.type_():
         type_level += 1
         type_ = type_.type_()
-    variable_type = parse_lambda(type_.qualifiedName(), context)
-    return variable_type, type_level
-
-
-def parse_variable(variable):
-    """
-    Parse the variable
-    :type variable: normParser.VariableContext
-    :rtype: norm.compiler.Variable
-    """
-    from norm.compiler import Variable
-    if variable.validName():
-        return Variable(variable.getText())
-    else:
-        return Variable(variable.getText(), pivot=True)
+    type_variable = parse_lambda(type_.qualifiedName(), context)
+    return type_variable, type_level
 
 
 def parse_lambda(qualified_name, context):
@@ -80,7 +68,9 @@ def parse_lambda(qualified_name, context):
     :return: the type
     :rtype: norm.models.norm.Lambda
     """
-    raise NotImplementedError
+    module_name, type_name, type_version = parse_type_name_version_module(qualified_name)
+    module = context.get_module(module_name)
+    return context.get_lambda(type_name, module, type_version)
 
 
 def parse_constant(constant, context):

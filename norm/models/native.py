@@ -30,11 +30,11 @@ class NativeLambda(Lambda, Registrable):
         'polymorphic_identity': 'lambda_native'
     }
 
-    def __init__(self, name, description, bindings=None, dtype='object'):
-        super().__init__(module=store_native.latest,
+    def __init__(self, name, description, bindings=None, dtype='object', module=None, version=None):
+        super().__init__(module=module or store_native.latest,
                          name=name,
                          description=description,
-                         version=__version__,
+                         version=version or __version__,
                          bindings=bindings)
         self.atomic = True
         self.dtype = dtype
@@ -191,9 +191,12 @@ class UnaryOperator(OperatorLambda):
         'polymorphic_identity': 'operator_unary'
     }
 
-    def __init__(self, name, description):
+    def __init__(self, name, description, type_=None, type_level=0, module=None, version=None):
         super().__init__(name, description,
-                         bindings=[Input(store_native.Any, self.RHS), Output(store_native.Any, self.OUT)])
+                         bindings=[Input(type_ or store_native.Any, self.RHS, level=type_level),
+                                   Output(store_native.Any, self.OUT, level=type_level)],
+                         module=module,
+                         version=version)
 
 
 @Register(name='and', description='conjunction of logic')
@@ -201,7 +204,6 @@ class UnaryOperator(OperatorLambda):
 @Register(name='xor', description='mutual exclusion of logic')
 @Register(name='imply', description='implication of logic')
 @Register(name='except', description='exception of logic')
-@Register(name='unless', description='unless of logic')
 @Register(name='otherwise', description='otherwise of logic')
 @Register(name='+', description='addition of arithmetic')
 @Register(name='-', description='subtraction of arithmetic')
@@ -225,11 +227,13 @@ class BinaryOperator(OperatorLambda):
         'polymorphic_identity': 'operator_binary'
     }
 
-    def __init__(self, name, description):
+    def __init__(self, name, description, type_=None, type_level=0, module=None, version=None):
         super().__init__(name, description,
-                         bindings=[Input(store_native.Any, self.LHS),
-                                   Input(store_native.Any, self.RHS),
-                                   Output(store_native.Any, self.OUT)])
+                         bindings=[Input(type_ or store_native.Any, self.LHS, level=type_level),
+                                   Input(type_ or store_native.Any, self.RHS, level=type_level),
+                                   Output(type_ or store_native.Any, self.OUT, level=type_level)],
+                         module=module,
+                         version=version)
 
 
 def get_type_by_dtype(dtype):

@@ -1,4 +1,4 @@
-# Generated from /home/ax/Workspace/norm/norm/grammar/norm.g4 by ANTLR 4.7.2
+# Generated from /home/ax/Workspace/norm/norm/grammar/norm.g4 by ANTLR 4.8
 from antlr4 import *
 from io import StringIO
 from typing.io import TextIO
@@ -832,7 +832,7 @@ class normLexer(Lexer):
     IS = 27
     QUERY = 28
     COLON = 29
-    INHERIT = 30
+    SUBT = 30
     COMMA = 31
     DOT = 32
     IN = 33
@@ -895,7 +895,7 @@ class normLexer(Lexer):
             "EXIST", "NEXIST", "FORANY", "IMPORT", "EXPORT", "TO", "FROM", 
             "AS", "SINGLELINE", "MULTILINE", "RETURN", "ATOMIC", "BINARY", 
             "UNARY", "EMPTYLINES", "WS", "LBR", "RBR", "LSBR", "RSBR", "LCBR", 
-            "RCBR", "MAPTO", "NONE", "DRAW", "IS", "QUERY", "COLON", "INHERIT", 
+            "RCBR", "MAPTO", "NONE", "DRAW", "IS", "QUERY", "COLON", "SUBT", 
             "COMMA", "DOT", "IN", "NI", "EQ", "NE", "GE", "LE", "GT", "LT", 
             "LK", "NK", "MINUS", "PLUS", "TIMES", "DIVIDE", "EXP", "MOD", 
             "NOT", "AND", "OR", "XOR", "IMP", "EPT", "OTW", "DEF", "ORDEF", 
@@ -908,7 +908,7 @@ class normLexer(Lexer):
                   "TO", "FROM", "AS", "SINGLELINE", "MULTILINE", "RETURN", 
                   "ATOMIC", "BINARY", "UNARY", "EMPTYLINES", "WS", "LBR", 
                   "RBR", "LSBR", "RSBR", "LCBR", "RCBR", "MAPTO", "NONE", 
-                  "DRAW", "IS", "QUERY", "COLON", "INHERIT", "COMMA", "DOT", 
+                  "DRAW", "IS", "QUERY", "COLON", "SUBT", "COMMA", "DOT", 
                   "IN", "NI", "EQ", "NE", "GE", "LE", "GT", "LT", "LK", 
                   "NK", "MINUS", "PLUS", "TIMES", "DIVIDE", "EXP", "MOD", 
                   "NOT", "AND", "OR", "XOR", "IMP", "EPT", "OTW", "DEF", 
@@ -925,7 +925,7 @@ class normLexer(Lexer):
 
     def __init__(self, input=None, output:TextIO = sys.stdout):
         super().__init__(input, output)
-        self.checkVersion("4.7.2")
+        self.checkVersion("4.8")
         self._interp = LexerATNSimulator(self, self.atn, self.decisionsToDFA, PredictionContextCache())
         self._actions = None
         self._predicates = None

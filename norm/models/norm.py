@@ -132,6 +132,14 @@ class Lambda(Model, AuditableMixin):
     atomic = Column(Boolean, default=False)
 
     def __init__(self, module=None, name='', description='', version='', atomic=False, bindings=None):
+        """
+        :type module: Module
+        :type name: str
+        :type description: str
+        :type version: str
+        :type atomic: bool
+        :type bindings: List[Variable]
+        """
         self.module: Module = module
         self.id: int = uuid_int()
         self.name: str = name
@@ -141,6 +149,9 @@ class Lambda(Model, AuditableMixin):
         self.atomic: bool = atomic
         self.definition: str = ''
         self._data: DataFrame or None = None
+        if self.bindings:
+            for v in self.bindings:
+                v.scope = self
 
     @orm.reconstructor
     def init_on_load(self):
@@ -177,9 +188,6 @@ class Lambda(Model, AuditableMixin):
 
     def __call__(self, **kwargs):
         pass
-
-    def _repr_html_(self):
-        return self.data._repr_html_()
 
     @lazy_property
     def default(self):
@@ -232,6 +240,20 @@ class Lambda(Model, AuditableMixin):
     @lazy_property
     def declared_bindings(self):
         return [v for v in self.bindings if isinstance(v, (Parent, Input, Output, Parameter))]
+
+    @lazy_property
+    def input_variables(self):
+        variables = []
+        for v in self.bindings:
+            if isinstance(v, Parent):
+                variables.extend(v.type_.inputs)
+            elif isinstance(v, (Input, Parameter)):
+                variables.append(v)
+        return variables
+
+    @lazy_property
+    def output_variables(self):
+        return [v for v in self.bindings if isinstance(v, Output)]
 
     @property
     def data(self):

@@ -65,24 +65,19 @@ variableDeclaration
     ;
 
 inputDeclaration
-    : LBR RBR
+    : type_
+    | variableDeclaration
     | LBR variableDeclaration ( COMMA variableDeclaration )* COMMA? RBR
     ;
 
 outputDeclaration
-    : type_
-    | LBR type_ ( COMMA type_ )* COMMA? RBR
-    | LBR variableDeclaration ( COMMA variableDeclaration )* COMMA? RBR
+    : MAPTO (variableDeclaration | type_)
+    | MAPTO LBR variableDeclaration ( COMMA variableDeclaration )* COMMA? RBR
     ;
 
-inheritanceDeclaration: INHERIT type_*;
-
 typeDeclaration
-    : qualifiedName inheritanceDeclaration
-    | qualifiedName inheritanceDeclaration? MAPTO outputDeclaration
-    | qualifiedName inheritanceDeclaration? inputDeclaration ( MAPTO outputDeclaration )?
-    | UNARY STRING inputDeclaration MAPTO outputDeclaration
-    | BINARY STRING inputDeclaration MAPTO outputDeclaration
+    : qualifiedName SUBT inputDeclaration* outputDeclaration*
+    | ( UNARY | BINARY ) type_ STRING
     ;
 
 typeDeclarations: (ATOMIC? typeDeclaration)+;
@@ -139,9 +134,9 @@ codeExpr
     ;
 
 returnExpr
-    : RETURN simpleExpr ( COMMA simpleExpr )* COMMA?
-    | RETURN variable IS simpleExpr ( COMMA variable IS simpleExpr )* COMMA?
-    | RETURN simpleExpr AS variable ( COMMA simpleExpr AS variable )* COMMA?;
+    : RETURN simpleExpr ( (COMMA|MAPTO) simpleExpr )*
+    | RETURN variable IS simpleExpr ( (COMMA|MAPTO) variable IS simpleExpr )*
+    | RETURN simpleExpr AS variable ( (COMMA|MAPTO) simpleExpr AS variable )*;
 
 compoundExpr
     : simpleExpr
@@ -223,7 +218,7 @@ DRAW:      '~';
 IS:        '=';
 QUERY:     '?';
 COLON:     ':';
-INHERIT:   '::';
+SUBT:      '::';
 COMMA:     ',';
 DOT:       '.';
 
