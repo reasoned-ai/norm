@@ -3,17 +3,18 @@ import logging
 import os
 import zlib
 from datetime import datetime
+from textwrap import dedent, indent
 from typing import Dict
 from typing import List
 
 import numpy as np
 from pandas import DataFrame
-from sqlalchemy import Column, Integer, ForeignKey, Text
-from sqlalchemy import String, Boolean, desc, orm
+from sqlalchemy import Column, Integer, ForeignKey, Text, DateTime
+from sqlalchemy import String, Boolean, orm
 from sqlalchemy.ext.orderinglist import ordering_list
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
 
-from norm.models import Model, SEPARATOR, Registrable
+from norm.models import Model, SEPARATOR, Registrable, ModelError, store
 from norm.models.license import License
 from norm.models.mixins import AuditableMixin
 from norm.models.mixins import lazy_property
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 metadata = Model.metadata
 
 
-class Module(Model, AuditableMixin, Registrable):
+class Module(Model, Registrable):
     """Module is a Norm namespace"""
     __tablename__ = 'modules'
 
@@ -37,48 +38,49 @@ class Module(Model, AuditableMixin, Registrable):
         'with_polymorphic': '*'
     }
 
-    full_name = Column(Text, default='')
-    url = Column(String)
-    parent_id = Column(Integer, ForeignKey('modules.id'))
-    children = relationship("Module", backref=backref('parent', remote_side=[id]))
+    id = Column(Integer, primary_key=True, default=uuid_int)
+    name = Column(String(256), nullable=False, unique=True)
+    description = Column(Text, default='')
+    url = Column(String(256))
     lambdas = relationship("Lambda", back_populates="module")
     license_id = Column(Integer, ForeignKey(License.id))
     license = relationship(License, foreign_keys=[license_id])
     script = Column(Text)
 
-    def __init__(self, full_name, script=None, description=None, url=None, version=None):
+    created_on = Column(DateTime, default=datetime.utcnow)
+    changed_on = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __init__(self, name, script=None, description=None, url=None):
         self.id: int = uuid_int()
         self.script: str = script or ''
-        self.name: str = full_name.split(SEPARATOR)[-1]
-        self.full_name: str = full_name
-        self.url: str = url or local_url(full_name, SEPARATOR)
-        self.sub_modules: List[Module] = []
-        self.lambdas: list = []
-        self.version: str = version or new_version()
-        self.set_description(description)
+        self.name: str = name
+        self.url: str = url or local_url(name, SEPARATOR)
+        self.lambdas: List["Lambda"] = []
+        self.license: License = store.license.MIT
+        if description:
+            self.description = description
+        else:
+            self.description_from_script()
 
     def __repr__(self):
         return str(self)
 
     def __str__(self):
-        return self.full_name
+        return self.name
 
     def __hash__(self):
         if self.id is not None:
             return self.id
-        h = hash(self.full_name) << 7
-        if self.version:
-            h += hash(self.version)
-        return h
+        return hash(self.name)
 
     def __eq__(self, other):
         return self.__class__ is not other.__class__ and hash(self) == hash(other)
 
-    def set_description(self, description):
-        if description:
-            self.description = description
-            return
+    def set_script(self, script):
+        self.script = script
+        self.description_from_script()
 
+    def description_from_script(self):
         script = self.script
         if not script:
             return
@@ -92,13 +94,11 @@ class Module(Model, AuditableMixin, Registrable):
                     break
             if not description[-1].endswith(('"""', "'''")):
                 msg = f'{script} does not close the multi-line comments'
-                logger.error(msg)
-                raise ValueError(msg)
+                raise ModelError(msg)
             self.description = ''.join(description)
 
     def exists(self):
-        return [Module.full_name == self.full_name,
-                Module.version == self.version]
+        return [Module.name == self.name]
 
 
 class Lambda(Model, AuditableMixin):
@@ -511,38 +511,96 @@ class Lambda(Model, AuditableMixin):
         pass
 
 
-def retrieve_type(namespaces, name, version=None, status=None):
-    """
-    Retrieving a Lambda
-    :type namespaces: str, List[str] or None
-    :type name: str
-    :type version: str or None
-    :type status: Status or None
-    :return: the Lambda or None
-    """
-    from norm.config import session
+class PythonLambda(Lambda):
 
-    if version == '$lastest':
-        version = None
-    elif version == '$best':
-        raise NotImplementedError('Select the version for the best is not implemented yet')
+    python_version = Column(String(8), default='3.7')
+    python_packages = Column(Text, default='')
 
-    queries = [Lambda.name == name]
-    if status is not None and isinstance(status, Status):
-        queries.append(Lambda.status == status)
-    if namespaces is not None:
-        if isinstance(namespaces, str):
-            queries.append(Lambda.namespace == namespaces)
+    __mapper_args__ = {
+        'polymorphic_identity': 'lambda_python'
+    }
+
+    def __init__(self, name, description, code='', python_version='3.7', module=None, version=None, atomic=True,
+                 bindings=None):
+        """
+        Python function, inputs are wrapped into one variable, outputs are one variable too.
+        :type name: str
+        :type description: str
+        :type code: str
+        :type python_version: str
+        :type module: norm.models.norm.Module
+        :type version: str
+        :type atomic: bool
+        :type bindings: List[Variable]
+        """
+        super().__init__(name=name,
+                         description=description,
+                         module=module,
+                         version=version,
+                         atomic=atomic,
+                         bindings=bindings)
+        self.define(code)
+        self.python_version = python_version
+
+    def define(self, code):
+        """
+        :type code: str
+        """
+        self.definition = dedent(code).strip(' \n')
+
+    def decorated(self):
+        """
+        Decorate code with a function definition
+        """
+        stmts = self.definition.split('\n')
+        if not stmts[-1].startswith('return'):
+            stmts[-1] = 'return ' + stmts[-1]
+            script = indent('\n'.join(stmts), prefix='  ')
         else:
-            queries.append(Lambda.namespace.in_(namespaces))
-    if version is not None:
-        queries.append(Lambda.version.startswith(version))
+            script = indent(self.definition, prefix='  ')
 
-    lam = session.query(Lambda) \
-                 .filter(*queries) \
-                 .order_by(desc(Lambda.created_on)) \
-                 .first()
-    return lam
+        return "def func(" + ",".join(v.name for v in self.input_variables) + "):\n" + script + "\n"
+
+    @lazy_property
+    def func(self):
+        try:
+            d = {}
+            exec(self.decorated(), d)
+            return d.get('func')
+        except Exception:
+            msg = 'Can not load the python code: \n{}'.format(self.definition)
+            raise ModelError(msg)
+
+
+class SQLLambda(Lambda):
+
+    sql_url = Column(String(128), default='')
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'lambda_sql'
+    }
+
+    def __init__(self, name, description, code='', sql_url='', module=None, version=None, atomic=True, bindings=None):
+        """
+        SQL function, inputs are wrapped into one variable, outputs are one variable too.
+        :type name: str
+        :type description: str
+        :type code: str
+        :type sql_url: str
+        :type module: norm.models.norm.Module
+        :type version: str
+        :type atomic: bool
+        :type bindings: List[Variable]
+        """
+        super().__init__(name=name,
+                         description=description,
+                         module=module,
+                         version=version,
+                         atomic=atomic,
+                         bindings=bindings)
+        self.definition = dedent(code).strip(' \n')
+        self.sql_url = sql_url
+
 
 
 

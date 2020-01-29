@@ -1,14 +1,10 @@
-from datetime import datetime
-
-from sqlalchemy import Column, Integer, String, Text, exists, and_, TypeDecorator, ForeignKey, DateTime
-
 import json
 import logging
 import traceback
+from datetime import datetime
 
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Text, TypeDecorator, DateTime
 
-from norm.models.security import User
 from norm.utils import uuid_int, new_version
 
 logger = logging.getLogger(__name__)
@@ -237,26 +233,4 @@ class AuditableMixin(object):
     created_on = Column(DateTime, default=datetime.utcnow)
     changed_on = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-
-class ARRAY(TypeDecorator):
-    """ Sqlite-like does not support arrays.
-        Let's use a custom type decorator.
-
-        See http://docs.sqlalchemy.org/en/latest/core/types.html#sqlalchemy.types.TypeDecorator
-    """
-
-    impl = String
-
-    def __init__(self, intern=None):
-        super().__init__()
-        self.intern = intern
-
-    def process_bind_param(self, value, dialect):
-        return json.dumps(value)
-
-    def process_result_value(self, value, dialect):
-        return json.loads(value)
-
-    def copy(self):
-        return ARRAY(self.impl.length)
 

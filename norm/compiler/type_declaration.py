@@ -4,9 +4,9 @@ from typing import List
 from norm.compiler import error_on, same
 from norm.compiler.parsing import parse_type, parse_constant, parse_type_name_version_module, \
     parse_comments
+from norm.compiler.type_definition import CodeType
 from norm.grammar import *
 from norm.grammar.normParser import normParser
-from norm.models.norm import Lambda
 from norm.models.variable import Parameter, Input, Output, Parent, Variable
 from norm.utils import new_version, random_name
 
@@ -161,12 +161,13 @@ def _parse_binary_declaration(compiler, type_, name, comments):
     return t
 
 
-def compile_type_declaration(compiler, atomic, type_declaration, comments):
+def compile_type_declaration(compiler, atomic, type_declaration, comments, code_type=CodeType.NORM):
     """
     :type compiler: norm.compiler.NormCompiler
     :type atomic: bool
     :type type_declaration: normParser.TypeDeclarationContext
     :type comments: str
+    :type code_type: CodeType
     :rtype: norm.models.norm.Lambda
     """
     if type_declaration.UNARY():
@@ -183,9 +184,9 @@ def compile_type_declaration(compiler, atomic, type_declaration, comments):
 
     # Parse regular type
     module_name, type_name, type_version = parse_type_name_version_module(type_declaration.qualifiedName())
-    error_on(module_name,
-             f'Type declaration does not allow submodule to be created.\n'
-             f'Suggestion: remove {module_name}')
+    error_on(module_name is not None,
+             f'Type declaration does not allow submodule yet.\n'
+             f'Suggestion: remove {module_name.getText()}')
 
     # input declaration
     declared_inputs = []
@@ -216,15 +217,22 @@ def compile_type_declaration(compiler, atomic, type_declaration, comments):
     bindings = inherited_types + declared_inputs + declared_outputs
     if type_version:
         t = compiler.get_lambda(type_name, compiler.current_module, type_version)
+        error_on(type_version != t.version,
+                 f'Specified version {type_version} does not exist for type {type_name}.')
         error_on(not same(t.declared_bindings, bindings) and len(bindings) > 0,
                  'Declared variables are not the same as recorded.\n'
                  'Suggestions: remove the specified version to allow system to create a new version.')
-        # append descriptions
+        # append description
         t.description += '\n' + description + '\n'
         # change the atomicity
         t.atomic = atomic
     else:
-        t = Lambda(compiler.current_module, type_name, description, type_version, atomic, bindings)
-        compiler.session.add(t)
+        t = compiler.get_lambda(type_name,
+                                module=compiler.current_module,
+                                version=new_version(),
+                                description=description,
+                                atomic=atomic,
+                                bindings=bindings,
+                                code_type=code_type)
     compiler.current_scope = t
     return t

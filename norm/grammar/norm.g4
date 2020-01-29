@@ -14,18 +14,18 @@ comments
     ;
 
 statement
-    : typeImports
-    | typeExports
-    | typeDeclarations
-    | typeDefinitions
+    : ATOMIC? typeImports
+    | ATOMIC? typeExports
+    | ATOMIC? typeDeclarations
+    | ATOMIC? typeDefinition
     | compoundExpr
     ;
 
 validName: NAME | UNICODE_NAME | ATOMIC | BINARY | UNARY;
 
 qualifiedName
-    : validName
-    | qualifiedName DOT validName
+    : validName | STRING
+    | qualifiedName DOT (validName | STRING)
     | qualifiedName UUID
     ;
 
@@ -48,7 +48,7 @@ typeImport
     | FROM qualifiedName IMPORT names
     ;
 
-typeImports: (ATOMIC? typeImport)+;
+typeImports: typeImport+;
 
 typeExport
     : EXPORT names
@@ -56,7 +56,7 @@ typeExport
     | TO qualifiedName EXPORT names
     ;
 
-typeExports: (ATOMIC? typeExport)+;
+typeExports: typeExport+;
 
 variableDeclaration
     : validName
@@ -80,18 +80,16 @@ typeDeclaration
     | ( UNARY | BINARY ) type_ STRING
     ;
 
-typeDeclarations: (ATOMIC? typeDeclaration)+;
+typeDeclarations: typeDeclaration+;
 
 typeDefinition
     : type_ definitionOperator compoundExpr
     | typeDeclaration definitionOperator compoundExpr
     ;
 
-typeDefinitions: (ATOMIC? typeDefinition)+;
-
 argumentExpr
     : simpleExpr
-    | validName IS arithmeticExpr
+    | validName IS simpleExpr
     | argumentExpr QUERY
     ;
 

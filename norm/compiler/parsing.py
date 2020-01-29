@@ -24,20 +24,27 @@ def parse_type_name_version_module(qualified_name):
     Parse type name, version and module from a qualified name
     :param qualified_name: the qualified name
     :type qualified_name: normParser.QualifiedNameContext
-    :return: module, type name and type version
+    :return: module full name, type name and type version
     :rtype: Tuple[str, str, str]
     """
     type_version = ''
     if qualified_name.UUID():
-        type_version = qualified_name.UUID().getText()
+        type_version = qualified_name.UUID().getText()[1:]
         qualified_name = qualified_name.qualifiedName()
 
-    error_on(qualified_name.UUID(), 'Type can be referred one version at a time, multiple versions detected')
+    error_on(qualified_name.UUID(), 'Type can be referred by only one version at a time, multiple versions detected')
 
     if qualified_name.DOT():
-        return qualified_name.qualifiedName().getText(), qualified_name.validName().getText(), type_version
+        if qualified_name.validName():
+            type_name = qualified_name.validName().getText()
+        else:
+            type_name = qualified_name.STRING().getText().strip('"\'')
+        module_name = qualified_name.qualifiedName().getText().replace('"\'', '')
+        error_on(module_name.find('$') > -1,
+                 f"Module has no version, but a version sign detected for {module_name}.")
+        return module_name, type_name, type_version
     else:
-        return '', qualified_name.getText(), type_version
+        return '', qualified_name.getText().strip('"\''), type_version
 
 
 def parse_type(type_, context):

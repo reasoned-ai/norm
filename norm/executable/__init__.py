@@ -1,7 +1,7 @@
 from typing import List
 
 
-class NormError(RuntimeError):
+class EngineError(RuntimeError):
     pass
 
 
@@ -39,34 +39,18 @@ class Results(object):
 
 class NormExecutable(object):
 
-    def __init__(self, context, dependents=None):
+    def __init__(self, context, dependents=None, type_=None):
         """
         :param context: Compiler provides context for execution, e.g., existing bindings
         :type context: norm.compiler.NormCompiler
         :param dependents: dependent executables
         :type dependents: List[NormExecutable]
+        :param type_: the Lambda for the execution results, not necessarily for every execution
+        :type type_: norm.models.norm.Lambda or None
         """
         self.stack = dependents or []
-        self._lam = None
+        self._lam = type_ or None
         self.context = context
-
-    def push(self, exe):
-        """
-        :type exe: NormExecutable
-        """
-        self.stack.append(exe)
-
-    def pop(self):
-        """
-        :rtype: NormExecutable
-        """
-        self.stack.pop()
-
-    def peek(self):
-        """
-        :rtype: NormExecutable
-        """
-        return self.stack[-1]
 
     @property
     def lam(self):
@@ -74,7 +58,7 @@ class NormExecutable(object):
         Get the Lambda for the results
         :rtype: norm.models.norm.Lambda or None
         """
-        raise NotImplementedError
+        return self._lam
 
     @lam.setter
     def lam(self, o):
@@ -84,7 +68,7 @@ class NormExecutable(object):
         """
         self._lam = o
 
-    def compute(self):
+    def execute(self):
         """
         Execute the command with given context
         :return: the results
@@ -167,12 +151,12 @@ class Pivot(NormExecutable):
     """
     Value to variable expansion
     """
-    def __init__(self, context, dependents=None, variable=None):
+    def __init__(self, context, dependents=None, variable=None, type_=None):
         """
         :param variable: the name of the variable to pivot on
         :type variable: str
         """
-        super().__init__(context, dependents=dependents)
+        super().__init__(context, dependents=dependents, type_=type_)
         self.variable = variable
 
 
@@ -187,24 +171,17 @@ class Project(NormExecutable):
     """
     Rename or assign variables
     """
-    def __init__(self, context, dependents=None, variables=None):
+    def __init__(self, context, dependents=None, variables=None, type_=None):
         """
         :type variables: List[str]
         """
-        super().__init__(context, dependents)
+        super().__init__(context, dependents=dependents, type_=type_)
         self.variables: List[str] = variables
 
 
 class Construction(NormExecutable):
     """
     Construct objects and fill values
-    """
-    pass
-
-
-class Code(NormExecutable):
-    """
-    Load relation from other code, e.g., python or sql
     """
     pass
 
@@ -235,3 +212,14 @@ class DefineType(NormExecutable):
     Define a Lambda
     """
     pass
+
+
+class CodeExecution(NormExecutable):
+    """
+    Execute code in Python or SQL
+    """
+    def __init__(self, context, dependents=None, type_=None, code=''):
+        super().__init__(context, dependents=dependents, type_=type_)
+        self.lam.define(code)
+
+

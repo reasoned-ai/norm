@@ -4,40 +4,32 @@ Type Declaration
 """
 
 # Declare relation
-test(a:String, b:Integer)
+test:: (a:String, b:Integer)
 
 # Atomic Declaration
-atomic test(a: String)
+atomic test:: a: String
 
 # Declare function
-test(a: String) -> Integer
+test:: a: String -> Integer
 
-test(a: String) -> (b: Integer)
+test:: a: String -> b: Integer
 
-test(a: Person) -> (b: Page, c: Topic)
-
-test(a: Person) -> (Page, Topic)
+test:: a: Person -> (b: Page, c: Topic)
 
 # Declare a higher order relation
-summary(a: [String]) -> String
+summary:: a: [String] -> String
 
-# Declare inheritance
-Person(first_name: String,
-       last_name: String,
-       birth_day: DateTime,
-       gender: Gender)
-
-Person:: (first_name: String,
-          last_name: String,
-          birth_day: DateTime,
-          gender: Gender)
+# Subtype declaration
+programmer:: Person fast_on (languages: [Language])
 
 # Atomic definition
-atomic Fast (time_to_finish: Time) := time_to_finish < 10 min
+atomic
+fast_on:: (time_per_line: Time)
+ := time_per_line < 1s
 
-Language := Javascript | Python | Java
+Language:: String
+ := "Javascript" | "Python" | "Java"
 
-programmer:: Person Fast (languages: [Language])
 
 """
 Import Export
@@ -79,7 +71,7 @@ Python Code
 # bind a python code
 utcnow := {
     from datetime import datetime
-    return datetime.utcnow
+    datetime.utcnow
 }
 
 
@@ -177,12 +169,12 @@ for each b in test:
     a.sum > 3
 
 # Mixed aggregation and regular conditions
-test.a.mean as a_mean &
+test.a.mean as a_mean and
 for b in test:
   exist a in test:
     a > a_mean
 
-test.a.mean as a_mean & test.a.std as a_std &
+test.a.mean as a_mean and test.a.std as a_std and
 for a in test:
     abs(a - a_mean) < 2 * a_std
 
@@ -205,9 +197,6 @@ Time Windowing
 """
 moving_average = test.rolling(10m).mean
 
-for e in Event(name=='test').rolling(10m):
-    e.ip.unique.count > 10
-
 
 """
 Anti-join
@@ -217,3 +206,42 @@ Anti-join
 & Movie(title=movie_title, studio_name?, movie_year>=2000)
 & not Star(name=star_name, birth_date==1960)
 & return movie_title, studio_name
+
+
+"""
+Higher order logic
+"""
+atomic Pattern:: e: Event -> String
+
+EmergingPattern:: (event    : Event,
+                   pattern  : [Pattern],
+                   interval : Time Parameter = 10m,
+                   threshold: Integer Parameter = 10)
+:= event.rolling(interval).pattern.unique.count > threshold
+
+windows_ip:: Pattern
+:= e.name == "ip is not reachable" and
+   e.managed_entity.os == "windows" and
+   return e.managed_entity.ip
+
+EmergingPattern(event=event,
+                pattern=windows_ip,
+                interval=10m,
+                threshold=20)
+
+port_exception:: Pattern
+:= e.name == "port exception" and
+   return e.managed_entity.port
+
+EmergingPattern(event=event,
+                pattern=port_exception,
+                interval=30m,
+                threshold=100)
+
+"""
+Switch block
+"""
+
+    a > 3 => return 'larger than 3'
+and a > 1 => return 'larger than 1'
+otherwise    return 'smaller than or equal to 1'

@@ -1,7 +1,6 @@
-from norm.compiler import NormCompiler
+from norm.compiler import NormCompiler, CompileError
 from norm.compiler.expr import Var
 from norm.compiler.expr.assignment_expr import compile_assignment_expr
-from norm.compiler.expr.code_expr import compile_code_expr
 from norm.compiler.expr.conjunction_expr import compile_conjunction
 from norm.compiler.expr.disjunction_expr import compile_disjunction
 from norm.compiler.expr.except_expr import compile_except
@@ -26,7 +25,8 @@ def compile_compound_expr(compiler, compound_expr):
     if compound_expr.simpleExpr():
         return compile_simple_expr(compiler, compound_expr.simpleExpr())
     elif compound_expr.codeExpr():
-        return compile_code_expr(compiler, compound_expr.codeExpr())
+        msg = 'Python code embedding is compiled at statement level. Something is wrong!'
+        raise CompileError(msg)
     elif compound_expr.returnExpr():
         return compile_return(compiler, compound_expr.returnExpr())
     elif compound_expr.quantifier():
@@ -60,8 +60,6 @@ def compile_compound_expr(compiler, compound_expr):
             return compile_mutual_exclusive(compiler, left_expr, right_expr)
         elif operator.OTW():
             return compile_switch_block(compiler, left_expr, right_expr)
-
-
 
 
 

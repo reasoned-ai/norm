@@ -179,15 +179,6 @@ class normListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by normParser#typeDefinitions.
-    def enterTypeDefinitions(self, ctx:normParser.TypeDefinitionsContext):
-        pass
-
-    # Exit a parse tree produced by normParser#typeDefinitions.
-    def exitTypeDefinitions(self, ctx:normParser.TypeDefinitionsContext):
-        pass
-
-
     # Enter a parse tree produced by normParser#argumentExpr.
     def enterArgumentExpr(self, ctx:normParser.ArgumentExprContext):
         pass

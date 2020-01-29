@@ -93,13 +93,12 @@ except:
 # IPython magics
 if get_ipython() is not None:
     ip = get_ipython()
-    context = {'module_name': random_name(),
-               'module_version': new_version()}
+    # TODO use ipython notebook name as the module name
+    context = {'module_name': random_name()}
 
     def init_context():
         context.clear()
         context['module_name'] = random_name()
-        context['module_version'] = new_version()
 
     @register_line_cell_magic
     def norma(line, cell=None):
@@ -112,6 +111,5 @@ if get_ipython() is not None:
         """
         from norm.engine import execute
         module_name = context.get('module_name')
-        module_version = context.get('module_version')
         script = cell or line
-        return execute(script, module_name, module_version, ip.user_global_ns)
+        return execute(script, module_name, ip.user_global_ns)

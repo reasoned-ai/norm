@@ -22,16 +22,13 @@ class NativeModule(Module):
         super().__init__('norm.native', description='Norm native namespace', version=__version__)
 
 
-store_native = store.norm.native
-
-
 class NativeLambda(Lambda, Registrable):
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native'
     }
 
     def __init__(self, name, description, bindings=None, dtype='object', module=None, version=None):
-        super().__init__(module=module or store_native.latest,
+        super().__init__(module=module or store.native.latest,
                          name=name,
                          description=description,
                          version=version or __version__,
@@ -193,8 +190,8 @@ class UnaryOperator(OperatorLambda):
 
     def __init__(self, name, description, type_=None, type_level=0, module=None, version=None):
         super().__init__(name, description,
-                         bindings=[Input(type_ or store_native.Any, self.RHS, level=type_level),
-                                   Output(store_native.Any, self.OUT, level=type_level)],
+                         bindings=[Input(type_ or store.native.Any, self.RHS, level=type_level),
+                                   Output(store.native.Any, self.OUT, level=type_level)],
                          module=module,
                          version=version)
 
@@ -229,9 +226,9 @@ class BinaryOperator(OperatorLambda):
 
     def __init__(self, name, description, type_=None, type_level=0, module=None, version=None):
         super().__init__(name, description,
-                         bindings=[Input(type_ or store_native.Any, self.LHS, level=type_level),
-                                   Input(type_ or store_native.Any, self.RHS, level=type_level),
-                                   Output(type_ or store_native.Any, self.OUT, level=type_level)],
+                         bindings=[Input(type_ or store.native.Any, self.LHS, level=type_level),
+                                   Input(type_ or store.native.Any, self.RHS, level=type_level),
+                                   Output(type_ or store.native.Any, self.OUT, level=type_level)],
                          module=module,
                          version=version)
 
@@ -250,5 +247,9 @@ def get_type_by_dtype(dtype):
         return store_native.Float.latest
     elif dtype.name.find('datetime') > -1:
         return store_native.DateTime.latest
+    elif dtype.name.find('string') > -1:
+        return store_native.String.latest
+    elif dtype.name.find('bool') > -1:
+        return store_native.Boolean.latest
     else:
         return store_native.Any.latest

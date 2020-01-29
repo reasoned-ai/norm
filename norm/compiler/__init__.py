@@ -1,5 +1,6 @@
 import logging
 import traceback
+from enum import Enum
 from functools import lru_cache
 from typing import List
 
@@ -12,7 +13,7 @@ from norm.config import MAX_MODULE_CACHE_SIZE
 from norm.executable import NormExecutable
 from norm.grammar.normLexer import normLexer
 from norm.grammar.normParser import normParser
-from norm.models.norm import Module, Lambda, SEPARATOR
+from norm.models.norm import Module, Lambda, PythonLambda, SQLLambda
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +23,10 @@ class ParseError(ValueError):
 
 
 class NormErrorListener(ErrorListener):
-
     def __init__(self):
         super(NormErrorListener, self).__init__()
 
-    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
+    def syntaxError(self, recognizer, offending_symbol, line, column, msg, e):
         err_msg = "line " + str(line) + ":" + str(column) + " " + msg
         raise ParseError(err_msg)
 
@@ -45,12 +45,22 @@ def error_on(cond=None, msg=''):
     :raise: CompileError
     """
     if cond:
-        logger.error(msg)
-        logger.debug(traceback.print_exc())
         raise CompileError(msg)
 
 
-def warn_on(cond, msg):
+def info_on(cond=None, msg=''):
+    """
+    Log info if condition satisfied
+    :param cond: the logical condition
+    :type cond: object
+    :param msg: the message to log
+    :type msg: str
+    """
+    if cond:
+        logger.info(msg)
+
+
+def warn_on(cond=None, msg=''):
     """
     Log warning if condition satisfied
     :param cond: the logical condition
@@ -82,16 +92,20 @@ def same(array, another=None):
         return all(a1 == a2 for a1, a2 in zip(array, another))
 
 
+class CodeType(Enum):
+    NORM = ''
+    PYTHON = 'python'
+    SQL = 'sql'
+
+
 class NormCompiler(object):
 
-    def __init__(self, module_name, module_version):
+    def __init__(self, module_name):
         """
         :param module_name: the module name compiler lives in
         :type module_name: str
-        :param module_version: the version of the module
-        :type module_version: str
         """
-        self.current_module: Module = self.get_module(module_name, module_version)
+        self.current_module: Module = self.get_module(module_name)
         self.native_module: Module = self.get_module('norm.native')
         self.core_module: Module = self.get_module('norm.core')
 
@@ -119,47 +133,47 @@ class NormCompiler(object):
             self.session.merge(self.core_module)
         return self
 
-    def get_module(self, full_name, version=None):
+    def get_module(self, name):
         """
         Get module by full name and version
-        :type full_name: str
-        :type version: str or None
+        :type name: str
         :rtype: norm.models.norm.Module or None
         """
-        key = (full_name, version)
-        module = self.context.get(key)
+        if not name:
+            return None
+
+        module = self.context.get(name)
         if module:
             self.session.merge(module)
             return module
 
         from norm.models.norm import Module
         q = self.session.query(Module)
-        if version:
-            module = q.filter(func.lower(Module.full_name) == func.lower(full_name),
-                              Module.version == version).scalar()
-        else:
-            module = q.filter(func.lower(Module.full_name) == func.lower(full_name))\
-                      .order_by(desc(Module.created_on)).first()
+        module = q.filter(func.lower(Module.name) == func.lower(name)).scalar()
 
         if module is None:
-            module = Module(full_name, version=version)
-            parent_module_name = SEPARATOR.join(full_name.split(SEPARATOR)[:-1])
-            module.parent = q.filter(func.lower(Module.full_name) == func.lower(parent_module_name))\
-                             .order_by(desc(Module.created_on))\
-                             .first()
+            module = Module(name)
             self.session.add(module)
 
-        self.context[key] = module
+        self.context[name] = module
         return module
 
-    def get_lambda(self, name, module=None, version=None):
+    def get_lambda(self, name, module=None, version=None, description='', atomic=False, code_type=CodeType.NORM,
+                   bindings=None):
         """
         Get lambda by name, module and version
         :type name: str
         :type module: norm.models.norm.Module or None
         :type version: str or None
+        :type description: str
+        :type atomic: bool
+        :type code_type: CodeType
+        :type bindings: List[Variable]
         :rtype: Lambda or None
         """
+        if not name:
+            return None
+
         key = (name, module, version)
         lam = self.context.get(key)
         if lam:
@@ -183,7 +197,18 @@ class NormCompiler(object):
         if lam is None:
             error_on(module is not None and module is not self.current_module,
                      f'{name}${version} does not exist in {module.full_name} yet')
-            lam = Lambda(self.current_module, name, version=version)
+            if code_type == CodeType.PYTHON:
+                L = PythonLambda
+            elif code_type == CodeType.SQL:
+                L = SQLLambda
+            else:
+                L = Lambda
+            lam = L(module=self.current_module,
+                    name=name,
+                    description=description,
+                    version=version,
+                    atomic=atomic,
+                    bindings=bindings)
             self.session.add(lam)
 
         self.context[key] = lam
@@ -195,9 +220,9 @@ class NormCompiler(object):
         :param script: the script of the module, can be incremental delta
         :type script: str
         :return: the norm executables
-        :rtype: List[NormExecutable]
+        :rtype: NormExecutable
         """
-        script = script
+        self.current_module.set_script(script)
         try:
             lexer = normLexer(InputStream(script))
             stream = CommonTokenStream(lexer)
@@ -212,21 +237,20 @@ class NormCompiler(object):
 
         from norm.compiler.statement import compile_statement
         statements = []
-        for ch in module.children:
-            if isinstance(ch, normParser.Full_statementContext) and ch.statement():
-                statements.extend(compile_statement(self, ch.comments(), ch.statement()))
-        return statements
+        ch: normParser.Full_statementContext
+        for ch in module.getTypedRuleContexts(normParser.Full_statementContext):
+            if ch.statement():
+                statements.append(compile_statement(self, ch.comments(), ch.statement()))
+        return NormExecutable(self, dependents=statements)
 
 
 @lru_cache(MAX_MODULE_CACHE_SIZE)
-def build_compiler(module_name, module_version):
+def build_compiler(module_name):
     """
     :param module_name: the module name of the compiler
     :type module_name: str
-    :param module_version: the module version
-    :type module_version: str
     :return: the compiler
     :rtype: NormCompiler
     """
-    return NormCompiler(module_name, module_version)
+    return NormCompiler(module_name)
 

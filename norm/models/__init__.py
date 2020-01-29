@@ -10,6 +10,10 @@ Model = declarative_base()
 SEPARATOR = '.'
 
 
+class ModelError(ValueError):
+    pass
+
+
 class Registrable(object):
 
     def exists(self):
@@ -69,10 +73,15 @@ class Store(object):
         return list(self._items.keys())
 
     def __getattr__(self, item):
+        """
+        :type item: str
+        :rtype: Store or Module or Lambda
+        """
         if self.current_path:
             p = SEPARATOR.join([self.current_path, item])
         else:
             p = item
+            self.current_path = p
         if p in self._items:
             return self._items[p]
         else:
