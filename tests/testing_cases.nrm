@@ -202,10 +202,10 @@ moving_average = test.rolling(10m).mean
 Anti-join
 """
 
-  StarIn(star_name?, movie_title?)
-& Movie(title=movie_title, studio_name?, movie_year>=2000)
-& not Star(name=star_name, birth_date==1960)
-& return movie_title, studio_name
+    star_in(star_name?, movie_title?)
+and movie_title.movie(movie_year>=2000, studio_name?)
+and not star_name.star(birth_date==1960)
+and return movie_title, studio_name
 
 
 """
@@ -219,8 +219,8 @@ EmergingPattern:: (event    : Event,
                    threshold: Integer Parameter = 10)
 := event.rolling(interval).pattern.unique.count > threshold
 
-windows_ip:: Pattern
-:= e.name == "ip is not reachable" and
+unreachable_windows_ip:: Pattern
+:= e.name == "ping is not reachable" and
    e.managed_entity.os == "windows" and
    return e.managed_entity.ip
 
@@ -245,3 +245,34 @@ Switch block
     a > 3 => return 'larger than 3'
 and a > 1 => return 'larger than 1'
 otherwise    return 'smaller than or equal to 1'
+
+
+"""
+Transformer
+"""
+
+transformer:: (s: [english_word]) -> [english_word]
+:10=
+for i2, w2 in enumerate(s):
+  (for i1, w1 in enumerate(s):
+     (w1 => w2) as a and a ~ gaussian(abs(i2 - i1))
+   and return w2)
+
+bert:: (s: [english_word], n: integer) -> [english_word]
+:= generate(english_word, all(transformer(s)), n)
+
+
+"""
+Default risk declaration and definition
+"""
+DefaultRisk
+ :: (person: Person, item: Product) -> String
+ := person.Account.mean > 200$
+and person.Account.duration > 15 month
+and person.Credit.mean < 3900$
+and person.employed
+and person.Residence.latest.duration > 2.5 year
+and item.typeof.Car
+and item.color == "red"
+ => return "low"
+

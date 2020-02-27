@@ -1,8 +1,8 @@
 """Unit tests for embedding Python code"""
 import datetime
 
-from pandas import DataFrame
-
+from norm.models.norm import PythonLambda
+from norm.models.variable import Variable
 from tests.utils import NormTestCase
 
 
@@ -10,115 +10,114 @@ class PythonTestCase(NormTestCase):
 
     def test_python_declaration(self):
         script = """
-        test := {{
+        test
+        :: Datetime
+        := {
             from datetime import datetime
-            test = datetime.utcnow
-        }};
+            return datetime.utcnow()
+        }
         """
-        self.execute(script)
-        lam = self.execute("test;")
-        self.assertTrue(lam is not None)
+        result = self.execute(script)
+        self.assertTrue(result.lam is not None)
+        self.assertTrue(isinstance(result.lam, PythonLambda))
 
     def test_python_query(self):
         script = """
-        test := {{
+        test
+        :: Datetime
+        := {
             from datetime import datetime
-            test = datetime.utcnow
-        }};
+            return datetime.utcnow()
+        }
+        
+        test()
         """
-        self.execute(script)
-        result = self.execute("test();")
-        self.assertTrue(result is not None)
-        self.assertTrue(isinstance(result, datetime.datetime))
+        result = self.execute(script)
+        self.assertTrue(isinstance(result.positives[f"{Variable.VAR_ANONYMOUS_STUB}0"].values[0],
+                                   datetime.datetime))
 
     def test_python_query_on_data(self):
         script = """
-        test := {{
+        test
+        :: (v: Float) -> Float
+        := {
             import numpy as np
-            test = np.sin
-        }};
+            return np.sin(v)
+        }
+        
+        a :=  1 | 1.1 | 2.3
+        
+        test(a)
         """
-        self.execute(script)
-        script = """
-        a := (1, 2, 3)
-          |  (1.1, 2.2, 3.3)
-          |  (0.1, 0.2, 0.3)
-          ;
-        """
-        self.execute(script)
-        result = self.execute("test(a());")
-        self.assertTrue(result is not None)
+        result = self.execute(script)
+        self.assertTrue(not result.positives.empty)
 
     def test_python_custom_function(self):
         script = """
-        test := {{
-            def test(x):
-                return '{}-{}'.format(x.b, x.c)
-        }};
+        a
+        :: (b: String, c: String)
+        := ('store', 'truth')
+         | ('having', 'evil')
+
+
+        test
+        :: (x: a) -> String
+        := {
+            return x.b.str.cat(x.c)
+        }
+        
+         
+        a.test()
         """
-        self.execute(script)
-        script = """
-        a(b:String, c:String) := ("store", "truth")
-                              |  ("having", "evil")
-                              ;
-        """
-        self.execute(script)
-        result = self.execute("test(a());")
+        result = self.execute(script)
         self.assertTrue(result is not None)
-        self.assertTrue(isinstance(result, DataFrame))
+        self.assertTrue(not result.positives.empty)
 
     def test_python_function_projection(self):
         script = """
-        utcnow := {{
+        utcnow
+        :: Datetime
+        := {
             from datetime import datetime
-            utcnow = datetime.utcnow
-        }};
+            return datetime.utcnow()
+        }
+
+        a
+        :: (b: String, c: String)
+        := ('store', 'truth')
+         | ('having', 'evil')
+        
+        a &= utcnow() as time        
         """
-        self.execute(script)
-        script = """
-        a(b:String, c:String) := ("store", "truth")
-                              |  ("having", "evil")
-                              ;
-        """
-        self.execute(script)
-        lam = self.execute("a &= utcnow()?time;")
-        self.assertTrue(lam is not None)
-        self.assertTrue(isinstance(lam.data, DataFrame))
-        self.assertTrue(lam.data['time'] is not None)
+        result = self.execute(script)
+        self.assertTrue(result is not None)
+        self.assertTrue(not result.positives.empty)
+        self.assertTrue(len(result.positives['time']) == 2)
 
     def test_python_function_projection2(self):
         script = """
-        gaussian := {{
+        gaussian
+        :: (v: Float) -> Float
+        := {
             import numpy as np
-            def gaussian(v):
-                return np.exp(-v*v / 2)/np.sqrt(2*np.pi)
-        }};
+            return np.exp(-v*v / 2)/np.sqrt(2*np.pi)
+        }
+
+        a
+        :: (v: Float, mu: Float)
+        := (1.2, 2.3)
+         | (1.0, 2.0)
+        
+        a &= gaussian(v) as p        
         """
-        self.execute(script)
-        script = """
-        a(v: Float, mu: Float) := (1.2, 2.3)
-                               |  (1.0, 2.0)
-                               ;
-        """
-        self.execute(script)
-        lam = self.execute("a &= gaussian(v)?p;")
-        self.assertTrue(lam is not None)
-        self.assertTrue(isinstance(lam.data, DataFrame))
-        self.assertTrue(lam.data['p'] is not None)
+        result = self.execute(script)
+        self.assertTrue(result is not None)
+        self.assertTrue(not result.positives['p'].empty)
 
     def test_python_code_expression(self):
-        self.execute("test(a: String, b: Integer);")
         import pandas as pd
         t1 = pd.DataFrame(data={'a': ['a', 'b', 'c'], 'b': [1, 2, 3]})
-        self.executor.python_context = locals()
-        lam = self.execute("test(a: String, b: Integer) := {{ t1 }};")
-        self.assertTrue(lam is not None)
-        self.assertTrue(all(lam.data['a'] == ['a', 'b', 'c']))
-        self.assertTrue(all(lam.data['b'] == [1, 2, 3]))
-        t2 = t1
-        t2.loc[1, 'a'] = 'e'
-        self.executor.python_context = locals()
-        lam = self.execute("test := {{ t2 }};")
-        self.assertTrue(lam is not None)
-        self.assertTrue(all(lam.data['a'] == ['a', 'e', 'c']))
-        self.assertTrue(all(lam.data['b'] == [1, 2, 3]))
+        result = self.execute("test:: (a: String, b: Integer) := { t1 }")
+        self.assertTrue(result.lam is not None)
+        self.assertTrue(all(result.positives['a'] == ['a', 'b', 'c']))
+        self.assertTrue(all(result.positives['b'] == [1, 2, 3]))

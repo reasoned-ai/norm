@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from hashids import Hashids
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import StaticPool
@@ -28,6 +29,8 @@ pd.options.display.max_columns = 100
 
 # Minimal length of a hash string
 HASH_MIN_LENGTH = 10
+HASH_SALT = 'be normal'
+hasher = Hashids(salt=HASH_SALT, min_length=HASH_MIN_LENGTH)
 
 # Caching size:
 MAX_MODULE_CACHE_SIZE = 1000

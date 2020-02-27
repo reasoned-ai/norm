@@ -5,67 +5,48 @@ from tests.utils import NormTestCase
 
 class CommentsTestCase(NormTestCase):
 
-    def test_recognize_single_line_comment1(self):
-        script = """
-        // Comment 1
-        ;
-        """
-        res = self.execute(script)
-        self.assertEqual(res, 'Comment 1\n')
+    def test_recognize_single_line_comment(self):
+        self.execute("# comment 1")
 
-    def test_recognize_single_line_comment2(self):
-        script = """
-        // \tComment 2
-        ;
-        """
-        res = self.execute(script)
-        self.assertEqual(res, 'Comment 2\n')
+    def test_recognize_single_line_comment_description(self):
+        res = self.execute("""
+        # comment
+        test:: String
+        """)
+        self.assertEqual(res.lam.description, ' comment')
 
-    def test_fail_single_line_comment1(self):
-        script = """
-        // 
-        Comment 3
-        ;
-        """
+    def test_fail_single_line_comment(self):
         with self.assertRaises(ParseError):
-            self.execute(script)
+            self.execute("""
+            # 
+            Comment 3
+            """)
 
-    def test_recognize_multi_line_comment1(self):
-        script = """
-        /* Comment 4 */
-        ;
-        """
-        res = self.execute(script)
-        self.assertEqual(res, 'Comment 4')
+    def test_recognize_multi_line_comment(self):
+        res = self.execute("""
+        '''
+          multi-line comment
+        '''
+        test:: String
+        """)
+        self.assertEqual(res.lam.description, "\n  multi-line comment\n")
 
-    def test_recognize_multi_line_comment2(self):
-        script = """
-        /*
-            Comment 5 
-        */
-        ;
-        """
-        res = self.execute(script)
-        self.assertEqual(res, "Comment 5")
+    def test_recognize_multi_line_comments(self):
+        res = self.execute("""
+        '''
+          comment
+          and
+          more ...
+        '''
+        test:: String
+        """)
+        self.assertEqual(res.lam.description, "\n  comment\n  and\n  more ...\n")
 
-    def test_recognize_multi_line_comment3(self):
-        script = """
-        /*
-            Comment 6
-            and
-            more ...
-        */
-        ;
-        """
-        res = self.execute(script)
-        self.assertEqual(res, "Comment 6\n    and\n    more ...")
-
-    def test_fail_multi_line_comment4(self):
-        script = """
-        /*
-            Comment 7
-            no end
-        """
+    def test_fail_multi_line_comment(self):
         with self.assertRaises(ParseError):
-            self.execute(script)
+            self.execute("""
+                         '''
+                             comment
+                             no end
+                         """)
 

@@ -1,68 +1,43 @@
 """Unit tests for Norm"""
 from tests.utils import NormTestCase
-from norm.models import Status
 
 
 class NamespaceTestCase(NormTestCase):
 
-    def test_importing(self):
-        self.execute("import norm.test.*;")
-        self.assertTrue('norm.test' in self.executor.search_namespaces)
+    def setUp(self):
+        super().setUp()
+        script = """
+        Tester:: (dummy: Integer)
+        
+        export Tester to norm.test
+        """
+        self.execute(script)
 
-    def test_importing_type(self):
-        self.execute("Tester(dummy:Integer);")
-        self.execute("export Tester norm.test;")
-        lam = self.execute("import norm.test.Tester;")
-        self.assertTrue('norm.test' in self.executor.search_namespaces)
-        self.assertTrue(lam is not None)
-        self.assertTrue(lam.namespace == 'norm.test')
+    def test_import(self):
+        result = self.execute("import norm.test.*")
+        self.assertTrue(result.lam is not None)
+        self.assertTrue(result.lam.name == 'Tester')
+        self.assertTrue(result.lam.module.name == 'norm.test')
 
-    def test_importing_all(self):
-        self.execute("Tester(dummy:Integer);")
-        self.execute("export Tester norm.test;")
-        self.execute("export Tester norm.test.test2;")
-        self.execute("export Tester norm.test2.test2;")
-        lam = self.execute("import norm.test.*;")
-        self.assertTrue('norm.test' in self.executor.search_namespaces)
-        self.assertTrue('norm.test.test2' in self.executor.search_namespaces)
-        self.assertTrue('norm.test2.test2' not in self.executor.search_namespaces)
-        self.assertTrue(lam is not None)
-        self.assertTrue(len(lam.data) == 2)
-        lam2 = self.execute("that;")
-        self.assertTrue(lam == lam2)
+    def test_import_from(self):
+        result = self.execute("import Tester from norm.test")
+        self.assertTrue(result.lam is not None)
+        self.assertTrue(result.lam.name == 'Tester')
+        self.assertTrue(result.lam.module.name == 'norm.test')
 
     def test_renaming(self):
-        self.execute("Tester(dummy:Integer);")
-        self.execute("export Tester norm.test;")
-        lam = self.execute("import norm.test.Tester as tt;")
-        self.assertTrue('norm.test' in self.executor.search_namespaces)
-        self.assertTrue(lam is not None)
-        self.assertTrue(lam.namespace == self.executor.context_namespace)
-        self.assertTrue(lam.name == 'tt')
-
-    def test_exporting(self):
-        self.execute("Tester(dummy:Integer);")
-        lam = self.execute("export Tester norm.test2 as Tester2;")
-        self.assertTrue(lam is not None)
-        self.assertTrue(lam.namespace == 'norm.test2')
-        self.assertTrue(lam.name == 'Tester2')
+        result = self.execute("import Tester as tt from norm.test.Tester")
+        self.assertTrue(result.lam is not None)
+        self.assertTrue(result.lam.name == 'tt')
+        self.assertTrue(result.lam.module.name == 'norm.test')
 
     def test_exporting_default(self):
-        self.execute("Tester(dummy:Integer);")
-        lam = self.execute("export Tester;")
-        self.assertTrue(lam is not None)
-        self.assertTrue(lam.namespace == self.executor.user_namespace)
-        self.assertTrue(lam.name == 'Tester')
+        # TODO should allow user to set the default namespace
+        pass
 
     def test_exporting_a_version(self):
-        lam = self.execute("Tester(dummy:Integer);")
-        lam = self.execute("export Tester{} norm.test3;".format(lam.version))
-        self.assertTrue(lam is not None)
-        self.assertTrue(lam.namespace == "norm.test3")
-        self.assertTrue(lam.name == 'Tester')
-        self.assertTrue(lam.status == Status.READY)
-        lam = self.execute("Tester;")
-        self.assertTrue(lam is not None)
-        self.assertTrue(lam.namespace == self.executor.context_namespace)
-        self.assertTrue(lam.status == Status.DRAFT)
+        result = self.execute("Tester:: (dummy:Integer) -> String")
+        result = self.execute(f"export Tester${result.lam.version} to norm.test3")
+        self.assertTrue(result.lam is not None)
+        self.assertTrue(result.lam.module.name == "norm.test3")
 

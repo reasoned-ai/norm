@@ -74,6 +74,10 @@ class Variable(Model):
         return self.__repr__()
 
     @property
+    def dtype(self):
+        raise NotImplementedError
+
+    @property
     def default(self):
         return self.values.get(self.KEY_DEFAULT, self.type_.default)
 

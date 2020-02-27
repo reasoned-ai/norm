@@ -1,6 +1,6 @@
 grammar norm;
 
-module: full_statement ( EMPTYLINES full_statement )* EMPTYLINES* EOF;
+module: full_statement ( EMPTYLINES full_statement )* EMPTYLINES*;
 
 full_statement
     : comments
@@ -43,24 +43,23 @@ variable
 names: qualifiedName (AS variable)? ( COMMA qualifiedName (AS variable)? )* COMMA?;
 
 typeImport
-    : IMPORT names
-    | IMPORT names FROM qualifiedName
-    | FROM qualifiedName IMPORT names
+    : IMPORT names (DOT TIMES)?
+    | IMPORT (names | TIMES) FROM qualifiedName
+    | FROM qualifiedName IMPORT (names | TIMES)
     ;
 
 typeImports: typeImport+;
 
 typeExport
-    : EXPORT names
-    | EXPORT names TO qualifiedName
-    | TO qualifiedName EXPORT names
+    : EXPORT (names | TIMES)
+    | EXPORT (names | TIMES) TO qualifiedName
+    | TO qualifiedName EXPORT (names | TIMES)
     ;
 
 typeExports: typeExport+;
 
 variableDeclaration
-    : validName
-    | validName COLON type_ validName*
+    : validName COLON type_ validName*
     | variableDeclaration IS constant
     ;
 
@@ -140,6 +139,7 @@ compoundExpr
     : simpleExpr
     | codeExpr
     | returnExpr
+    | WITH simpleExpr COLON compoundExpr
     | quantifier names IN simpleExpr COLON compoundExpr
     | variable ( COMMA variable )* DRAW compoundExpr
     | variable ( COMMA variable )* IS compoundExpr
@@ -167,7 +167,12 @@ scalar: INTEGER | FLOAT | DATETIME | UUID | measurement;
 
 string: STRING | RAW | FORMATTED | FORMATTEDRAW;
 
-definitionOperator: DEF | ANDDEF | ORDEF | RANDDEF | RORDEF;
+definitionOperator
+    : DEF
+    | ANDDEF
+    | ORDEF
+    | RDEF
+    ;
 
 simpleLogicalOperator: AND | OR | XOR | OTW;
 
@@ -180,6 +185,8 @@ quantifier: EXIST | NEXIST | FORANY;
 EXIST: E X I S T | E X I S T S;
 NEXIST: N O T [ \t]* ( E X I S T | E X I S T S );
 FORANY: F O R [ \t]* ( A L L | E A C H | A N Y | E V E R Y )?;
+
+WITH: W I T H;
 
 IMPORT: I M P O R T;
 EXPORT: E X P O R T;
@@ -247,10 +254,9 @@ EPT:       E X C E P T;
 OTW:       O T H E R W I S E;
 
 DEF: ':=';
+RDEF: ':' INTEGER '=';
 ORDEF: '|=';
 ANDDEF: '&=';
-RORDEF: '||=';
-RANDDEF: '&&=';
 
 BOOLEAN:   T R U E | F A L S E;
 INTEGER:   [-]? DIGIT+;
@@ -259,7 +265,7 @@ STRING:    '"' ( ~["] )*? '"' | '\'' ( ~['] )*? '\'' ;
 RAW:       'r' STRING;
 FORMATTED: 'f' STRING;
 FORMATTEDRAW: ( 'fr' | 'rf' ) STRING;
-DATETIME:  't' [0-9/-]* ([ T] [0-9:]* ('.' [0-9]+)* ('-' [0-9:]+)*)* | 't' FLOAT;
+DATETIME:  't' [0-9/-]+ ([ T] [0-9:]* ('.' [0-9]+)* ('-' [0-9:]+)*)* | 't' FLOAT;
 UUID:   '$' [0-9a-zA-Z-]*;
 
 CODE_BLOCK_BEGIN: SQL_BEGIN | PYTHON_BEGIN;

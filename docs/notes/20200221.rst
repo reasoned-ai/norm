@@ -1,0 +1,3 @@
+Distributed features:
+1. Circuit-breakers
+2. Segments management
