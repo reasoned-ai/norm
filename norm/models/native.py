@@ -19,7 +19,7 @@ class NativeModule(Module):
     }
 
     def __init__(self):
-        super().__init__('norm.native', description='Norm native namespace', version=__version__)
+        super().__init__('norm.native', description='Norm native namespace')
 
 
 class NativeLambda(Lambda, Registrable):
@@ -51,7 +51,7 @@ class TypeLambda(NativeLambda):
     }
 
     def __init__(self):
-        super().__init__(name='Type', description='The generic higher order type')
+        super().__init__(name='Type', description='The generic type type')
 
     @property
     def default(self):
@@ -188,10 +188,10 @@ class UnaryOperator(OperatorLambda):
         'polymorphic_identity': 'operator_unary'
     }
 
-    def __init__(self, name, description, type_=None, type_level=0, module=None, version=None):
+    def __init__(self, name, description, type_=None, module=None, version=None):
         super().__init__(name, description,
-                         bindings=[Input(type_ or store.native.Any, self.RHS, level=type_level),
-                                   Output(store.native.Any, self.OUT, level=type_level)],
+                         bindings=[Input(type_ or store.native.Any.latest, self.RHS),
+                                   Output(store.native.Any.latest, self.OUT)],
                          module=module,
                          version=version)
 
@@ -224,11 +224,11 @@ class BinaryOperator(OperatorLambda):
         'polymorphic_identity': 'operator_binary'
     }
 
-    def __init__(self, name, description, type_=None, type_level=0, module=None, version=None):
+    def __init__(self, name, description, type_=None, module=None, version=None):
         super().__init__(name, description,
-                         bindings=[Input(type_ or store.native.Any, self.LHS, level=type_level),
-                                   Input(type_ or store.native.Any, self.RHS, level=type_level),
-                                   Output(type_ or store.native.Any, self.OUT, level=type_level)],
+                         bindings=[Input(type_ or store.native.Any.latest, self.LHS),
+                                   Input(type_ or store.native.Any.latest, self.RHS),
+                                   Output(type_ or store.native.Any.latest, self.OUT)],
                          module=module,
                          version=version)
 
@@ -242,14 +242,14 @@ def get_type_by_dtype(dtype):
     :rtype: Lambda
     """
     if dtype.name.find('int') > -1:
-        return store_native.Integer.latest
+        return store.native.Integer.latest
     elif dtype.name.find('float') > -1:
-        return store_native.Float.latest
+        return store.native.Float.latest
     elif dtype.name.find('datetime') > -1:
-        return store_native.DateTime.latest
+        return store.native.DateTime.latest
     elif dtype.name.find('string') > -1:
-        return store_native.String.latest
+        return store.native.String.latest
     elif dtype.name.find('bool') > -1:
-        return store_native.Boolean.latest
+        return store.native.Boolean.latest
     else:
-        return store_native.Any.latest
+        return store.native.Any.latest

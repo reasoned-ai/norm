@@ -20,9 +20,9 @@ class ImplementationTestCase(NormTestCase):
                               "     |  (4, 'fs')")
         self.assertTrue(result is not None)
         var = result.lam.get(f'{Variable.VAR_ANONYMOUS_STUB}0')
-        self.assertTrue(var is not None and var.type_ == store.Integer)
+        self.assertTrue(var is not None and var.type_ == store.native.Integer.latest)
         var = result.lam.get(f'{Variable.VAR_ANONYMOUS_STUB}1')
-        self.assertTrue(var is not None and var.type_ == store.String)
+        self.assertTrue(var is not None and var.type_ == store.native.String.latest)
 
     def test_reset_data(self):
         self.execute("test:: (a: Integer, b: String)")
@@ -32,7 +32,7 @@ class ImplementationTestCase(NormTestCase):
         result2 = self.execute("test := (1, 'sf')"
                                "     |  (2, 'sfs')"
                                "     |  (4, 'fs')")
-        self.assertTrue(result.lam is not result2.lam)
+        self.assertTrue(result.type_ is not result2.type_)
         self.assertTrue(len(result.positives) == 2)
         self.assertTrue(len(result2.positives) == 3)
 

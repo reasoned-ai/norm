@@ -24,8 +24,8 @@ class TypeInferenceTestCase(NormTestCase):
             tmp := student(id?, name?, department_name?, total_credits>10?)
         """
         result = self.execute(script)
-        self.assertTrue(result.lam.name == 'tmp')
-        self.assertTrue(result.lam.get('id').type_ == store.String)
-        self.assertTrue(result.lam.get('name').type_ == store.String)
-        self.assertTrue(result.lam.get('department_name').type_ == store.String)
-        self.assertTrue(result.lam.get('total_credits').type_ == store.Float)
+        self.assertTrue(result.type_.name == 'tmp')
+        self.assertTrue(result.type_.get('id').type_ == store.native.String.latest)
+        self.assertTrue(result.type_.get('name').type_ == store.native.String.latest)
+        self.assertTrue(result.type_.get('department_name').type_ == store.native.String.latest)
+        self.assertTrue(result.type_.get('total_credits').type_ == store.native.Float.latest)

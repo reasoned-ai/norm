@@ -18,8 +18,8 @@ class PythonTestCase(NormTestCase):
         }
         """
         result = self.execute(script)
-        self.assertTrue(result.lam is not None)
-        self.assertTrue(isinstance(result.lam, PythonLambda))
+        self.assertTrue(result.type_ is not None)
+        self.assertTrue(isinstance(result.type_, PythonLambda))
 
     def test_python_query(self):
         script = """
@@ -118,6 +118,6 @@ class PythonTestCase(NormTestCase):
         import pandas as pd
         t1 = pd.DataFrame(data={'a': ['a', 'b', 'c'], 'b': [1, 2, 3]})
         result = self.execute("test:: (a: String, b: Integer) := { t1 }")
-        self.assertTrue(result.lam is not None)
+        self.assertTrue(result.type_ is not None)
         self.assertTrue(all(result.positives['a'] == ['a', 'b', 'c']))
         self.assertTrue(all(result.positives['b'] == [1, 2, 3]))

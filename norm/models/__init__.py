@@ -66,8 +66,8 @@ class Register(object):
 
 class Store(object):
     def __init__(self, path=''):
-        _items = {}
-        self.current_path = path
+        self._items = {}
+        self._current_path = path
 
     def __dir__(self):
         return list(self._items.keys())
@@ -77,17 +77,21 @@ class Store(object):
         :type item: str
         :rtype: Store or Module or Lambda
         """
+        if item.startswith('_') or item.find(SEPARATOR) >= 0:
+            return None
+
         if self.current_path:
-            p = SEPARATOR.join([self.current_path, item])
+            p = SEPARATOR.join([self._current_path, item])
         else:
             p = item
-            self.current_path = p
-        if p in self._items:
-            return self._items[p]
-        else:
-            s = Store(p)
-            self._items[p] = s
+
+        s = self._items.get(p)
+        if s is not None:
             return s
+
+        s = Store(p)
+        self._items[p] = s
+        return s
 
     @property
     def latest(self):

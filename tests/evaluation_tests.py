@@ -1,7 +1,6 @@
 """Unit tests for Norm"""
 from norm.models.variable import Input
 from tests.utils import NormTestCase
-from norm.config import DATA_STORAGE_ROOT
 
 
 class EvaluationTestCase(NormTestCase):
@@ -70,7 +69,7 @@ class EvaluationTestCase(NormTestCase):
 
     def test_evaluate_assigned_columns(self):
         result = self.execute("test:: (a: String, b: Integer)")
-        self.assertTrue(result.lam is not None)
+        self.assertTrue(result.type_ is not None)
         result = self.execute("test('test', 1)")
         self.assertTrue(all(result.positives['a'] == ['test']))
         self.assertTrue(all(result.positives['b'] == [1]))
@@ -83,7 +82,7 @@ class EvaluationTestCase(NormTestCase):
         result = self.execute("test := ('test', 1)"
                               "     |  ('here', 2)"
                               "     |  ('there', 3)")
-        self.assertTrue(result.lam is not None)
+        self.assertTrue(result.type_ is not None)
         result = self.execute("test(['test', 'here'], b=1)")
         self.assertTrue(all(result.positives['a'] == ['test', 'here']))
         self.assertTrue(all(result.positives['b'] == [1, 1]))
@@ -108,7 +107,7 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('there', 3)")
         result = self.execute("test(a?)")
         self.assertTrue(all(result.positives['a'] == ['test', 'here', 'there']))
-        self.assertTrue('b' not in result.lam)
+        self.assertTrue('b' not in result.type_)
 
     def test_evaluate_equality_projection(self):
         self.execute("test:: (a: String, b: Integer)")
@@ -117,7 +116,7 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('there', 3)")
         result = self.execute("test(a=='here', b?)")
         self.assertTrue(all(result.positives['b'] == [2]))
-        self.assertTrue('a' not in result.lam)
+        self.assertTrue('a' not in result.type_)
 
     def test_evaluate_conditional_projection(self):
         self.execute("test:: (a: String, b: Integer)")
@@ -126,10 +125,10 @@ class EvaluationTestCase(NormTestCase):
                      "     |  ('there', 3)")
         result = self.execute("test(a like 'here', b?)")
         self.assertTrue(all(result.positives['b'] == [2, 3]))
-        self.assertTrue('a' not in result.lam)
+        self.assertTrue('a' not in result.type_)
         result = self.execute("test(a like 'here'?, b>2)")
         self.assertTrue(all(result.positives['a'] == ['there']))
-        self.assertTrue('b' not in result.lam)
+        self.assertTrue('b' not in result.type_)
 
     def test_chained_evaluation(self):
         self.execute("test:: (a: String, b: Integer)")
@@ -152,5 +151,3 @@ class EvaluationTestCase(NormTestCase):
         self.assertTrue(all(result.positives['a.len'] == [4, 4, 5]))
         result = self.execute("test.a.findall('ere')")
         self.assertTrue(all(result.positives['a.findall'] == [[], ['ere'], ['ere']]))
-
-

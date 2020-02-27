@@ -31,6 +31,7 @@ qualifiedName
 
 type_
     : qualifiedName
+    | type_ OR type_
     | LSBR type_ RSBR
     ;
 

@@ -30,16 +30,16 @@ class ContextTestCase(NormTestCase):
                               "    tally.sum as total_tally & tally.mean")
         self.assertTrue(result is not None)
         self.assertTrue(not result.positives.empty)
-        self.assertTrue('tally.mean' in result.lam)
-        self.assertTrue('total_tally' in result.lam)
+        self.assertTrue('tally.mean' in result.type_)
+        self.assertTrue('total_tally' in result.type_)
 
     def test_foreach_context_multiple_foreach(self):
         result = self.execute("foreach event, ip in alarm, "
                               "    tally.sum as total_tally & tally.mean")
         self.assertTrue(result is not None)
         self.assertTrue(not result.positives.empty)
-        self.assertTrue('tally.mean' in result.lam)
-        self.assertTrue('total_tally' in result.lam)
+        self.assertTrue('tally.mean' in result.type_)
+        self.assertTrue('total_tally' in result.type_)
 
     def test_foreach_context_multiple_foreach_three_agg(self):
         result = self.execute("foreach event, ip in alarm, "
@@ -48,9 +48,9 @@ class ContextTestCase(NormTestCase):
                               "    & tally.count")
         self.assertTrue(result is not None)
         self.assertTrue(not result.positives.empty)
-        self.assertTrue('tally.mean' in result.lam)
-        self.assertTrue('total_tally' in result.lam)
-        self.assertTrue('tally.count' in result.lam)
+        self.assertTrue('tally.mean' in result.type_)
+        self.assertTrue('total_tally' in result.type_)
+        self.assertTrue('tally.count' in result.type_)
 
     def test_foreach_context_multiple_foreach_mixed(self):
         result = self.execute("foreach event, ip in alarm,"
@@ -59,8 +59,8 @@ class ContextTestCase(NormTestCase):
                               "     & ip like '1.17'")
         self.assertTrue(result is not None)
         self.assertTrue(not result.positives.empty)
-        self.assertTrue('tally.mean' in result.lam)
-        self.assertTrue('total_tally' in result.lam)
+        self.assertTrue('tally.mean' in result.type_)
+        self.assertTrue('total_tally' in result.type_)
         self.assertTrue(all(result.positives['ip'].str.contains('1.17')))
 
     def test_foreach_context_multiple_foreach_conditional(self):
@@ -68,7 +68,7 @@ class ContextTestCase(NormTestCase):
                               "    tally.sum > 100")
         self.assertTrue(result is not None)
         self.assertTrue(not result.positives.empty)
-        self.assertTrue('tally.sum' in result.lam)
+        self.assertTrue('tally.sum' in result.type_)
         self.assertTrue(all(result.positives['tally.sum'] > 100))
 
     def test_exists_context(self):
@@ -77,7 +77,7 @@ class ContextTestCase(NormTestCase):
         self.assertTrue(result is not None)
         self.assertTrue(not result.positives.empty)
         self.assertTrue(all(result.positives['tally.sum'] > 100))
-        self.assertTrue('ip' in result.lam)
+        self.assertTrue('ip' in result.type_)
         self.assertNoDuplicates(result.positives, 'event')
 
     def test_exists_context_combined_and(self):
@@ -100,7 +100,7 @@ class ContextTestCase(NormTestCase):
         self.assertTrue(all(result.positives['tally.sum'] > 100))
         self.assertTrue(all(result.positives['tally.max'] > 1000))
         self.assertTrue(all(result.positives['tally.min'] < 10))
-        self.assertTrue('ip' in result.lam)
+        self.assertTrue('ip' in result.type_)
         self.assertNoDuplicates(result.positives, 'event')
 
     def test_exists_context_combined_or(self):
@@ -135,7 +135,7 @@ class ContextTestCase(NormTestCase):
         self.assertTrue(result is not None)
         self.assertTrue(not result.positives.empty)
         self.assertTrue(all(result.positives['tally'] > 100))
-        self.assertTrue('ip' in result.lam)
+        self.assertTrue('ip' in result.type_)
         self.assertNoDuplicates(result.positives, 'event')
 
     def test_exists_context_non_agg_multiple(self):
@@ -144,7 +144,7 @@ class ContextTestCase(NormTestCase):
         self.assertTrue(result is not None)
         self.assertTrue(not result.positives.empty)
         self.assertTrue(all(result.positives['tally'] > 100))
-        self.assertTrue('ip' in result.lam)
+        self.assertTrue('ip' in result.type_)
         self.assertNoDuplicates(result.positives, 'event')
 
     def test_conditional_on_aggregation(self):

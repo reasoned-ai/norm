@@ -1,60 +1,8 @@
 from typing import List
-import pandas as pd
 
 
 class EngineError(RuntimeError):
     pass
-
-
-class Results(object):
-    @property
-    def lam(self):
-        """
-        :return: Lambda declaration associated with the results
-        :rtype: norm.models.norm.Lambda
-        """
-        raise NotImplementedError
-
-    @property
-    def bindings(self):
-        """
-        Variable bindings
-        :return: all variables involved in the computation
-        :rtype: List[norm.models.norm.variable.Variable]
-        """
-        raise NotImplementedError
-
-    @property
-    def data(self):
-        """
-        All data including positives, negatives and unknowns
-        :rtype: pd.DataFrame
-        """
-        raise NotImplementedError
-
-    @property
-    def positives(self):
-        """
-        Positive results
-        :rtype: pd.DataFrame
-        """
-        raise NotImplementedError
-
-    @property
-    def negatives(self):
-        """
-        Negative results
-        :rtype: pd.DataFrame
-        """
-        raise NotImplementedError
-
-    @property
-    def unknowns(self):
-        """
-        Unknown results
-        :rtype: pd.DataFrame
-        """
-        raise NotImplementedError
 
 
 class NormExecutable(object):
@@ -92,7 +40,7 @@ class NormExecutable(object):
         """
         Execute the command with given context
         :return: the results
-        :rtype: Results or None
+        :rtype: norm.models.variable.Variable or None
         """
         raise NotImplementedError
 
@@ -252,6 +200,29 @@ class NormExecutable(object):
         :return:
         """
         pass
+
+    def _disjunction(self):
+        self.orig_data = self.lam.data
+
+        oid_col = self.lam.VAR_OID
+        label_col = self.lam.VAR_LABEL
+        assert(self.lam.data.index.name == oid_col)
+        data = self.lam.data
+        delta = self.delta
+        if delta is None:
+            return
+
+        unstored = delta.index.difference(data.index, sort=False)
+        stored = delta.index.intersection(data.index, sort=False)
+        if len(unstored) > 0:
+            data = data.append(delta.loc[unstored], sort=False)
+        if len(stored) > 0:
+            overwrites = data.loc[stored][data[label_col] < 1].index
+            data.loc[overwrites, delta.columns] = delta.loc[overwrites]
+            if label_col not in delta.columns:
+                data.loc[overwrites, label_col] = 1.0
+
+        self.lam.data = self.lam.fill_na(data)
 
 
 class TypeDeclaration(NormExecutable):

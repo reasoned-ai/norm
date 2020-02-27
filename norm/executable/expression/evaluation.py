@@ -1,6 +1,3 @@
-import uuid
-from enum import Enum
-
 from norm.utils import hash_df
 from pandas import DataFrame, Series, Index
 
@@ -142,7 +139,6 @@ class EvaluationExpr(NormExpression):
         :return: a dictionary mapping from the original variable to the new variable
         :rtype: Dict
         """
-        from norm.models.norm import Lambda
         outputs = OrderedDict()
         from norm.models.norm import Variable
         for ov, arg in zip(lam.variables, self.args):  # type: Variable, ArgumentExpr
@@ -409,7 +405,7 @@ class RetrievePartialDataExpr(NormExpression):
             self.projection = None
 
     def compile(self, context):
-        from norm.models import Lambda, Variable
+        from norm.models import Variable
         self._append_projection()
 
         if len(self.outputs) > 0:
@@ -510,7 +506,7 @@ class AddDataEvaluationExpr(NormExpression):
             self._query_str = hash_df(df)
             return df
 
-        from norm.executable.constant import Constant
+        from norm.executable.expression.constant import Constant
         from norm.executable import NormExecutable
         data = OrderedDict((key, value.execute(context) if isinstance(value, (Constant, NormExecutable)) else value)
                            for key, value in self.data.items())

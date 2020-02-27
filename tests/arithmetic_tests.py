@@ -11,7 +11,7 @@ class ArithmeticTestCase(NormTestCase):
           := 2, 3.0
            | 1, 4.2
         
-        test &= c = (a + b) * b
+        test &= (a + b) * b as c
         
         test.c == [15.00, 21.84] 
         """)
@@ -38,7 +38,7 @@ class ArithmeticTestCase(NormTestCase):
           := 2, 3.0
            | 1, 4.2
         
-        test &= c = -b
+        test &= -b as c
         
         test.c == [-3.0, -4.2]
         """)

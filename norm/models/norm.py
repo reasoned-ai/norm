@@ -17,7 +17,7 @@ from norm.models import Model, SEPARATOR, Registrable, ModelError, store
 from norm.models.license import License
 from norm.models.mixins import AuditableMixin
 from norm.models.mixins import lazy_property
-from norm.models.variable import Variable, Output, Input, Parameter, Parent, Internal, External
+from norm.models.variable import Variable, Output, Input, Parameter, Parent, Internal, External, Intern
 from norm.utils import uuid_int, new_version, local_url
 
 logger = logging.getLogger(__name__)
@@ -148,6 +148,7 @@ class Lambda(Model, AuditableMixin):
         self.bindings: List[Variable] = bindings or []
         self.atomic: bool = atomic
         self.definition: str = ''
+        self.adapted: bool = False
         self._data: DataFrame or None = None
         if self.bindings:
             for v in self.bindings:
@@ -354,6 +355,47 @@ class Lambda(Model, AuditableMixin):
     @property
     def signature(self):
         return f"{self.module}.{self.name}${self.version}"
+
+
+class UnionLambda(Lambda):
+    __mapper_args__ = {
+        'polymorphic_identity': 'lambda_union'
+    }
+
+    def __init__(self, interns, module=None):
+        """
+        :type interns: List[Lambda]
+        :type module: Module
+        """
+        name = '|'.join(t.signature for t in interns)
+        super().__init__(module=module, name=name, bindings=[Intern(t) for t in interns])
+
+    @property
+    def default(self):
+        return None
+
+
+class HigherOrderLambda(Lambda):
+    level = Column(Integer, default=1)
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'lambda_higher_order'
+    }
+
+    def __init__(self, intern, module=None, level=1):
+        """
+        :type intern: Lambda
+        :type module: Module
+        :type level: int
+        """
+        assert(level > 0)
+        self.level = level
+        name = ''.join(['['] * level + [intern.signature] + [']'] * level)
+        super().__init__(module=module, name=name, bindings=[Intern(intern)])
+
+    @property
+    def default(self):
+        return None
 
 
 class PythonLambda(Lambda):

@@ -1,13 +1,12 @@
 from collections import OrderedDict
-from typing import List
 
 from pandas import DataFrame, Series, merge, concat
 
 from norm.executable import NormError
-from norm.executable.constant import ListConstant, Constant, TupleConstant
+from norm.executable.expression.constant import ListConstant, Constant
 from norm.executable.expression import NormExpression
 from norm.executable.expression.condition import ConditionExpr, CombinedConditionExpr
-from norm.executable.expression.evaluation import AddDataEvaluationExpr, DataFrameColumnFunctionExpr
+from norm.executable.expression.evaluation import AddDataEvaluationExpr
 from norm.grammar.literals import LOP
 
 import logging

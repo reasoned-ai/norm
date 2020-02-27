@@ -144,7 +144,7 @@ test_a, test_b = test(a like 's'?, b > 3)
 test(a like 's'?, b > 3) as test_a, test_b
 
 # dynamic variables (pivoting)
-p = ['s', 'sf', 'aa'] & extract(test.a, p) as f'pattern_{p}'
+p = ['s', 'sf', 'aa'] & test.a.extract(p) as f'pattern_{p}'
 
 """
 Draw Distribution
@@ -213,10 +213,11 @@ Higher order logic
 """
 atomic Pattern:: e: Event -> String
 
-EmergingPattern:: (event    : Event,
-                   pattern  : [Pattern],
-                   interval : Time Parameter = 10m,
-                   threshold: Integer Parameter = 10)
+EmergingPattern
+:: (event    : Event,
+    pattern  : [Pattern],
+    interval : Time Parameter = 10m,
+    threshold: Integer Parameter = 10)
 := event.rolling(interval).pattern.unique.count > threshold
 
 unreachable_windows_ip:: Pattern

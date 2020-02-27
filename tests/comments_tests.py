@@ -13,7 +13,7 @@ class CommentsTestCase(NormTestCase):
         # comment
         test:: String
         """)
-        self.assertEqual(res.lam.description, ' comment')
+        self.assertEqual(res.type_.description, ' comment')
 
     def test_fail_single_line_comment(self):
         with self.assertRaises(ParseError):
@@ -29,7 +29,7 @@ class CommentsTestCase(NormTestCase):
         '''
         test:: String
         """)
-        self.assertEqual(res.lam.description, "\n  multi-line comment\n")
+        self.assertEqual(res.type_.description, "\n  multi-line comment\n")
 
     def test_recognize_multi_line_comments(self):
         res = self.execute("""
@@ -40,7 +40,7 @@ class CommentsTestCase(NormTestCase):
         '''
         test:: String
         """)
-        self.assertEqual(res.lam.description, "\n  comment\n  and\n  more ...\n")
+        self.assertEqual(res.type_.description, "\n  comment\n  and\n  more ...\n")
 
     def test_fail_multi_line_comment(self):
         with self.assertRaises(ParseError):

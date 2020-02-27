@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from norm.compiler import build_compiler, ParseError, CompileError
 from norm.config import Session
-from norm.executable import Results, EngineError
+from norm.executable import EngineError
 from norm.models import ModelError
 from norm.utils import random_name
 
@@ -22,7 +22,7 @@ def execute(script, name=None, python_context=None):
     :param python_context: the python context
     :type python_context: dict
     :return: the results to return
-    :rtype: Results or None
+    :rtype: norm.models.variable.Variable or None
     """
     if script is None or not isinstance(script, str):
         return None

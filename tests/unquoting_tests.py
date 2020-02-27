@@ -39,7 +39,7 @@ class UnquotingTestCase(NormTestCase):
         """
         result = self.execute(script)
         self.assertTrue(result is not None)
-        self.assertTrue(len(result.lam.bindings) == 16)
+        self.assertTrue(len(result.type_.bindings) == 16)
 
     def test_dynamic_code_execution(self):
         self.execute("test:: (a: Integer, b: String)")

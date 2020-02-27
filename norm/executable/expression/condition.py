@@ -3,8 +3,8 @@ from typing import Union
 from pandas.core.groupby import DataFrameGroupBy
 
 from norm.executable import NormError
-from norm.executable.constant import Constant
-from norm.grammar.literals import COP, ConstantType, LOP
+from norm.executable.expression.constant import Constant
+from norm.grammar.literals import COP, ConstantType
 
 from norm.executable.expression import NormExpression
 from norm.executable.schema.variable import VariableName
