@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 from hashids import Hashids
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -22,10 +21,6 @@ DB_PATH = os.environ.get('NORM_DB_PATH', os.path.join(NORM_HOME, 'db/norm.db'))
 # Create database session
 engine = create_engine('sqlite:///{}'.format(DB_PATH), poolclass=StaticPool)
 Session = scoped_session(sessionmaker(bind=engine))
-
-# Pandas display options
-pd.options.display.width = 400
-pd.options.display.max_columns = 100
 
 # Minimal length of a hash string
 HASH_MIN_LENGTH = 10

@@ -148,6 +148,14 @@ class Variable(Model):
         self.stats[self.KEY_COUNT] = v
 
     @property
+    def scalar(self):
+        """
+        Return the single value
+        :rtype: Any
+        """
+        return self._data.iloc[0, self._data.columns[0]]
+
+    @property
     def data(self):
         """
         All data including positives, negatives and unknowns

@@ -1,7 +1,7 @@
 """A collection of ORM sqlalchemy models for CoreLambda"""
 import logging
 
-from norm.models import store, Registrable, Register
+from norm.models import norma, Registrable, Register
 from norm.models.norm import Lambda, Module
 from norm.models.variable import Input, Output
 
@@ -29,7 +29,7 @@ class CoreLambda(Lambda, Registrable):
     }
 
     def __init__(self, name, description, module=None, version=None, atomic=True, bindings=None):
-        super().__init__(module=module or store.core.latest,
+        super().__init__(module=module or norma.core.latest,
                          name=name,
                          description=description,
                          version=version or __version__,
@@ -56,15 +56,15 @@ class SummaryLambda(CoreLambda):
     def __init__(self):
         super().__init__(name='Summary',
                          description='Summary of the data of a given type',
-                         bindings=[Input(type_=store.native.String.latest, name='name'),
-                                   Input(type_=store.native.Type.latest, name='type'),
-                                   Input(type_=store.native.Integer.latest, name='count'),
-                                   Input(type_=store.native.Integer.latest, name='unique'),
-                                   Input(type_=store.native.Any.latest, name='min'),
-                                   Input(type_=store.native.Any.latest, name='max'),
-                                   Input(type_=store.native.Any.latest, name='mean'),
-                                   Input(type_=store.native.Any.latest, name='median'),
-                                   Input(type_=store.native.Any.latest, name='std')])
+                         bindings=[Input(type_=norma.native.String.latest, name='name'),
+                                   Input(type_=norma.native.Type.latest, name='type'),
+                                   Input(type_=norma.native.Integer.latest, name='count'),
+                                   Input(type_=norma.native.Integer.latest, name='unique'),
+                                   Input(type_=norma.native.Any.latest, name='min'),
+                                   Input(type_=norma.native.Any.latest, name='max'),
+                                   Input(type_=norma.native.Any.latest, name='mean'),
+                                   Input(type_=norma.native.Any.latest, name='median'),
+                                   Input(type_=norma.native.Any.latest, name='std')])
 
 
 @Register()
@@ -79,8 +79,8 @@ class DescribeLambda(CoreLambda):
     def __init__(self):
         super().__init__(name='describe',
                          description='Describe a given type',
-                         bindings=[Input(type_=store.native.Type.latest, name='type'),
-                                   Output(type_=store.core.Summary.latest, name='summary')])
+                         bindings=[Input(type_=norma.native.Type.latest, name='type'),
+                                   Output(type_=norma.core.Summary.latest, name='summary')])
 
     def func(self):
         # TODO revisit
@@ -107,3 +107,52 @@ class DescribeLambda(CoreLambda):
         out.data.index.name = 'name'
         out.data.reset_index(inplace=True)
 
+
+@Register()
+class RenameLambda(CoreLambda):
+    """
+    Rename variables for a given lambda
+    """
+    __mapper_args__ = {
+        'polymorphic_identity': 'core_rename'
+    }
+
+    def __init__(self):
+        super().__init__(name='rename',
+                         description='Rename variables for a given lambda',
+                         bindings=[Input(type_=norma.native.Type.latest, name='type'),
+                                   Input(type_=norma.native.String.latest, name='old'),
+                                   Input(type_=norma.native.String.latest, name='new')])
+
+    def func(self):
+        # TODO revisit
+        lam: Input = self.inputs[0]
+        old: Input = self.inputs[1]
+        new: Input = self.inputs[2]
+        lam.type_.rename(old.data, new.data)
+        lam.data.rename(columns={old.data: new.data}, inplace=True)
+
+
+@Register
+class RetypeLambda(CoreLambda):
+    """
+    Retype variables for a given lambda
+    """
+    __mapper_args__ = {
+        'polymorphic_identity': 'core_retype'
+    }
+
+    def __init__(self):
+        super().__init__(name='retype',
+                         description='Retype variables for a given lambda',
+                         bindings=[Input(type_=norma.native.Type.latest, name='type'),
+                                   Input(type_=norma.native.String.latest, name='var_name'),
+                                   Input(type_=norma.native.Type.latest, name='var_type')])
+
+    def func(self):
+        # TODO revisit
+        lam: Input = self.inputs[0]
+        name: str = self.inputs[1].scalar
+        type_: Lambda = self.inputs[2].scalar
+        lam.type_.retype(name, type_)
+        lam.data[name].astype(type_.dtype, inplace=True)

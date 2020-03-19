@@ -2,7 +2,7 @@
 import os
 
 from tests.utils import NormTestCase
-from norm.models import store
+from norm.models import norma
 from norm.models.norm import Lambda, Variable
 
 

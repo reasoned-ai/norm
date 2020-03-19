@@ -42,10 +42,17 @@ def random_name():
     return hasher.encode(uuid1().int)
 
 
-def local_url(qualified_name, sep):
-    """
-    Create the local url for the qualified name. The local url is relative to the NORM root
-    :rtype: str
-    """
-    return f"file://{{DATA_STORAGE_ROOT}}/{qualified_name.replace(sep, '/')}/"
+def lazy_property(f):
+    internal_property = '__lazy_' + f.__name__
 
+    @property
+    def lazy_property_wrapper(self):
+        try:
+            return getattr(self, internal_property)
+        except AttributeError:
+            v = f(self)
+            setattr(self, internal_property, v)
+            return v
+        except Exception as e:
+            raise e
+    return lazy_property_wrapper

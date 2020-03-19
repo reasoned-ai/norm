@@ -1,5 +1,5 @@
 """A collection of ORM sqlalchemy models for NativeLambda"""
-from norm.models import store, Registrable, Register
+from norm.models import norma, Registrable, Register
 from norm.models.norm import Lambda, Module
 from norm.models.variable import Input, Output
 
@@ -28,7 +28,7 @@ class NativeLambda(Lambda, Registrable):
     }
 
     def __init__(self, name, description, bindings=None, dtype='object', module=None, version=None):
-        super().__init__(module=module or store.native.latest,
+        super().__init__(module=module or norma.native.latest,
                          name=name,
                          description=description,
                          version=version or __version__,
@@ -190,8 +190,8 @@ class UnaryOperator(OperatorLambda):
 
     def __init__(self, name, description, type_=None, module=None, version=None):
         super().__init__(name, description,
-                         bindings=[Input(type_ or store.native.Any.latest, self.RHS),
-                                   Output(store.native.Any.latest, self.OUT)],
+                         bindings=[Input(type_ or norma.native.Any.latest, self.RHS),
+                                   Output(norma.native.Any.latest, self.OUT)],
                          module=module,
                          version=version)
 
@@ -226,9 +226,9 @@ class BinaryOperator(OperatorLambda):
 
     def __init__(self, name, description, type_=None, module=None, version=None):
         super().__init__(name, description,
-                         bindings=[Input(type_ or store.native.Any.latest, self.LHS),
-                                   Input(type_ or store.native.Any.latest, self.RHS),
-                                   Output(type_ or store.native.Any.latest, self.OUT)],
+                         bindings=[Input(type_ or norma.native.Any.latest, self.LHS),
+                                   Input(type_ or norma.native.Any.latest, self.RHS),
+                                   Output(type_ or norma.native.Any.latest, self.OUT)],
                          module=module,
                          version=version)
 
@@ -242,14 +242,14 @@ def get_type_by_dtype(dtype):
     :rtype: Lambda
     """
     if dtype.name.find('int') > -1:
-        return store.native.Integer.latest
+        return norma.native.Integer.latest
     elif dtype.name.find('float') > -1:
-        return store.native.Float.latest
+        return norma.native.Float.latest
     elif dtype.name.find('datetime') > -1:
-        return store.native.DateTime.latest
+        return norma.native.DateTime.latest
     elif dtype.name.find('string') > -1:
-        return store.native.String.latest
+        return norma.native.String.latest
     elif dtype.name.find('bool') > -1:
-        return store.native.Boolean.latest
+        return norma.native.Boolean.latest
     else:
-        return store.native.Any.latest
+        return norma.native.Any.latest

@@ -1,28 +1,35 @@
 """A collection of ORM sqlalchemy models for Lambda"""
 import logging
-import os
-import zlib
 from datetime import datetime
 from textwrap import dedent, indent
-from typing import Dict, List, Any
+from typing import Dict, List
 
-import numpy as np
 from pandas import DataFrame
 from sqlalchemy import Column, Integer, ForeignKey, Text, DateTime
 from sqlalchemy import String, Boolean, orm
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import relationship
 
-from norm.models import Model, SEPARATOR, Registrable, ModelError, store
-from norm.models.license import License
-from norm.models.mixins import AuditableMixin
-from norm.models.mixins import lazy_property
+from norm.models import Model, Registrable, ModelError, norma
+from norm.models.storage import Storage
 from norm.models.variable import Variable, Output, Input, Parameter, Parent, Internal, External, Intern
-from norm.utils import uuid_int, new_version, local_url
+from norm.utils import uuid_int, new_version, lazy_property
 
 logger = logging.getLogger(__name__)
 
 metadata = Model.metadata
+
+
+class Script(Model):
+    """Script is a Norm script"""
+    __tablename__ = 'scripts'
+
+    id = Column(Integer, primary_key=True, default=uuid_int)
+    name = Column(String(256), default='')
+    version = Column(String(32), default=new_version, nullable=False)
+    position = Column(Integer)
+    content = Column(Text, nullable=False)
+    created_on = Column(DateTime, default=datetime.utcnow)
 
 
 class Module(Model, Registrable):
@@ -40,26 +47,23 @@ class Module(Model, Registrable):
     id = Column(Integer, primary_key=True, default=uuid_int)
     name = Column(String(256), nullable=False, unique=True)
     description = Column(Text, default='')
-    url = Column(String(256))
+    storage_id = Column(Integer, ForeignKey(Storage.id), nullable=False)
+    storage = relationship(Storage)
+
     lambdas = relationship("Lambda", back_populates="module")
-    license_id = Column(Integer, ForeignKey(License.id))
-    license = relationship(License, foreign_keys=[license_id])
-    script = Column(Text)
+    scripts = relationship(Script, order_by=Script.position, collection_class=ordering_list('position'),
+                           back_populates='module')
 
     created_on = Column(DateTime, default=datetime.utcnow)
     changed_on = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __init__(self, name, script=None, description=None, url=None):
+    def __init__(self, name, description=None, storage=None):
         self.id: int = uuid_int()
-        self.script: str = script or ''
         self.name: str = name
-        self.url: str = url or local_url(name, SEPARATOR)
+        self.description: str = description or ""
+        self.storage: Storage = storage or norma.storage.unix_user_default
         self.lambdas: List["Lambda"] = []
-        self.license: License = store.license.MIT
-        if description:
-            self.description = description
-        else:
-            self.description_from_script()
+        self.scripts: List[Script] = []
 
     def __repr__(self):
         return str(self)
@@ -75,32 +79,11 @@ class Module(Model, Registrable):
     def __eq__(self, other):
         return self.__class__ is not other.__class__ and hash(self) == hash(other)
 
-    def set_script(self, script):
-        self.script = script
-        self.description_from_script()
-
-    def description_from_script(self):
-        script = self.script
-        if not script:
-            return
-
-        lines = script.strip(' ').split('/n')
-        if lines[0].startswith(('"""', "'''")):
-            description = []
-            for line in lines[1:]:
-                description.append(line)
-                if line.endswith(('"""', "'''")):
-                    break
-            if not description[-1].endswith(('"""', "'''")):
-                msg = f'{script} does not close the multi-line comments'
-                raise ModelError(msg)
-            self.description = ''.join(description)
-
     def exists(self):
         return [Module.name == self.name]
 
 
-class Lambda(Model, AuditableMixin):
+class Lambda(Model):
     """Lambda models a relation in Norm"""
 
     __tablename__ = 'lambdas'
@@ -124,10 +107,19 @@ class Lambda(Model, AuditableMixin):
     VAR_TOMBSTONE = '_tombstone'
     VAR_TOMBSTONE_T = 'bool'
 
+    id = Column(Integer, primary_key=True, default=uuid_int)
+    name = Column(String(256), nullable=False, unique=True)
+    description = Column(Text, default='')
+    version = Column(String(32), default=new_version, nullable=False)
+
+    created_on = Column(DateTime, default=datetime.utcnow)
+    changed_on = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
     module_id = Column(Integer, ForeignKey(Module.id), nullable=False)
     module = relationship(Module, back_populates='lambdas')
     bindings = relationship(Variable, order_by=Variable.position, collection_class=ordering_list('position'))
     definition = Column(Text, default='')
+    dtype = Column(String(8), default='O')
     adapted = Column(Boolean, default=False)
     atomic = Column(Boolean, default=False)
 

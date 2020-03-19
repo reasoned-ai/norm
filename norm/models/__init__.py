@@ -75,7 +75,7 @@ class Store(object):
     def __getattr__(self, item):
         """
         :type item: str
-        :rtype: Store or Module or Lambda
+        :rtype: Store or Model
         """
         if item.startswith('_') or item.find(SEPARATOR) >= 0:
             return None
@@ -103,6 +103,6 @@ class Store(object):
         return None
 
 
-store = Store()
+norma = Store()
 
 

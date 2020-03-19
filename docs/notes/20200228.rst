@@ -1,0 +1,9 @@
+## Norm SQLAlchemy models v.s. Flask-SQLAlchemy
+
+Norm internally defines user management concepts. Flask-SQLAlchemy has a better support with package like Flask-Login.
+However, Norm should be able to used as library to power environment like Jupyter and serving APIs. These use cases
+do not use UI elements or even http servers. Authentication/authorization as a library is a missing feature in Flask
+eco-system. We have to improvise this capability:
+
+    * Do not initialize app
+    * Implement user login and user load from jupyter widget or input

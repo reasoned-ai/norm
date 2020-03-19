@@ -1,5 +1,5 @@
 """Unit tests for Implementation"""
-from norm.models import store
+from norm.models import norma
 from tests.utils import NormTestCase
 
 
@@ -25,7 +25,7 @@ class TypeInferenceTestCase(NormTestCase):
         """
         result = self.execute(script)
         self.assertTrue(result.type_.name == 'tmp')
-        self.assertTrue(result.type_.get('id').type_ == store.native.String.latest)
-        self.assertTrue(result.type_.get('name').type_ == store.native.String.latest)
-        self.assertTrue(result.type_.get('department_name').type_ == store.native.String.latest)
-        self.assertTrue(result.type_.get('total_credits').type_ == store.native.Float.latest)
+        self.assertTrue(result.type_.get('id').type_ == norma.native.String.latest)
+        self.assertTrue(result.type_.get('name').type_ == norma.native.String.latest)
+        self.assertTrue(result.type_.get('department_name').type_ == norma.native.String.latest)
+        self.assertTrue(result.type_.get('total_credits').type_ == norma.native.Float.latest)
