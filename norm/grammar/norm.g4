@@ -140,13 +140,14 @@ compoundExpr
     : simpleExpr
     | codeExpr
     | returnExpr
-    | WITH simpleExpr COLON compoundExpr
-    | quantifier names IN simpleExpr COLON compoundExpr
+    | WITH compoundExpr COLON compoundExpr
+    | LIKELY COLON compoundExpr
+    | quantifier names IN compoundExpr COLON compoundExpr
     | variable ( COMMA variable )* DRAW compoundExpr
     | variable ( COMMA variable )* IS compoundExpr
     | compoundExpr AS variable ( COMMA variable )*
     | LBR compoundExpr RBR
-    | NOT compoundExpr
+    | singleLogicOperator compoundExpr
     | compoundExpr complexLogicalOperator compoundExpr
     | compoundExpr simpleLogicalOperator compoundExpr
     ;
@@ -175,6 +176,8 @@ definitionOperator
     | RDEF
     ;
 
+singleLogicOperator: NOT | IGN;
+
 simpleLogicalOperator: AND | OR | XOR | OTW;
 
 complexLogicalOperator: IMP | EPT;
@@ -188,6 +191,7 @@ NEXIST: N O T [ \t]* ( E X I S T | E X I S T S );
 FORANY: F O R [ \t]* ( A L L | E A C H | A N Y | E V E R Y )?;
 
 WITH: W I T H;
+LIKELY: L I K E L Y;
 
 IMPORT: I M P O R T;
 EXPORT: E X P O R T;
@@ -247,6 +251,7 @@ EXP:       '**';
 MOD:       '%';
 
 NOT:       '!'   | N O T;
+IGN:       '`'   | I G N O R E;
 AND:       '&'   | A N D;
 OR:        '|'   | O R;
 XOR:       '^'   | X O R;
@@ -258,6 +263,12 @@ DEF: ':=';
 RDEF: ':' INTEGER '=';
 ORDEF: '|=';
 ANDDEF: '&=';
+
+NAME: CHAR CHARDIGIT*;
+UNICODE_NAME
+    : [\p{Alpha}\p{General_Category=Other_Letter}] [\p{Alnum}\p{General_Category=Other_Letter}]*
+    | COMMON_UNICODE+
+    ;
 
 BOOLEAN:   T R U E | F A L S E;
 INTEGER:   [-]? DIGIT+;
@@ -277,12 +288,6 @@ SQL_END: 'sql}';
 
 PYTHON_BEGIN: '{python' | '{py';
 PYTHON_END: 'python}' | 'py}';
-
-NAME: CHAR CHARDIGIT*;
-UNICODE_NAME
-    : [\p{Alpha}\p{General_Category=Other_Letter}] [\p{Alnum}\p{General_Category=Other_Letter}]*
-    | COMMON_UNICODE+
-    ;
 
 fragment CHARDIGIT: CHAR | DIGIT;
 fragment CHAR:    [a-zA-Z_];
