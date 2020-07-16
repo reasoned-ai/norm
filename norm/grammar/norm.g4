@@ -127,8 +127,7 @@ simpleExpr
     ;
 
 codeExpr
-    : LCBR ~('\r\n')* RCBR
-    | CODE_BLOCK_BEGIN ~( CODE_BLOCK_BEGIN | CODE_BLOCK_END )* CODE_BLOCK_END
+    : CODE_BLOCK_BEGIN ~( CODE_BLOCK_BEGIN | CODE_BLOCK_END )* CODE_BLOCK_END
     ;
 
 returnExpr
@@ -141,7 +140,6 @@ compoundExpr
     | codeExpr
     | returnExpr
     | WITH compoundExpr COLON compoundExpr
-    | LIKELY COLON compoundExpr
     | quantifier names IN compoundExpr COLON compoundExpr
     | variable ( COMMA variable )* DRAW compoundExpr
     | variable ( COMMA variable )* IS compoundExpr
@@ -173,7 +171,6 @@ definitionOperator
     : DEF
     | ANDDEF
     | ORDEF
-    | RDEF
     ;
 
 singleLogicOperator: NOT | IGN;
@@ -191,7 +188,6 @@ NEXIST: N O T [ \t]* ( E X I S T | E X I S T S );
 FORANY: F O R [ \t]* ( A L L | E A C H | A N Y | E V E R Y )?;
 
 WITH: W I T H;
-LIKELY: L I K E L Y;
 
 IMPORT: I M P O R T;
 EXPORT: E X P O R T;
@@ -260,7 +256,6 @@ EPT:       E X C E P T;
 OTW:       O T H E R W I S E;
 
 DEF: ':=';
-RDEF: ':' INTEGER '=';
 ORDEF: '|=';
 ANDDEF: '&=';
 
@@ -286,8 +281,8 @@ CODE_BLOCK_END: SQL_END | PYTHON_END;
 SQL_BEGIN: '{sql';
 SQL_END: 'sql}';
 
-PYTHON_BEGIN: '{python' | '{py';
-PYTHON_END: 'python}' | 'py}';
+PYTHON_BEGIN: '{python' | '{{';
+PYTHON_END: 'python}' | '}}';
 
 fragment CHARDIGIT: CHAR | DIGIT;
 fragment CHAR:    [a-zA-Z_];

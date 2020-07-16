@@ -68,18 +68,23 @@ test &= !('sfs', 4)
 Python Code
 """
 
-# bind a python code
-utcnow := {
+utcnow
+:= {{
     from datetime import datetime
     datetime.utcnow
-}
+}}
 
 
 test &= u2 = utcnow()
 
-test(a: Integer) := { pandas.read_csv("sfsfsf.csv") }
+test
+:: (a: Integer)
+:= {{ pandas.read_csv("sfsfsf.csv") }}
 
-test |= { pandas.read_csv("sfsfsf.csv") }
+
+test
+|= {{ pandas.read_csv("sfsfsf.csv") }}
+
 
 """
 Evaluation
@@ -253,7 +258,7 @@ Transformer
 """
 
 transformer:: (s: [english_word]) -> [english_word]
-:10=
+:=
 for i2, w2 in enumerate(s):
   (for i1, w1 in enumerate(s):
      (w1 => w2) as a and a ~ gaussian(abs(i2 - i1))

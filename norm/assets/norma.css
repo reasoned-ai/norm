@@ -1,0 +1,107 @@
+#ace-editor {
+    float: left;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.dcc-graph-contrainer .row {
+    display: block;
+    margin: 0;
+}
+p[id^="editor"] {
+    text-align: center;
+    margin-left: 0;
+    margin-top:0.5em;
+    height: 3em;
+}
+
+.Select-menu-outer {
+display : block !important;
+}
+
+.addon {
+    font-size: 15px;
+    height: 3em;
+    width: 10em;
+    margin-left: 0;
+    margin-right: 0;
+}
+.input-group-text {
+    font-size: 15px;
+}
+.input-number {
+    font-size: 15px;
+    height: 3em;
+    width: 10em;
+    margin-left: 0;
+    margin-right: 0;
+}
+.select-option {
+    font-size: 15px;
+    height: 3em;
+    width: 10em;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.control-panel-item {
+    font-size: 15px;
+    width: 30em;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.control-show-buttons {
+    font-size: 15px;
+    margin-bottom: 0;
+    margin-top: 0;
+    width: 100em;
+    height: 3em;
+}
+
+.control-panel-item-long {
+    font-size: 15px;
+    width: 50em;
+    height: 3em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-top: 0;
+}
+
+.control-panel {
+    font-size: 15px;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    height: 5em;
+    width: 100em;
+}
+.control-datatable {
+    font-size: 15px;
+    width: 20em;
+    height: 3em;
+    margin-left: 0;
+    margin-right: 0;
+}
+.control-timerange {
+    font-size: 15px;
+    width: 300px;
+    height: 4em;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.viz-control {
+    margin-left: 1em;
+    margin-bottom: 0;
+    margin-top: 0;
+}
+.viz-control-buttons {
+    margin-left: 1em;
+    margin-bottom: 0;
+    margin-top: 0;
+}
