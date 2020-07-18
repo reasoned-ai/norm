@@ -22,24 +22,24 @@ display : block !important;
 }
 
 .addon {
-    font-size: 15px;
+    font-size: 20px;
     height: 3em;
     width: 10em;
     margin-left: 0;
     margin-right: 0;
 }
 .input-group-text {
-    font-size: 15px;
+    font-size: 20px;
 }
 .input-number {
-    font-size: 15px;
+    font-size: 20px;
     height: 3em;
     width: 10em;
     margin-left: 0;
     margin-right: 0;
 }
 .select-option {
-    font-size: 15px;
+    font-size: 20px;
     height: 3em;
     width: 10em;
     margin-left: 0;
@@ -47,14 +47,14 @@ display : block !important;
 }
 
 .control-panel-item {
-    font-size: 15px;
+    font-size: 20px;
     width: 30em;
     margin-left: 0;
     margin-right: 0;
 }
 
 .control-show-buttons {
-    font-size: 15px;
+    font-size: 20px;
     margin-bottom: 0;
     margin-top: 0;
     width: 100em;
@@ -62,7 +62,7 @@ display : block !important;
 }
 
 .control-panel-item-long {
-    font-size: 15px;
+    font-size: 20px;
     width: 50em;
     height: 3em;
     margin-left: 0;
@@ -72,7 +72,7 @@ display : block !important;
 }
 
 .control-panel {
-    font-size: 15px;
+    font-size: 20px;
     margin-left: 0;
     margin-right: 0;
     margin-top: 0;
@@ -81,14 +81,14 @@ display : block !important;
     width: 100em;
 }
 .control-datatable {
-    font-size: 15px;
+    font-size: 20px;
     width: 20em;
     height: 3em;
     margin-left: 0;
     margin-right: 0;
 }
 .control-timerange {
-    font-size: 15px;
+    font-size: 20px;
     width: 300px;
     height: 4em;
     margin-left: 0;

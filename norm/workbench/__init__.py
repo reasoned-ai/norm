@@ -66,38 +66,44 @@ controls = dbc.Row([
                 dbc.Input(id=id_filter_keyword, type='search', placeholder='Type in keywords...',
                           debounce=True),
                 dbc.InputGroupAddon(
-                    dbc.Button("Go", id=id_filter_keyword_submit), addon_type="append",
+                    dbc.Button("Go", color='info', id=id_filter_keyword_submit), addon_type="append",
                 ),
             ]),
             width=dict(size=5)
         ),
-    ])
+        dbc.Col(
+            html.Div(''),
+            width=dict(size=1)
+        )
+    ], justify='between')
 
 
-# Build layout
-layout = html.Div([
-    html.Br(),
-    dbc.Row([
-        dbc.Col([dbc.Collapse(editor.panel,
-                              id=id_panel_editor_collapse,
-                              is_open=init_editor_active)],
-                id=id_panel_editor_col,
-                width=dict(size=0)),
-        dbc.Col([
-            controls,
-            html.Hr(),
-            dbc.Collapse(table.panel,
-                         id=id_panel_table_collapse,
-                         is_open=init_table_active),
-            html.Br(),
-            dbc.Collapse(display.panel,
-                         id=id_panel_display_collapse,
-                         is_open=init_display_active),
-        ], id=id_panel_right_col, width=dict(size=12))
-    ]),
-    html.Hr(),
-    dbc.Row([console.panel])
-])
+def get_layout(pathname: str) -> html.Div:
+    # Build layout
+    layout = html.Div([
+        html.Br(),
+        dbc.Row([
+            dbc.Col([dbc.Collapse(editor.get_panel(pathname),
+                                  id=id_panel_editor_collapse,
+                                  is_open=init_editor_active)],
+                    id=id_panel_editor_col,
+                    width=dict(size=0)),
+            dbc.Col([
+                controls,
+                html.Hr(),
+                dbc.Collapse(table.panel,
+                             id=id_panel_table_collapse,
+                             is_open=init_table_active),
+                html.Br(),
+                dbc.Collapse(display.panel,
+                             id=id_panel_display_collapse,
+                             is_open=init_display_active),
+            ], id=id_panel_right_col, width=dict(size=12))
+        ]),
+        html.Hr(),
+        dbc.Row([console.panel])
+    ], className='mr-2')
+    return layout
 
 
 @app.callback([Output(id_panel_editor_collapse, 'is_open'),
