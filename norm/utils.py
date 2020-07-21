@@ -1,10 +1,11 @@
 from pandas import DataFrame
-from uuid import uuid1
+from uuid import uuid4
 from zlib import adler32
 from norm.config import hasher
+import logging
 
 
-def hash_df(df):
+def hash_df(df: DataFrame) -> str:
     """
     Create a hash string out of a DataFrame data
     :param df: the DataFrame data
@@ -18,15 +19,23 @@ def hash_df(df):
     return hasher.encode(adler32(str(df.values).encode('utf-8')))
 
 
-def uuid_int():
+def uuid_int32() -> int:
+    """
+    Create a 32bit integer from uuid
+    :rtype: int
+    """
+    return uuid4().int & 0xffffffff
+
+
+def uuid_int() -> int:
     """
     Create a 64bit integer from uuid
     :rtype: int
     """
-    return uuid1().int >> 64
+    return uuid4().int >> 64
 
 
-def new_version():
+def new_version() -> str:
     """
     Create a random version
     :rtype: str
@@ -34,12 +43,27 @@ def new_version():
     return hasher.encode(uuid_int())
 
 
-def random_name():
+def random_name() -> str:
     """
     Create a random name
     :rtype: str
     """
-    return hasher.encode(uuid1().int)
+    return hasher.encode(uuid4().int)
+
+
+def infodf(lg: logging.Logger, df: DataFrame):
+    for line in str(df).splitlines():
+        lg.info(line)
+
+
+def warndf(lg: logging.Logger, df: DataFrame):
+    for line in str(df).splitlines():
+        lg.warning(line)
+
+
+def errordf(lg: logging.Logger, df: DataFrame):
+    for line in str(df).splitlines():
+        lg.error(line)
 
 
 def lazy_property(f):

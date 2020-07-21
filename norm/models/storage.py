@@ -9,7 +9,7 @@ from sqlalchemy import Column, Integer, DateTime
 from sqlalchemy import String
 
 from norm.models import Model, Registrable, Register, SEPARATOR
-from norm.utils import uuid_int
+from norm.utils import uuid_int32
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class Storage(Model, Registrable):
         'with_polymorphic': '*'
     }
 
-    id = Column(Integer, primary_key=True, default=uuid_int)
+    id = Column(Integer, primary_key=True, default=uuid_int32)
     name = Column(String(32), nullable=False, unique=True)
     protocol = Column(String(16), default='file')
     root = Column(String(256), default='')

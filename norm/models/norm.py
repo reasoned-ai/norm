@@ -13,7 +13,7 @@ from sqlalchemy.orm import relationship
 from norm.models import Model, Registrable, ModelError, norma
 from norm.models.storage import Storage
 from norm.models.variable import Variable, Output, Input, Parameter, Parent, Internal, External, Intern
-from norm.utils import uuid_int, new_version, lazy_property
+from norm.utils import uuid_int32, new_version, lazy_property
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +24,13 @@ class Script(Model):
     """Script is a Norm script"""
     __tablename__ = 'scripts'
 
-    id = Column(Integer, primary_key=True, default=uuid_int)
+    id = Column(Integer, primary_key=True, default=uuid_int32)
     name = Column(String(256), default='')
     version = Column(String(32), default=new_version, nullable=False)
     position = Column(Integer)
     content = Column(Text, nullable=False)
+    module_id = Column(Integer, ForeignKey("modules.id"))
+    module = relationship("Module", foreign_keys=[module_id])
     created_on = Column(DateTime, default=datetime.utcnow)
 
 
@@ -44,24 +46,23 @@ class Module(Model, Registrable):
         'with_polymorphic': '*'
     }
 
-    id = Column(Integer, primary_key=True, default=uuid_int)
+    id = Column(Integer, primary_key=True, default=uuid_int32)
     name = Column(String(256), nullable=False, unique=True)
     description = Column(Text, default='')
     storage_id = Column(Integer, ForeignKey(Storage.id), nullable=False)
     storage = relationship(Storage)
 
     lambdas = relationship("Lambda", back_populates="module")
-    scripts = relationship(Script, order_by=Script.position, collection_class=ordering_list('position'),
-                           back_populates='module')
+    scripts = relationship(Script, order_by=Script.position, collection_class=ordering_list('position'))
 
     created_on = Column(DateTime, default=datetime.utcnow)
     changed_on = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __init__(self, name, description=None, storage=None):
-        self.id: int = uuid_int()
+        self.id: int = uuid_int32()
         self.name: str = name
         self.description: str = description or ""
-        self.storage: Storage = storage or norma.storage.unix_user_default
+        self.storage: Storage = storage or norma['storage.unix_user_default']
         self.lambdas: List["Lambda"] = []
         self.scripts: List[Script] = []
 
@@ -107,17 +108,20 @@ class Lambda(Model):
     VAR_TOMBSTONE = '_tombstone'
     VAR_TOMBSTONE_T = 'bool'
 
-    id = Column(Integer, primary_key=True, default=uuid_int)
-    name = Column(String(256), nullable=False, unique=True)
-    description = Column(Text, default='')
+    id = Column(Integer, primary_key=True, default=uuid_int32)
+    name = Column(String(256), nullable=False)
     version = Column(String(32), default=new_version, nullable=False)
+    description = Column(Text, default='')
 
     created_on = Column(DateTime, default=datetime.utcnow)
     changed_on = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     module_id = Column(Integer, ForeignKey(Module.id), nullable=False)
     module = relationship(Module, back_populates='lambdas')
-    bindings = relationship(Variable, order_by=Variable.position, collection_class=ordering_list('position'))
+
+    variables = relationship(Variable, order_by=Variable.position, collection_class=ordering_list('position'),
+                             backref='scope', foreign_keys=[Variable.scope_id])
+
     definition = Column(Text, default='')
     dtype = Column(String(8), default='O')
     adapted = Column(Boolean, default=False)
@@ -133,7 +137,7 @@ class Lambda(Model):
         :type bindings: List[Variable]
         """
         self.module: Module = module
-        self.id: int = uuid_int()
+        self.id: int = uuid_int32()
         self.name: str = name
         self.description: str = description
         self.version: str = version or new_version()

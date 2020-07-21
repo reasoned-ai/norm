@@ -4,6 +4,9 @@ from norm.models.norm import Lambda, Module
 from norm.models.variable import Input, Output
 
 from datetime import datetime
+from typing import List, TYPE_CHECKING
+if TYPE_CHECKING:
+    from norm.models.variable import Variable
 import numpy as np
 
 import logging
@@ -19,7 +22,7 @@ class NativeModule(Module):
     }
 
     def __init__(self):
-        super().__init__('norm.native', description='Norm native namespace')
+        super().__init__('native', description='Norm native namespace')
 
 
 class NativeLambda(Lambda, Registrable):
@@ -27,8 +30,9 @@ class NativeLambda(Lambda, Registrable):
         'polymorphic_identity': 'lambda_native'
     }
 
-    def __init__(self, name, description, bindings=None, dtype='object', module=None, version=None):
-        super().__init__(module=module or norma.native.latest,
+    def __init__(self, name: str, description: str, bindings: List["Variable"] = None, dtype: str = 'object',
+                 version: str = None):
+        super().__init__(module=norma['native'],
                          name=name,
                          description=description,
                          version=version or __version__,
@@ -182,17 +186,16 @@ class OperatorLambda(NativeLambda):
 
 
 @Register(name='not', description='negation of logic')
-@Register(name='-', description='negation of arithmetic')
+@Register(name='negate', description='negation of arithmetic')
 class UnaryOperator(OperatorLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'operator_unary'
     }
 
-    def __init__(self, name, description, type_=None, module=None, version=None):
+    def __init__(self, name: str, description: str, type_: Lambda = None, version: str = None):
         super().__init__(name, description,
-                         bindings=[Input(type_ or norma.native.Any.latest, self.RHS),
-                                   Output(norma.native.Any.latest, self.OUT)],
-                         module=module,
+                         bindings=[Input(type_ or norma['native.Any'], self.RHS),
+                                   Output(norma['native.Any'], self.OUT)],
                          version=version)
 
 
@@ -202,38 +205,37 @@ class UnaryOperator(OperatorLambda):
 @Register(name='imply', description='implication of logic')
 @Register(name='except', description='exception of logic')
 @Register(name='otherwise', description='otherwise of logic')
-@Register(name='+', description='addition of arithmetic')
-@Register(name='-', description='subtraction of arithmetic')
-@Register(name='*', description='multiplication of arithmetic')
-@Register(name='/', description='division of arithmetic')
-@Register(name='%', description='modulo of arithmetic')
-@Register(name='**', description='power of arithmetic')
-@Register(name='>', description='greater than of arithmetic')
-@Register(name='>=', description='greater than or equal to of arithmetic')
-@Register(name='<', description='less than of arithmetic')
-@Register(name='<=', description='less than or equal to of arithmetic')
-@Register(name='==', description='equal to of arithmetic')
-@Register(name='!=', description='not equal to of arithmetic')
+@Register(name='add', description='addition of arithmetic')
+@Register(name='subtract', description='subtraction of arithmetic')
+@Register(name='multiply', description='multiplication of arithmetic')
+@Register(name='divide', description='division of arithmetic')
+@Register(name='modulo', description='modulo of arithmetic')
+@Register(name='power', description='power of arithmetic')
+@Register(name='gt', description='greater than of arithmetic')
+@Register(name='ge', description='greater than or equal to of arithmetic')
+@Register(name='lt', description='less than of arithmetic')
+@Register(name='le', description='less than or equal to of arithmetic')
+@Register(name='eq', description='equal to of arithmetic')
+@Register(name='neq', description='not equal to of arithmetic')
 @Register(name='in', description='within or between of arithmetic')
-@Register(name='!in', description='not within or between of arithmetic')
+@Register(name='nin', description='not within or between of arithmetic')
 @Register(name='like', description='similar to of arithmetic')
 @Register(name='unlike', description='not similar to of arithmetic')
-@Register(name='.', description='access sub and variable')
+@Register(name='access', description='access sub and variable')
 class BinaryOperator(OperatorLambda):
     __mapper_args__ = {
         'polymorphic_identity': 'operator_binary'
     }
 
-    def __init__(self, name, description, type_=None, module=None, version=None):
+    def __init__(self, name: str, description: str, type_: Lambda = None, version: str = None):
         super().__init__(name, description,
-                         bindings=[Input(type_ or norma.native.Any.latest, self.LHS),
-                                   Input(type_ or norma.native.Any.latest, self.RHS),
-                                   Output(type_ or norma.native.Any.latest, self.OUT)],
-                         module=module,
+                         bindings=[Input(type_ or norma['native.Any'], self.LHS),
+                                   Input(type_ or norma['native.Any'], self.RHS),
+                                   Output(type_ or norma['native.Any'], self.OUT)],
                          version=version)
 
 
-def get_type_by_dtype(dtype):
+def get_type_by_dtype(dtype: np.dtype) -> Lambda:
     """
     Convert the numpy dtype to native lambda
     :param dtype: the numpy dtype
@@ -242,14 +244,14 @@ def get_type_by_dtype(dtype):
     :rtype: Lambda
     """
     if dtype.name.find('int') > -1:
-        return norma.native.Integer.latest
+        return norma['native.Integer']
     elif dtype.name.find('float') > -1:
-        return norma.native.Float.latest
+        return norma['native.Float']
     elif dtype.name.find('datetime') > -1:
-        return norma.native.DateTime.latest
+        return norma['native.DateTime']
     elif dtype.name.find('string') > -1:
-        return norma.native.String.latest
+        return norma['native.String']
     elif dtype.name.find('bool') > -1:
-        return norma.native.Boolean.latest
+        return norma['native.Boolean']
     else:
-        return norma.native.Any.latest
+        return norma['native.Any']

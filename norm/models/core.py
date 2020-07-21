@@ -2,8 +2,9 @@
 import logging
 
 from norm.models import norma, Registrable, Register
-from norm.models.norm import Lambda, Module
+from norm.models.norm import Lambda, Module, Variable
 from norm.models.variable import Input, Output
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ class CoreModule(Module):
     }
 
     def __init__(self):
-        super().__init__('norm.core', description='Norm core namespace')
+        super().__init__(name='core', description='Norm core namespace')
 
 
 class CoreLambda(Lambda, Registrable):
@@ -28,8 +29,9 @@ class CoreLambda(Lambda, Registrable):
         'polymorphic_identity': 'lambda_core'
     }
 
-    def __init__(self, name, description, module=None, version=None, atomic=True, bindings=None):
-        super().__init__(module=module or norma.core.latest,
+    def __init__(self, name: str, description: str, module: Module = None, version: str = None,
+                 atomic: bool = True, bindings: List[Variable] = None):
+        super().__init__(module=module or norma['core'],
                          name=name,
                          description=description,
                          version=version or __version__,
@@ -54,17 +56,17 @@ class SummaryLambda(CoreLambda):
     }
 
     def __init__(self):
-        super().__init__(name='Summary',
+        super().__init__(name='summary',
                          description='Summary of the data of a given type',
-                         bindings=[Input(type_=norma.native.String.latest, name='name'),
-                                   Input(type_=norma.native.Type.latest, name='type'),
-                                   Input(type_=norma.native.Integer.latest, name='count'),
-                                   Input(type_=norma.native.Integer.latest, name='unique'),
-                                   Input(type_=norma.native.Any.latest, name='min'),
-                                   Input(type_=norma.native.Any.latest, name='max'),
-                                   Input(type_=norma.native.Any.latest, name='mean'),
-                                   Input(type_=norma.native.Any.latest, name='median'),
-                                   Input(type_=norma.native.Any.latest, name='std')])
+                         bindings=[Input(type_=norma['native.String'], name='name'),
+                                   Input(type_=norma['native.Type'], name='type'),
+                                   Input(type_=norma['native.Integer'], name='count'),
+                                   Input(type_=norma['native.Integer'], name='unique'),
+                                   Input(type_=norma['native.Any'], name='min'),
+                                   Input(type_=norma['native.Any'], name='max'),
+                                   Input(type_=norma['native.Any'], name='mean'),
+                                   Input(type_=norma['native.Any'], name='median'),
+                                   Input(type_=norma['native.Any'], name='std')])
 
 
 @Register()
@@ -79,8 +81,8 @@ class DescribeLambda(CoreLambda):
     def __init__(self):
         super().__init__(name='describe',
                          description='Describe a given type',
-                         bindings=[Input(type_=norma.native.Type.latest, name='type'),
-                                   Output(type_=norma.core.Summary.latest, name='summary')])
+                         bindings=[Input(type_=norma['native.Type'], name='type'),
+                                   Output(type_=norma['core.summary'], name='summary')])
 
     def func(self):
         # TODO revisit
@@ -120,9 +122,9 @@ class RenameLambda(CoreLambda):
     def __init__(self):
         super().__init__(name='rename',
                          description='Rename variables for a given lambda',
-                         bindings=[Input(type_=norma.native.Type.latest, name='type'),
-                                   Input(type_=norma.native.String.latest, name='old'),
-                                   Input(type_=norma.native.String.latest, name='new')])
+                         bindings=[Input(type_=norma['native.Type'], name='type'),
+                                   Input(type_=norma['native.String'], name='old'),
+                                   Input(type_=norma['native.String'], name='new')])
 
     def func(self):
         # TODO revisit
@@ -133,7 +135,7 @@ class RenameLambda(CoreLambda):
         lam.data.rename(columns={old.data: new.data}, inplace=True)
 
 
-@Register
+@Register()
 class RetypeLambda(CoreLambda):
     """
     Retype variables for a given lambda
@@ -145,9 +147,9 @@ class RetypeLambda(CoreLambda):
     def __init__(self):
         super().__init__(name='retype',
                          description='Retype variables for a given lambda',
-                         bindings=[Input(type_=norma.native.Type.latest, name='type'),
-                                   Input(type_=norma.native.String.latest, name='var_name'),
-                                   Input(type_=norma.native.Type.latest, name='var_type')])
+                         bindings=[Input(type_=norma['native.Type'], name='type'),
+                                   Input(type_=norma['native.String'], name='var_name'),
+                                   Input(type_=norma['native.Type'], name='var_type')])
 
     def func(self):
         # TODO revisit

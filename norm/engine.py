@@ -2,9 +2,8 @@ import logging
 import traceback
 
 from sqlalchemy.exc import SQLAlchemyError
-
+from norm.root import db
 from norm.compiler import build_compiler, ParseError, CompileError
-from norm.config import Session
 from norm.executable import EngineError
 from norm.models import ModelError
 from norm.utils import random_name
@@ -28,7 +27,7 @@ def execute(script, name=None, python_context=None):
         return None
 
     # establish a db session
-    session = Session()
+    session = db.session
     try:
         name = name or random_name()
         compiler = build_compiler(name)\
@@ -62,7 +61,4 @@ def execute(script, name=None, python_context=None):
         logger.error('Norm db operation failed; Try it again.')
         logger.debug(traceback.print_exc())
         session.rollback()
-    finally:
-        # close the current db session
-        Session.remove()
 

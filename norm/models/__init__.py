@@ -1,11 +1,19 @@
+from sqlalchemy import func, desc
+from sqlalchemy.orm import with_polymorphic
+
+from norm.root import db
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.declarative import declarative_base
+
+from typing import TYPE_CHECKING, Optional, Union
+if TYPE_CHECKING:
+    from norm.models.norm import Lambda, Module
+    from norm.models.storage import Storage
 
 import traceback
 import logging
 logger = logging.getLogger(__name__)
 
-Model = declarative_base()
+Model = db.Model
 
 SEPARATOR = '.'
 
@@ -41,8 +49,7 @@ class Register(object):
 
     @classmethod
     def register(cls, overwrite=False):
-        from norm.config import Session
-        session = Session()
+        session = db.session
         for clz, args, kwargs in cls.types:
             instance = clz(*args, **kwargs)
             in_store = session.query(clz).filter(*instance.exists()).scalar()
@@ -60,8 +67,6 @@ class Register(object):
             logger.error(e)
             logger.debug(traceback.print_exc())
             session.rollback()
-        finally:
-            Session.remove()
 
 
 class Store(object):
@@ -69,38 +74,102 @@ class Store(object):
         self._items = {}
         self._current_path = path
 
-    def __dir__(self):
-        return list(self._items.keys())
-
-    def __getattr__(self, item):
+    def __getitem__(self, item: str) -> Union["Module", "Lambda", "Storage", type(None)]:
         """
-        :type item: str
-        :rtype: Store or Model
+        Get the lambda by name
+        :param item: the object name
+        :return: the object
         """
-        if item.startswith('_') or item.find(SEPARATOR) >= 0:
+        if item is None:
             return None
 
-        if self.current_path:
-            p = SEPARATOR.join([self._current_path, item])
+        item = item.strip()
+        if item == '':
+            return None
+
+        obj = self._items.get(item)
+        if obj is not None:
+            return db.session.merge(obj)
+
+        items = item.split(SEPARATOR)
+        if items[0] == 'storage':
+            obj = self.get_storage(SEPARATOR.join(items[1:]))
+        elif len(items) == 1:
+            obj = self.get_module(items[0])
         else:
-            p = item
+            module = self.get_module(SEPARATOR.join(items[0:-1]))
+            obj = self.get_lambda(items[-1], module)
 
-        s = self._items.get(p)
-        if s is not None:
-            return s
+        if obj is None:
+            return None
 
-        s = Store(p)
-        self._items[p] = s
-        return s
+        self._items[item] = obj
+        return obj
 
-    @property
-    def latest(self):
-        # Retrieve the item according to the path, always the latest version
-        return None
+    @staticmethod
+    def get_storage(name: str) -> Optional["Storage"]:
+        """
+        Get storage by the name
+        :param name: the name of the storage
+        :return: the storage
+        """
+        if not name:
+            return None
 
-    def version(self, ver):
-        # Retrieve the item according to the path with the given version
-        return None
+        from norm.models.storage import Storage
+        q = db.session.query(with_polymorphic(Storage, '*'))
+        return q.filter(func.lower(Storage.name) == func.lower(name)).scalar()
+
+    @staticmethod
+    def get_module(name: str) -> Optional["Module"]:
+        """
+        Get module by the name
+        :param name: the name of the module
+        :return: the module
+        """
+        if not name:
+            return None
+
+        from norm.models.norm import Module
+        from norm.models.native import NativeModule
+        from norm.models.core import CoreModule
+        q = db.session.query(Module)
+        q = q.filter(func.lower(Module.name) == func.lower(name))
+        return q.scalar()
+
+    @staticmethod
+    def get_lambda(name: str, module: "Module") -> Optional["Lambda"]:
+        """
+        Get Lambda by fully qualified name
+        :param name: the name with optional version
+        :param module: the module for the lambda
+        :return: the lambda
+        """
+        if not name:
+            return None
+
+        from norm.models.norm import Lambda, Module
+        from norm.models.native import AnyLambda, DatetimeLambda, IntegerLambda, NativeLambda, OperatorLambda,\
+            StringLambda, TypeLambda, UUIDLambda, BooleanLambda, FloatLambda
+        from norm.models.core import DescribeLambda, CoreLambda, SummaryLambda, RenameLambda, RetypeLambda
+        q = db.session.query(with_polymorphic(Lambda, '*'))
+        names = name.split('$')
+        if len(names) == 1:
+            version = 'latest'
+        elif len(names) == 2:
+            version = names[1]
+        else:
+            raise ModelError(f"More than one $ is found in the qualified name {name}")
+
+        conds = [func.lower(Lambda.name) == func.lower(names[0]),
+                 Lambda.module_id == module.id]
+        if version != 'latest':
+            conds.append(Lambda.version == version)
+            lam = q.filter(*conds).scalar()
+        else:
+            lam = q.filter(*conds).order_by(desc(Lambda.created_on)).first()
+
+        return lam
 
 
 norma = Store()

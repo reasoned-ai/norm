@@ -2,6 +2,8 @@ from flask_cors import CORS
 import dash_bootstrap_components as dbc
 import dash
 import flask
+from norm.config import DB_PATH
+from flask_sqlalchemy import SQLAlchemy
 
 external_stylesheets = [
     "https://fonts.googleapis.com/css?family=Kanit&display=swap",
@@ -12,6 +14,11 @@ external_scripts = ["https://cdn.plot.ly/plotly-latest.js"]
 
 server = flask.Flask(__name__)
 CORS(server)
+server.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+server.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(server)
+
 
 app_path = '/norma/'
 app = dash.Dash(__name__,
@@ -23,3 +30,4 @@ app = dash.Dash(__name__,
                 external_scripts=external_scripts,
                 external_stylesheets=external_stylesheets)
 app.config.suppress_callback_exceptions = True
+

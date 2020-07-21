@@ -2,12 +2,14 @@ import logging
 
 import pandas as pd
 
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, JSON
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, JSON, Table
+from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import relationship
 
 from norm.models import Model
-from norm.utils import uuid_int, random_name
+from norm.utils import uuid_int32, random_name
 
+from typing import Dict
 logger = logging.getLogger(__name__)
 
 
@@ -35,13 +37,12 @@ class Variable(Model):
     KEY_NUM_NA = 'num_na'
     KEY_COUNT = 'count'
 
-    id = Column(Integer, primary_key=True, default=uuid_int)
+    id = Column(Integer, primary_key=True, default=uuid_int32)
     name = Column(String(256), default='')
     asc = Column(Boolean)
     position = Column(Integer)
     stats = Column(JSON)
     scope_id = Column(Integer, ForeignKey('lambdas.id'))
-    scope = relationship('Lambda', foreign_keys=[scope_id])
     type_id = Column(Integer, ForeignKey('lambdas.id'))
     type_ = relationship('Lambda', foreign_keys=[type_id])
 
@@ -57,12 +58,13 @@ class Variable(Model):
         :param asc: order the objects according to the ascending order, default to None, i.e., no ordering
         :type asc: bool
         """
-        self.id = uuid_int()
-        self.type_ = type_
-        self.name = name or self.VAR_ANONYMOUS_STUB + random_name()
-        self.stats = {}
-        self.default = default
-        self.asc = asc
+        from norm.models.norm import Lambda
+        self.id: int = uuid_int32()
+        self.type_: Lambda = type_
+        self.name: str = name or self.VAR_ANONYMOUS_STUB + random_name()
+        self.stats: Dict = {}
+        self.default: object = default
+        self.asc: bool = asc
         self._data: pd.DataFrame = None
 
     def __repr__(self):
@@ -226,10 +228,9 @@ class Output(Variable):
         'polymorphic_identity': 'variable_output'
     }
 
-    as_primary = Column(Boolean, default=False)
     group = Column(Integer, default=0)
 
-    def __init__(self, type_, name='', default=None, asc=None, group=0, as_primary=True):
+    def __init__(self, type_, name='', default=None, asc=None, group=0):
         """
         :type type_: norm.models.norm.Lambda
         :type name: str
@@ -237,11 +238,8 @@ class Output(Variable):
         :type asc: bool
         :param group: the group number of outputs for multiple outputs, e.g. ()->(a:String, b:Integer)->String
         :type group: int
-        :param as_primary: whether the variable is a primary variable, i.e., used to generate oid
-        :type as_primary: bool
         """
         super().__init__(type_, name, default, asc)
-        self.as_primary = as_primary
         self.group = group
 
 
