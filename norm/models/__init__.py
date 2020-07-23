@@ -120,6 +120,26 @@ class Store(object):
         q = db.session.query(with_polymorphic(Storage, '*'))
         return q.filter(func.lower(Storage.name) == func.lower(name)).scalar()
 
+    def create_module(self, name: str, description: str, store: "Storage" = None) -> Optional["Module"]:
+        """
+        Create module by the name
+        :param name: the name of the module
+        :param description: the description of the module
+        :param store: the storage for the module
+        :return: the module
+        """
+        if not name:
+            return None
+
+        from norm.models.norm import Module
+        if store is None:
+            store = self.get_storage('unix_user_default')
+        module = Module(name, description, store)
+        db.session.add(module)
+        self._items[name] = module
+        db.session.commit()
+        return module
+
     @staticmethod
     def get_module(name: str) -> Optional["Module"]:
         """

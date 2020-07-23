@@ -3,8 +3,11 @@ import dash_html_components as html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, State, Output
 from dash.exceptions import PreventUpdate
+from flask import request
 
 from norm.root import server, app
+from norm.models import norma
+from norm.workbench.autocompleter import complete
 import flask
 import datetime
 
@@ -34,12 +37,24 @@ def get_panel(pathname: str) -> html.Div:
 
     module_name = pathname[7:].replace("/", ".").title()
 
+    module = norma.get_module(module_name)
+    if module is None:
+        module = norma.create_module(module_name, '')
+        title = f'[New] {module_name}'
+    else:
+        title = f'{module_name}'
+
+    if len(module.scripts) > 0:
+        script = module.scripts[-1]
+    else:
+        script = ''
+
     panel = html.Div([
         html.Div([], id=id_editor_state, hidden=True),
         dbc.Card([
             dbc.CardHeader([
                 dbc.Row([
-                    dbc.Col([html.P(f'{module_name}',
+                    dbc.Col([html.P(title,
                                     id=id_editor_title_text,
                                     style={'fontSize': '20px',
                                            'textAlign': 'left'})],
@@ -54,7 +69,7 @@ def get_panel(pathname: str) -> html.Div:
             dbc.CardBody(
                 dash_ace.DashAceEditor(
                     id=id_editor,
-                    value='',
+                    value=script,
                     theme='tomorrow',
                     mode='norm',
                     syntaxKeywords=syntaxKeywords,
@@ -64,13 +79,13 @@ def get_panel(pathname: str) -> html.Div:
                     width='95%',
                     enableBasicAutocompletion=True,
                     enableLiveAutocompletion=True,
+                    enableSnippets=True,
                     autocompleter='/autocompleter?prefix=',
                     prefixLine=True,
-                    triggerWords=[':', '\\.', '::'],  # consult the completer for types, members and inheritances
                     placeholder='Norm code ...',
-                    debounceChangePeriod=2000,
                     height='85vh'
-                )
+                ),
+                className='m-0'
             )
         ], className='ml-0')
     ], id=id_editor_panel)
@@ -82,11 +97,14 @@ def get_panel(pathname: str) -> html.Div:
     [Input(id_editor, 'value')]
 )
 def execute(code: str):
+    print(code)
     return f'Checkpoint: {datetime.datetime.now().strftime("%H:%M:%S  %Y/%m/%d")}'
 
 
 @server.route('/autocompleter', methods=['GET'])
 def autocompleter():
-    return flask.jsonify([{"name": "Completed", "value": "Completed", "score": 100, "meta": "test"}])
+    prefix = request.args.get('prefix')
+    results = complete(prefix)
+    return flask.jsonify(results)
 
 
