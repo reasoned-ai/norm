@@ -2,18 +2,20 @@ import logging
 import traceback
 from enum import Enum
 from functools import lru_cache
-from typing import List
+from typing import List, Optional, Dict, Union
 
 from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 from sqlalchemy import desc, func
-from sqlalchemy.orm.session import Session
+from sqlalchemy.orm import Session, with_polymorphic
+from sqlalchemy.orm.scoping import scoped_session
 
 from norm.config import MAX_MODULE_CACHE_SIZE
 from norm.executable import NormExecutable
 from norm.grammar.normLexer import normLexer
 from norm.grammar.normParser import normParser
 from norm.models.norm import Module, Lambda, PythonLambda, SQLLambda
+from norm.models.storage import Storage
 
 logger = logging.getLogger(__name__)
 
@@ -35,51 +37,43 @@ class CompileError(ValueError):
     pass
 
 
-def error_on(cond=None, msg=''):
+def error_on(cond: object = None, msg: str = ''):
     """
     Raise error if condition satisfied
     :param cond: the logical condition
-    :type cond: object
     :param msg: the message to log
-    :type msg: str
     :raise: CompileError
     """
     if cond:
         raise CompileError(msg)
 
 
-def info_on(cond=None, msg=''):
+def info_on(cond: object = None, msg: str = ''):
     """
     Log info if condition satisfied
     :param cond: the logical condition
-    :type cond: object
     :param msg: the message to log
-    :type msg: str
     """
     if cond:
         logger.info(msg)
 
 
-def warn_on(cond=None, msg=''):
+def warn_on(cond: object = None, msg: str = ''):
     """
     Log warning if condition satisfied
     :param cond: the logical condition
-    :type cond: object
     :param msg: the message to log
-    :type msg: str
     """
     if cond:
         logger.warning(msg)
 
 
-def same(array, another=None):
+def same(array: List, another: List = None) -> bool:
     """
     Whether every element is the same or not if one array is provided.
     If two arrays are provided, compare each element.
     :param array: the array of element
-    :type array: list
-    :type another: list or None
-    :rtype: bool
+    :param another: the other array of element to compare with
     """
     if another is None:
         if not isinstance(array, list) or len(array) <= 1:
@@ -100,44 +94,69 @@ class CodeType(Enum):
 
 class NormCompiler(object):
 
-    def __init__(self, module_name):
+    def __init__(self, module_name: str, storage_name: str = 'unix_user_default'):
         """
         :param module_name: the module name compiler lives in
-        :type module_name: str
         """
-        self.current_module: Module = self.get_module(module_name)
-        self.native_module: Module = self.get_module('norm.native')
-        self.core_module: Module = self.get_module('norm.core')
-
-        self.current_scope: Lambda or None = None
-
+        self.current_scope: Optional[Lambda] = None
         self.context: dict = {}
         self.python_context: dict = {}
+        self.session: Optional[Union[Session, scoped_session]] = None
+        self.current_module_name: str = module_name
+        self.current_storage_name: str = storage_name
+        self.store: Optional[Storage] = None
+        self.current_module: Optional[Module] = None
+        self.native_module: Optional[Module] = None
+        self.core_module: Optional[Module] = None
 
-        self.session: Session or None = None
-
-    def set_python_context(self, v):
+    def set_python_context(self, v: Dict) -> "NormCompiler":
         self.python_context = v or {}
         return self
 
-    def set_session(self, v):
+    def set_session(self, v: Union[Session, scoped_session]) -> "NormCompiler":
         assert(v is not None)
-        assert(isinstance(v, Session))
+        assert(isinstance(v, (Session, scoped_session)))
         self.session = v
         self.current_scope = None
+
+        if self.store:
+            self.store = self.session.merge(self.store)
+        else:
+            self.store = self.get_storage(self.current_storage_name)
         if self.current_module:
-            self.session.merge(self.current_module)
+            self.current_module = self.session.merge(self.current_module)
+        else:
+            self.current_module = self.get_module(self.current_module_name)
         if self.native_module:
-            self.session.merge(self.native_module)
+            self.native_module = self.session.merge(self.native_module)
+        else:
+            self.native_module = self.get_module('native')
         if self.core_module:
-            self.session.merge(self.core_module)
+            self.core_module = self.session.merge(self.core_module)
+        else:
+            self.core_module = self.get_module('core')
         return self
 
-    def get_module(self, name):
+    def get_storage(self, name: str) -> Optional["Storage"]:
+        """
+        Get storage by the name
+        :param name: the name of the storage
+        :return: the storage
+        """
+        if not name:
+            return None
+
+        from norm.models.storage import Storage
+        q = self.session.query(Storage)
+        self.store = q.filter(func.lower(Storage.name) == func.lower(name)).scalar()
+        if self.store is None:
+            raise CompileError(f'Storage {self.current_storage_name} is not pre-defined')
+        return self.store
+
+    def get_module(self, name: str) -> Optional[Module]:
         """
         Get module by full name and version
-        :type name: str
-        :rtype: norm.models.norm.Module or None
+        :param name: the name of the module
         """
         if not name:
             return None
@@ -148,11 +167,14 @@ class NormCompiler(object):
             return module
 
         from norm.models.norm import Module
+        from norm.models.native import NativeModule
+        from norm.models.core import CoreModule
         q = self.session.query(Module)
         module = q.filter(func.lower(Module.name) == func.lower(name)).scalar()
 
         if module is None:
-            module = Module(name)
+            assert(self.store is not None)
+            module = Module(name, storage=self.store)
             self.session.add(module)
 
         self.context[name] = module
@@ -222,6 +244,9 @@ class NormCompiler(object):
         :return: the norm executables
         :rtype: NormExecutable
         """
+        if script is None or script.strip() == '':
+            return None
+
         self.current_module.set_script(script)
         try:
             lexer = normLexer(InputStream(script))
@@ -245,12 +270,11 @@ class NormCompiler(object):
 
 
 @lru_cache(MAX_MODULE_CACHE_SIZE)
-def build_compiler(module_name):
+def build_compiler(module_name: str, storage_name: str = 'unix_user_default') -> NormCompiler:
     """
     :param module_name: the module name of the compiler
-    :type module_name: str
+    :param storage_name: the name of the storage
     :return: the compiler
-    :rtype: NormCompiler
     """
-    return NormCompiler(module_name)
+    return NormCompiler(module_name, storage_name)
 

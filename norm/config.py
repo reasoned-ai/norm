@@ -57,3 +57,6 @@ hasher = Hashids(salt=HASH_SALT, min_length=HASH_MIN_LENGTH)
 # Caching size:
 MAX_MODULE_CACHE_SIZE = 1000
 MAX_LAMBDA_CACHE_SIZE = 1000000
+
+# Dask configuration:
+USE_DASK = True

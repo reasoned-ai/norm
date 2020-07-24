@@ -1,25 +1,8 @@
-import os
-from os import listdir, getcwd
+from os import listdir
 from os.path import isfile, isdir, join
-from typing import Dict, List, Optional
+from typing import Dict, List
 import logging
 logger = logging.getLogger('auto-completer')
-
-
-class CompleterResult(object):
-
-    def __init__(self, name: str, value: str, meta: str, score: int):
-        self.name: str = name
-        self.value: str = value
-        self.meta: str = meta
-        self.score: int = score
-
-    @property
-    def json(self) -> Dict:
-        return dict(name=self.name,
-                    value=self.value,
-                    meta=self.meta,
-                    score=self.score)
 
 
 def hint_directory(prefix: str) -> List[Dict]:

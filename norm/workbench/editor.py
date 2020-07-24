@@ -7,9 +7,14 @@ from flask import request
 
 from norm.root import server, app
 from norm.models import norma
+from norm import engine
 from norm.workbench.autocompleter import complete
+
 import flask
 import datetime
+import logging
+
+logger = logging.getLogger('workbench.editor')
 
 syntaxKeywords = {
     "variable.language": "this|that|super|self|sub|",
@@ -94,10 +99,12 @@ def get_panel(pathname: str) -> html.Div:
 
 @app.callback(
     Output(id_editor_title_status, 'children'),
-    [Input(id_editor, 'value')]
+    [Input(id_editor, 'value')],
+    [State(id_editor_title_text, 'children')]
 )
-def execute(code: str):
-    print(code)
+def execute(code: str, module_name: str):
+    logger.debug(f'{module_name}: {code}')
+    results = engine.execute(code, module_name.lower())
     return f'Checkpoint: {datetime.datetime.now().strftime("%H:%M:%S  %Y/%m/%d")}'
 
 
