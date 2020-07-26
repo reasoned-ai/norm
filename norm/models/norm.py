@@ -25,12 +25,9 @@ class Script(Model):
     __tablename__ = 'scripts'
 
     id = Column(Integer, primary_key=True, default=uuid_int32)
-    name = Column(String(256), default='')
-    version = Column(String(32), default=new_version, nullable=False)
     position = Column(Integer)
     content = Column(Text, nullable=False)
     module_id = Column(Integer, ForeignKey("modules.id"))
-    module = relationship("Module", foreign_keys=[module_id])
     created_on = Column(DateTime, default=datetime.utcnow)
 
 
@@ -53,7 +50,8 @@ class Module(Model, Registrable):
     storage = relationship(Storage)
 
     lambdas = relationship("Lambda", back_populates="module")
-    scripts = relationship(Script, order_by=Script.position, collection_class=ordering_list('position'))
+    scripts = relationship(Script, order_by=Script.position, collection_class=ordering_list('position'),
+                           backref='module', foreign_keys=[Script.module_id])
 
     created_on = Column(DateTime, default=datetime.utcnow)
     changed_on = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

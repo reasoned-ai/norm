@@ -1,5 +1,5 @@
 from norm.models import Register
-import norm.config
+from norm.root import db
 import logging
 logger = logging.getLogger('update norm')
 

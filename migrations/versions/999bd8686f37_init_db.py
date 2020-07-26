@@ -62,8 +62,6 @@ def upgrade():
     )
     op.create_table('scripts',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=256), nullable=True),
-    sa.Column('version', sa.String(length=32), nullable=False),
     sa.Column('position', sa.Integer(), nullable=True),
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('module_id', sa.Integer(), nullable=True),

@@ -7,14 +7,14 @@ from typing import List, Optional, Dict, Union
 from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 from sqlalchemy import desc, func
-from sqlalchemy.orm import Session, with_polymorphic
+from sqlalchemy.orm import Session
 from sqlalchemy.orm.scoping import scoped_session
 
 from norm.config import MAX_MODULE_CACHE_SIZE
 from norm.executable import NormExecutable
 from norm.grammar.normLexer import normLexer
 from norm.grammar.normParser import normParser
-from norm.models.norm import Module, Lambda, PythonLambda, SQLLambda
+from norm.models.norm import Module, Lambda, PythonLambda, SQLLambda, Script
 from norm.models.storage import Storage
 
 logger = logging.getLogger(__name__)
@@ -247,13 +247,13 @@ class NormCompiler(object):
         if script is None or script.strip() == '':
             return None
 
-        self.current_module.set_script(script)
+        self.current_module.scripts.append(Script(content=script))
         try:
             lexer = normLexer(InputStream(script))
             stream = CommonTokenStream(lexer)
             parser = normParser(stream)
             parser.addErrorListener(NormErrorListener())
-            module = parser.module()
+            parsed_script = parser.script()
         except ParseError as e:
             logger.error(f'Can not parse {script}')
             logger.error(e)
@@ -263,7 +263,7 @@ class NormCompiler(object):
         from norm.compiler.statement import compile_statement
         statements = []
         ch: normParser.Full_statementContext
-        for ch in module.getTypedRuleContexts(normParser.Full_statementContext):
+        for ch in parsed_script.getTypedRuleContexts(normParser.Full_statementContext):
             if ch.statement():
                 statements.append(compile_statement(self, ch.comments(), ch.statement()))
         return NormExecutable(self, dependents=statements)

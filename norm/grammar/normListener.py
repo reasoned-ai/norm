@@ -8,12 +8,12 @@ else:
 # This class defines a complete listener for a parse tree produced by normParser.
 class normListener(ParseTreeListener):
 
-    # Enter a parse tree produced by normParser#module.
-    def enterModule(self, ctx:normParser.ModuleContext):
+    # Enter a parse tree produced by normParser#script.
+    def enterScript(self, ctx:normParser.ScriptContext):
         pass
 
-    # Exit a parse tree produced by normParser#module.
-    def exitModule(self, ctx:normParser.ModuleContext):
+    # Exit a parse tree produced by normParser#script.
+    def exitScript(self, ctx:normParser.ScriptContext):
         pass
 
 
@@ -311,6 +311,15 @@ class normListener(ParseTreeListener):
 
     # Exit a parse tree produced by normParser#definitionOperator.
     def exitDefinitionOperator(self, ctx:normParser.DefinitionOperatorContext):
+        pass
+
+
+    # Enter a parse tree produced by normParser#singleLogicOperator.
+    def enterSingleLogicOperator(self, ctx:normParser.SingleLogicOperatorContext):
+        pass
+
+    # Exit a parse tree produced by normParser#singleLogicOperator.
+    def exitSingleLogicOperator(self, ctx:normParser.SingleLogicOperatorContext):
         pass
 
 

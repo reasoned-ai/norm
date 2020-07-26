@@ -1,6 +1,6 @@
 grammar norm;
 
-module: full_statement ( EMPTYLINES full_statement )* EMPTYLINES*;
+script: full_statement ( EMPTYLINES full_statement )* EMPTYLINES*;
 
 full_statement
     : comments

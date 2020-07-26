@@ -4,6 +4,8 @@ import dash
 import flask
 from norm.config import DB_PATH
 from flask_sqlalchemy import SQLAlchemy
+import logging
+logger = logging.getLogger('norm.root')
 
 external_stylesheets = [
     "https://fonts.googleapis.com/css?family=Kanit&display=swap",
