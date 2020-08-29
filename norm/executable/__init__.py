@@ -1,4 +1,15 @@
-from typing import List
+from typing import List, TYPE_CHECKING, Optional, cast
+
+from norm import random_name
+from norm.grammar import TEMP_VAR_STUB, SEPARATOR
+from norm.config import USE_DASK, DataFrame
+
+if TYPE_CHECKING:
+    from norm.compiler import NormCompiler
+    from norm.models.norm import Lambda, Variable
+
+import logging
+logger = logging.getLogger("norm.executable")
 
 
 class EngineError(RuntimeError):
@@ -6,223 +17,156 @@ class EngineError(RuntimeError):
 
 
 class NormExecutable(object):
+    """
+    The execution plan
+    """
 
-    def __init__(self, context, dependents=None, type_=None):
+    def __init__(self, context: "NormCompiler", dependents: List["NormExecutable"] = None, type_: "Lambda" = None):
         """
         :param context: Compiler provides context for execution, e.g., existing bindings
-        :type context: norm.compiler.NormCompiler
         :param dependents: dependent executables
-        :type dependents: List[NormExecutable]
         :param type_: the Lambda for the execution results, not necessarily for every execution
-        :type type_: norm.models.norm.Lambda or None
         """
-        self.stack = dependents or []
-        self._lam = type_ or None
-        self.context = context
+        self.stack: List["NormExecutable"] = dependents or []
+        self._lam: "Lambda" = type_ or None
+        self.context: "NormCompiler" = context
 
     @property
-    def lam(self):
+    def lam(self) -> Optional["Lambda"]:
         """
         Get the Lambda for the results
-        :rtype: norm.models.norm.Lambda or None
         """
         return self._lam
 
     @lam.setter
-    def lam(self, o):
+    def lam(self, o: "Lambda"):
         """
         Set the Lambda for the results
-        :type o: norm.models.norm.Lambda
         """
         self._lam = o
 
-    def execute(self):
+    def prepare(self) -> DataFrame:
+        """
+        Prepare context before executing
+        :return: the prepared data
+        """
+        if len(self.stack) == 0:
+            return self._lam.empty_data
+        else:
+            # execute stacks
+            for e in self.stack:
+                v = e.execute()
+            # TODO: return merged data
+            return self._lam.empty_data
+
+    def project(self, data: DataFrame) -> Optional["Variable"]:
+        """
+        Project computed data to context
+        :return: projected variable
+        """
+        var = self.lam.random_var()
+        var.data = data
+        # TODO: project back to the context
+        return var
+
+    def execute(self) -> Optional["Variable"]:
         """
         Execute the command with given context
         :return: the results
-        :rtype: norm.models.variable.Variable or None
         """
         raise NotImplementedError
 
-    def fill_primary(self, df):
-        for var in self.variables:
-            if var.primary:
-                if var.name in df.columns:
-                    df.loc[:, var.name] = df[var.name].fillna(var.type_.default)
+
+class Statements(NormExecutable):
+    """
+    Execute a list of statements and return the last results
+    """
+
+    def execute(self) -> Optional["Variable"]:
+        results = None
+        for exe in self.stack:
+            if exe is not None:
+                results = exe.execute()
+        return results
+
+
+class Argument(NormExecutable):
+
+    def __init__(self, context: "NormCompiler", expr: "NormExecutable" = None,
+                 variable_name: str = None, is_query: bool = False):
+        """
+        :param context: Compiler provides context for execution, e.g., existing bindings
+        :param expr: dependent expression
+        :param variable_name: the variable name for the argument
+        """
+        super(Argument, self).__init__(context, [expr], None)
+        self.variable_name = variable_name
+        self.is_query = is_query
+
+    def execute(self) -> Optional["Variable"]:
+        return self.stack[0].execute()
+
+
+def _new_col(scope: str, col: str) -> str:
+    if col == '_oid':
+        return scope
+    else:
+        return SEPARATOR.join([scope, col])
+
+
+class AtomicEvaluation(NormExecutable):
+    """
+    Query or construction on the atomic lambda is an evaluation
+    """
+
+    def prepare(self) -> DataFrame:
+        """
+        Prepare context before executing
+        :return: the prepared data
+        """
+        if len(self.stack) == 0:
+            return self._lam.empty_data
+        else:
+            # get arguments
+            e: Argument
+            da: List[DataFrame] = []
+            for i, e in enumerate(self.stack):
+                v = e.execute()
+                if e.variable_name is not None:
+                    inp = self._lam.get(e.variable_name)
+                    assert(inp is not None)
                 else:
-                    df[var.name] = var.type_.default
-        return df
-
-    def fill_oid(self, df):
-        if df.index.name == self.VAR_OID:
-            return df
-
-        if self.VAR_OID in df.columns:
-            return df.set_index(self.VAR_OID)
-
-        # if OID column is given
-        oid_col = self.oid_col
-        if oid_col is not None and oid_col in df.columns:
-            df[self.VAR_OID] = df[oid_col]
-            df = df.set_index(self.VAR_OID)
-            return df
-
-        # if OID column is given but with no value in the data
-        # primary columns are used to generate the oid and backfill it
-
-        cols = [v.name for v in self.variables if v.primary and v.name in df.columns]
-        c = None
-        for col in cols:
-            if c is None:
-                c = df[col].astype(str)
+                    inp = self._lam.inputs[i]
+                if v is None or v.type_.id != inp.type_.id:
+                    # TODO: projection
+                    raise NotImplementedError
+                else:
+                    data = v.data.rename(columns={col: _new_col(inp.name, col) for col in v.data.columns})
+                    da.append(data)
+            if len(da) > 1:
+                # TODO: merge data
+                raise NotImplementedError
             else:
-                c = c.str.cat(df[col].astype(str))
-        if c is not None:
-            df[self.VAR_OID] = c.str.encode('utf-8').apply(zlib.adler32).astype('int64')
-            df = df.set_index(self.VAR_OID)
-        else:
-            df.index.rename(self.VAR_OID, inplace=True)
+                return da[0]
 
-        if oid_col is not None:
-            df[oid_col] = df.index.values
-        return df
+    def execute(self) -> Optional["Variable"]:
+        var = self.lam.random_var()
+        data = self.prepare()
+        data = self.lam.func(data)
+        var.data = data
+        return var
 
-    def fill_time(self, df):
-        time_col = self.time_col
 
-        if self.VAR_TIMESTAMP not in df.columns:
-            if time_col is not None and time_col in df.columns:
-                df[self.VAR_TIMESTAMP] = df[time_col].astype('datetime64[ns]')
-            else:
-                df[self.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
-        else:
-            if time_col is not None and time_col in df.columns:
-                df[self.VAR_TIMESTAMP].fillna(df[time_col].astype('datetime64[ns]'), inplace=True)
-            else:
-                df[self.VAR_TIMESTAMP].fillna(np.datetime64(datetime.utcnow()), inplace=True)
-        return df
-
-    def _fill_label(self, df):
-        if self.VAR_LABEL not in df.columns:
-            df[self.VAR_LABEL] = 1.0
-        else:
-            df[self.VAR_LABEL].fillna(1.0, inplace=True)
-        return df
-
-    def _fill_prob(self, df):
-        if self.VAR_PROB not in df.columns:
-            df[self.VAR_PROB] = 1.0
-        else:
-            df[self.VAR_PROB].fillna(1.0, inplace=True)
-        return df
-
-    def _fill_tombstone(self, df):
-        if self.VAR_TOMBSTONE not in df.columns:
-            df[self.VAR_TOMBSTONE] = False
-        else:
-            df[self.VAR_TOMBSTONE].fillna(False, inplace=True)
-        return df
-
-    def save(self):
-        """
-        Save the current version
-        """
-        if not self.atomic:
-            self._save_data()
-        if self.adapted:
-            self._save_model()
-
-    def empty_data(self):
-        """
-        Create an empty data frame
-        :return: the data frame with columns
-        :rtype: DataFrame
-        """
-        return DataFrame(columns=self._schema_names).set_index(self.VAR_OID)
-
-    def _load_data(self):
-        """
-        Load data if it exists. If the current version is not an anchor, the previous versions will be combined.
-        :return: the combined data
-        :rtype: DataFrame
-        """
-        if self._data is not None:
-            return self._data
-
-        if self.anchor:
-            self._data = self.empty_data()
-        elif self.cloned_from is None:
-            msg = "Failed to find the anchor version. The chain is broken for {}".format(self)
-            logger.error(msg)
-            raise RuntimeError(msg)
-        else:
-            self._data = self.cloned_from._load_data()
-
-        from norm.models.revision import DeltaRevision
-        for i in range(self.current_revision + 1):
-            revision = self.revisions[i]
-            if isinstance(revision, DeltaRevision):
-                revision.redo()
-
-        # Choose the rows still alive and the columns specified in schema
-        self._data = self._data[self._all_columns[1:]][~self._data[self.VAR_TOMBSTONE]]
-        return self._data
-
-    def _save_data(self):
-        """
-        Save all revisions' data
-        """
-        if not os.path.exists(self.folder):
-            self._create_folder()
-
-        for revision in self.revisions:
-            revision.save()
-
-    def _build_model(self):
-        """
-        Build an adaptable model
-        TODO: to implement
-        """
-        pass
-
-    def _load_model(self):
-        """
-        Load an adapted model
-        TODO: to implement
-        :return:
-        """
-        pass
-
-    def _save_model(self):
-        """
-        Save an adapted model
-        TODO: to implement
-        :return:
-        """
-        pass
-
-    def _disjunction(self):
-        self.orig_data = self.lam.data
-
-        oid_col = self.lam.VAR_OID
-        label_col = self.lam.VAR_LABEL
-        assert(self.lam.data.index.name == oid_col)
-        data = self.lam.data
-        delta = self.delta
-        if delta is None:
-            return
-
-        unstored = delta.index.difference(data.index, sort=False)
-        stored = delta.index.intersection(data.index, sort=False)
-        if len(unstored) > 0:
-            data = data.append(delta.loc[unstored], sort=False)
-        if len(stored) > 0:
-            overwrites = data.loc[stored][data[label_col] < 1].index
-            data.loc[overwrites, delta.columns] = delta.loc[overwrites]
-            if label_col not in delta.columns:
-                data.loc[overwrites, label_col] = 1.0
-
-        self.lam.data = self.lam.fill_na(data)
+class Query(NormExecutable):
+    """
+    Query a non-atomic Lambda
+    """
+    def execute(self) -> Optional["Variable"]:
+        var = self.random_var()
+        # TODO: get args dependents
+        args = [arg.execute().value for arg in self.stack]
+        var.value = self.lam.func(*args)
+        return var
 
 
 class TypeDeclaration(NormExecutable):
@@ -331,7 +275,12 @@ class Construction(NormExecutable):
     """
     Construct objects and fill values
     """
-    pass
+
+    def execute(self) -> Optional["Variable"]:
+        var = self.random_var()
+        args = [arg.execute().value for arg in self.stack]
+        # TODO: construct values
+        return var
 
 
 class Return(NormExecutable):
@@ -355,11 +304,15 @@ class Negation(NormExecutable):
     pass
 
 
-class DefineType(NormExecutable):
+class TypeDefinition(NormExecutable):
     """
     Define a Lambda
     """
-    pass
+
+    def execute(self) -> Optional["Variable"]:
+        var = self.stack[0].execute()
+        self.lam._data = var.data
+        return var
 
 
 class CodeExecution(NormExecutable):

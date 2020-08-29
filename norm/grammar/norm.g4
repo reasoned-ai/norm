@@ -153,6 +153,7 @@ compoundExpr
 constant
     : NONE
     | BOOLEAN
+    | TYPEREF type_
     | string
     | scalar
     | constant ( COMMA constant )+ COMMA?
@@ -173,7 +174,7 @@ definitionOperator
     | ORDEF
     ;
 
-singleLogicOperator: NOT | IGN;
+singleLogicOperator: NOT;
 
 simpleLogicalOperator: AND | OR | XOR | OTW;
 
@@ -217,6 +218,7 @@ RSBR: ']';
 LCBR: '{';
 RCBR: '}';
 
+TYPEREF: '@';
 MAPTO:     '->';
 
 NONE:      N O N E | N U L L | N A;
@@ -247,7 +249,6 @@ EXP:       '**';
 MOD:       '%';
 
 NOT:       '!'   | N O T;
-IGN:       '`'   | I G N O R E;
 AND:       '&'   | A N D;
 OR:        '|'   | O R;
 XOR:       '^'   | X O R;

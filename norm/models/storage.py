@@ -18,6 +18,7 @@ class Storage(Model, Registrable):
     """
     Persistent layer to data and model
     """
+
     __tablename__ = 'storages'
 
     category = Column(String(64))
@@ -37,6 +38,9 @@ class Storage(Model, Registrable):
     def exists(self):
         return [Storage.name == self.name,
                 Storage.root == self.root]
+
+    def copy(self, from_obj: "Registrable"):
+        pass
 
     def path(self, module):
         """
@@ -78,12 +82,14 @@ class UnixFile(Storage):
         'polymorphic_identity': 'storage_unix_file',
     }
 
-    def __init__(self, name, root):
+    def __init__(self, name, root, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.protocol = 'file'
         self.name = name
         self.root = root
 
-    def _create_folder(self, folder):
+    @staticmethod
+    def _create_folder(folder):
         """
         Create the folder for the namespace.
         """

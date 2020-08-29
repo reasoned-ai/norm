@@ -1,6 +1,7 @@
 from pandas import DataFrame
-from uuid import uuid4
+from uuid import uuid4, uuid5, NAMESPACE_OID
 from zlib import adler32
+from typing import Optional, Callable, TypeVar, Any
 from norm.config import hasher
 import logging
 
@@ -19,20 +20,28 @@ def hash_df(df: DataFrame) -> str:
     return hasher.encode(adler32(str(df.values).encode('utf-8')))
 
 
-def uuid_int32() -> int:
+def uuid_int32(value: Optional[str] = None) -> int:
     """
     Create a 32bit integer from uuid
+    :param value: uuid generated from
     :rtype: int
     """
-    return uuid4().int & 0xffffffff
+    if value is not None:
+        return uuid5(NAMESPACE_OID, value).int & 0xffffffff
+    else:
+        return uuid4().int & 0xffffffff
 
 
-def uuid_int() -> int:
+def uuid_int(value: Optional[str] = None) -> int:
     """
     Create a 64bit integer from uuid
+    :param value: uuid generated from
     :rtype: int
     """
-    return uuid4().int >> 64
+    if value is not None:
+        return uuid5(NAMESPACE_OID, value).int >> 64
+    else:
+        return uuid4().int >> 64
 
 
 def new_version() -> str:
@@ -66,7 +75,10 @@ def errordf(lg: logging.Logger, df: DataFrame):
         lg.error(line)
 
 
-def lazy_property(f):
+R = TypeVar('R')
+
+
+def lazy_property(f: Callable[[Any], R]) -> R:
     internal_property = '__lazy_' + f.__name__
 
     @property

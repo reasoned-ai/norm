@@ -6,15 +6,15 @@ from typing import List, Optional, Dict, Union
 
 from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
-from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.scoping import scoped_session
 
-from norm.config import MAX_MODULE_CACHE_SIZE
-from norm.executable import NormExecutable
+from norm.config import MAX_MODULE_CACHE_SIZE, DataFrame, EMPTY_DATA
+from norm.executable import NormExecutable, Statements
 from norm.grammar.normLexer import normLexer
 from norm.grammar.normParser import normParser
-from norm.models.norm import Module, Lambda, PythonLambda, SQLLambda, Script
+from norm.models import norma
+from norm.models.norm import Module, Lambda, Script
 from norm.models.storage import Storage
 
 logger = logging.getLogger(__name__)
@@ -100,11 +100,12 @@ class NormCompiler(object):
         """
         self.current_scope: Optional[Lambda] = None
         self.context: dict = {}
+        self.data: DataFrame = EMPTY_DATA
         self.python_context: dict = {}
         self.session: Optional[Union[Session, scoped_session]] = None
         self.current_module_name: str = module_name
         self.current_storage_name: str = storage_name
-        self.store: Optional[Storage] = None
+        self.storage: Optional[Storage] = None
         self.current_module: Optional[Module] = None
         self.native_module: Optional[Module] = None
         self.core_module: Optional[Module] = None
@@ -119,122 +120,47 @@ class NormCompiler(object):
         self.session = v
         self.current_scope = None
 
-        if self.store:
-            self.store = self.session.merge(self.store)
+        if self.storage:
+            self.storage = self.session.merge(self.storage)
         else:
-            self.store = self.get_storage(self.current_storage_name)
+            self.storage = norma._get_storage(self.current_storage_name)
+            if self.storage is None:
+                raise CompileError(f'Storage {self.current_storage_name} is not defined')
+
         if self.current_module:
             self.current_module = self.session.merge(self.current_module)
         else:
-            self.current_module = self.get_module(self.current_module_name)
+            self.current_module = norma._get_module(self.current_module_name)
+            if self.current_module is None:
+                self.current_module = norma.create_module(self.current_module_name, '', self.storage)
+                assert(self.current_module is not None)
+
         if self.native_module:
             self.native_module = self.session.merge(self.native_module)
         else:
-            self.native_module = self.get_module('native')
+            self.native_module = norma['native']
+
         if self.core_module:
             self.core_module = self.session.merge(self.core_module)
         else:
-            self.core_module = self.get_module('core')
+            self.core_module = norma['core']
+
         return self
 
-    def get_storage(self, name: str) -> Optional["Storage"]:
-        """
-        Get storage by the name
-        :param name: the name of the storage
-        :return: the storage
-        """
-        if not name:
-            return None
-
-        from norm.models.storage import Storage
-        q = self.session.query(Storage)
-        self.store = q.filter(func.lower(Storage.name) == func.lower(name)).scalar()
-        if self.store is None:
-            raise CompileError(f'Storage {self.current_storage_name} is not pre-defined')
-        return self.store
-
-    def get_module(self, name: str) -> Optional[Module]:
-        """
-        Get module by full name and version
-        :param name: the name of the module
-        """
-        if not name:
-            return None
-
-        module = self.context.get(name)
-        if module:
-            self.session.merge(module)
-            return module
-
-        from norm.models.norm import Module
-        from norm.models.native import NativeModule
-        from norm.models.core import CoreModule
-        q = self.session.query(Module)
-        module = q.filter(func.lower(Module.name) == func.lower(name)).scalar()
-
-        if module is None:
-            assert(self.store is not None)
-            module = Module(name, storage=self.store)
-            self.session.add(module)
-
-        self.context[name] = module
-        return module
-
-    def get_lambda(self, name, module=None, version=None, description='', atomic=False, code_type=CodeType.NORM,
-                   bindings=None):
-        """
-        Get lambda by name, module and version
-        :type name: str
-        :type module: norm.models.norm.Module or None
-        :type version: str or None
-        :type description: str
-        :type atomic: bool
-        :type code_type: CodeType
-        :type bindings: List[Variable]
-        :rtype: Lambda or None
-        """
-        if not name:
-            return None
-
-        key = (name, module, version)
-        lam = self.context.get(key)
-        if lam:
-            self.session.merge(lam)
-            return lam
-
-        q = self.session.query(Lambda)
-        conds = [func.lower(Lambda.name) == func.lower(name)]
-        if module:
-            conds.append(Lambda.module_id == module.id)
+    def create_lambda(self, name: str, atomic: bool, code_type: CodeType) -> Optional["Lambda"]:
+        if code_type == CodeType.NORM:
+            return norma.create_lambda(name=name, module=self.current_module, atomic=atomic)
+        elif code_type == CodeType.PYTHON:
+            return norma.create_python_lambda(name=name, module=self.current_module, atomic=atomic)
         else:
-            conds.append(Lambda.module_id.in_([self.current_module.id,
-                                               self.core_module.id,
-                                               self.native_module.id]))
-        if version:
-            conds.append(Lambda.version == version)
-            lam = q.filter(conds).scalar()
+            raise ParseError(f'{code_type} is not implemented yet')
+
+    def get_lambda(self, name: str, version: str, module_name: str = None) -> Optional["Lambda"]:
+        if module_name is not None:
+            module_names = [module_name]
         else:
-            lam = q.filter(conds).order_by(desc(Lambda.created_on)).first()
-
-        if lam is None:
-            error_on(module is not None and module is not self.current_module,
-                     f'{name}${version} does not exist in {module.full_name} yet')
-            if code_type == CodeType.PYTHON:
-                L = PythonLambda
-            elif code_type == CodeType.SQL:
-                L = SQLLambda
-            else:
-                L = Lambda
-            lam = L(module=self.current_module,
-                    name=name,
-                    description=description,
-                    version=version,
-                    atomic=atomic,
-                    bindings=bindings)
-            self.session.add(lam)
-
-        self.context[key] = lam
-        return lam
+            module_names = [self.current_module.name, 'native', 'core']
+        return norma.fetch_lambda(module_names, name, version)
 
     def compile(self, script):
         """
@@ -266,7 +192,7 @@ class NormCompiler(object):
         for ch in parsed_script.getTypedRuleContexts(normParser.Full_statementContext):
             if ch.statement():
                 statements.append(compile_statement(self, ch.comments(), ch.statement()))
-        return NormExecutable(self, dependents=statements)
+        return Statements(self, dependents=statements)
 
 
 @lru_cache(MAX_MODULE_CACHE_SIZE)

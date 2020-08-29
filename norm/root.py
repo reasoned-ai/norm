@@ -2,7 +2,7 @@ from flask_cors import CORS
 import dash_bootstrap_components as dbc
 import dash
 import flask
-from norm.config import DB_PATH
+from norm.config import DB_PATH, SQLALCHEMY_TRACK_MODIFICATIONS, SQLALCHEMY_ECHO
 from flask_sqlalchemy import SQLAlchemy
 import logging
 logger = logging.getLogger('norm.root')
@@ -17,8 +17,8 @@ external_scripts = ["https://cdn.plot.ly/plotly-latest.js"]
 server = flask.Flask(__name__)
 CORS(server)
 server.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
-server.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
+server.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
+server.config["SQLALCHEMY_ECHO"] = SQLALCHEMY_ECHO
 db = SQLAlchemy(server)
 
 

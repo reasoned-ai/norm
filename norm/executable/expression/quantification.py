@@ -40,8 +40,8 @@ class QuantifiedLambda(object):
         return self.lam.nargs
 
     def fill_time(self, df):
-        if self.lam.VAR_TIMESTAMP not in df.columns:
-            df[self.lam.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
+        if self.lam.VAR_TIME not in df.columns:
+            df[self.lam.VAR_TIME] = np.datetime64(datetime.utcnow())
         return df
 
     def fill_oid(self, df):
@@ -103,7 +103,7 @@ class QuantifiedLambda(object):
                 else:
                     df = df.groupby(self.cols[:begin]).min().reset_index()
                     df.index.name = self.lam.VAR_OID
-                    df[self.lam.VAR_TIMESTAMP] = np.datetime64(datetime.utcnow())
+                    df[self.lam.VAR_TIME] = np.datetime64(datetime.utcnow())
             elif qtype == QType.FORANY:
                 total = len(self.lam.data[self.cols[begin:end]].drop_duplicates())
                 if begin == 0:

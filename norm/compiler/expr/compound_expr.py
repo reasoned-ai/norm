@@ -14,14 +14,12 @@ from norm.compiler.expr.switch_block import compile_switch_block
 from norm.compiler.expr.quantified_expr import compile_quantifier_expr
 from norm.executable import NormExecutable
 from norm.grammar.normParser import normParser
+from typing import Optional
 
 
-def compile_compound_expr(compiler, compound_expr):
-    """
-    :type compiler: NormCompiler
-    :type compound_expr: normParser.CompoundExprContext
-    :rtype: NormExecutable
-    """
+def compile_compound_expr(compiler: NormCompiler,
+                          compound_expr: normParser.CompoundExprContext
+                          ) -> Optional[NormExecutable]:
     if compound_expr.simpleExpr():
         return compile_simple_expr(compiler, compound_expr.simpleExpr())
     elif compound_expr.codeExpr():
@@ -38,7 +36,7 @@ def compile_compound_expr(compiler, compound_expr):
     elif compound_expr.DRAW():
         variables = [Var(v.getText()) for v in compound_expr.getTypedRuleContexts(normParser.VariableContext)]
         return compile_random_generation_expr(compiler, compound_expr.compoundExpr(), variables)
-    elif compound_expr.NOT():
+    elif compound_expr.singleLogicOperator():
         return compile_negation_expr(compiler, compound_expr.compoundExpr())
     elif compound_expr.complexLogicalOperator():
         left_expr = compound_expr.compoundExpr(0)

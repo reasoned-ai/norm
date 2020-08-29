@@ -1,17 +1,18 @@
 import re
-from typing import Tuple
+from typing import Tuple, Optional
 
-from norm.compiler import error_on
+from norm.compiler import error_on, NormCompiler, CodeType
 from norm.grammar.normParser import normParser
+from norm.models.norm import Lambda
 
 
-def parse_comments(name, comments):
+def parse_comments(name: str, comments: str) -> str:
     """
     Parse comments according to a handler
-    :type name: str
-    :type comments: str
-    :rtype: str
     """
+    if comments is None:
+        return ''
+
     m = re.match(rf'@{name}{{[^{{}}]*}}', comments)
     if m:
         return m.group(1)
@@ -19,15 +20,15 @@ def parse_comments(name, comments):
         return ''
 
 
-def parse_type_name_version_module(qualified_name):
+def parse_type_name_version_module(
+            qualified_name: normParser.QualifiedNameContext
+        ) -> Tuple[Optional[str], str, Optional[str]]:
     """
     Parse type name, version and module from a qualified name
     :param qualified_name: the qualified name
-    :type qualified_name: normParser.QualifiedNameContext
     :return: module full name, type name and type version
-    :rtype: Tuple[str, str, str]
     """
-    type_version = ''
+    type_version: Optional[str] = None
     if qualified_name.UUID():
         type_version = qualified_name.UUID().getText()[1:]
         qualified_name = qualified_name.qualifiedName()
@@ -44,18 +45,15 @@ def parse_type_name_version_module(qualified_name):
                  f"Module has no version, but a version sign detected for {module_name}.")
         return module_name, type_name, type_version
     else:
-        return '', qualified_name.getText().strip('"\''), type_version
+        return None, qualified_name.getText().strip('"\''), type_version
 
 
-def parse_type(type_, context):
+def parse_type(type_: normParser.Type_Context, context: NormCompiler) -> Tuple[Lambda, int]:
     """
     Parse the type
     :param type_: the type to parse
-    :type type_: normParser.Type_Context
     :param context: the compiler
-    :type context: norm.compiler.NormCompiler
     :return:  the type and the level
-    :rtype: Tuple[norm.models.norm.Lambda, int]
     """
     type_level = 0
     while type_.type_():
@@ -65,30 +63,26 @@ def parse_type(type_, context):
     return type_variable, type_level
 
 
-def parse_lambda(qualified_name, context):
+def parse_lambda(qualified_name: normParser.QualifiedNameContext, context: NormCompiler) -> Lambda:
     """
     Retrieve type from the database
     :param qualified_name: the qualified name for the type
-    :type qualified_name: normParser.QualifiedNameContext
     :param context: the compiler
-    :type context: norm.compiler.NormCompiler
     :return: the type
-    :rtype: norm.models.norm.Lambda
     """
     module_name, type_name, type_version = parse_type_name_version_module(qualified_name)
-    module = context.get_module(module_name)
-    return context.get_lambda(type_name, module, type_version)
+    lam: Lambda = context.get_lambda(type_name, type_version, module_name)
+    if lam is None:
+        lam = context.create_lambda(name=type_name, atomic=False, code_type=CodeType.NORM)
+    return lam
 
 
-def parse_constant(constant, context):
+def parse_constant(constant: normParser.ConstantContext, context: NormCompiler) -> Tuple[object, Lambda, int]:
     """
     Build constant
     :param constant: the constant definition
-    :type constant: normParser.ConstantContext
     :param context: the compiler
-    :type context: norm.compiler.NormCompiler
     :return: the constant, the norm type and the type level
-    :rtype: Tuple[object, norm.models.norm.Lambda, int]
     """
     raise NotImplementedError
 

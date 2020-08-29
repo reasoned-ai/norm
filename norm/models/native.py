@@ -1,5 +1,5 @@
 """A collection of ORM sqlalchemy models for NativeLambda"""
-from norm.models import norma, Registrable, Register
+from norm.models import norma, Register
 from norm.models.norm import Lambda, Module
 from norm.models.variable import Input, Output
 
@@ -25,7 +25,8 @@ class NativeModule(Module):
         super().__init__('native', description='Norm native namespace')
 
 
-class NativeLambda(Lambda, Registrable):
+class NativeLambda(Lambda):
+
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_native'
     }
@@ -40,10 +41,7 @@ class NativeLambda(Lambda, Registrable):
         self.atomic = True
         self.dtype = dtype
 
-    def exists(self):
-        return [NativeLambda.name == self.name,
-                NativeLambda.version == self.version]
-
+    @property
     def empty_data(self):
         return None
 

@@ -1,3 +1,5 @@
+from typing import List
+
 import dash_ace
 import dash_html_components as html
 import dash_bootstrap_components as dbc
@@ -8,7 +10,9 @@ from flask import request
 from norm.root import server, app
 from norm.models import norma
 from norm import engine
+from norm.config import MAX_ROWS
 from norm.workbench.autocompleter import complete
+from norm.workbench.table import id_table_panel, init_columns
 
 import flask
 import datetime
@@ -42,15 +46,14 @@ def get_panel(pathname: str) -> html.Div:
 
     module_name = pathname[7:].replace("/", ".").title()
 
-    module = norma.get_module(module_name)
+    module = norma._get_module(module_name)
     if module is None:
         module = norma.create_module(module_name, '')
         title = f'[New] {module_name}'
     else:
         title = f'{module_name}'
-
-    if len(module.scripts) > 0:
-        script = module.scripts[-1]
+    if module.scripts and len(module.scripts) > 0:
+        script = module.scripts[-1].content
     else:
         script = ''
 
@@ -81,7 +84,7 @@ def get_panel(pathname: str) -> html.Div:
                     syntaxFolds=syntaxFolds,
                     tabSize=2,
                     fontSize=20,
-                    width='95%',
+                    width='100%',
                     enableBasicAutocompletion=True,
                     enableLiveAutocompletion=True,
                     enableSnippets=True,
@@ -98,14 +101,35 @@ def get_panel(pathname: str) -> html.Div:
 
 
 @app.callback(
-    Output(id_editor_title_status, 'children'),
+    [Output(id_editor_title_status, 'children'),
+     Output(id_table_panel, "columns"),
+     Output(id_table_panel, "data"),
+     Output(id_table_panel, "tooltip_data")
+     ],
     [Input(id_editor, 'value')],
-    [State(id_editor_title_text, 'children')]
+    [State(id_editor_title_text, 'children'),
+     State(id_table_panel, 'data')]
 )
-def execute(code: str, module_name: str):
-    logger.debug(f'{module_name}: {code}')
+def execute(code: str, module_name: str, odt: List):
     results = engine.execute(code, module_name.lower())
-    return f'Checkpoint: {datetime.datetime.now().strftime("%H:%M:%S  %Y/%m/%d")}'
+    if results is not None:
+        dt = results.head(MAX_ROWS)
+        dt_cols = [{'name': 'row', 'id': 'row'}] + \
+                  [{'name': col, 'id': col, 'hideable': True, 'renamable': True, 'selectable': True}
+                   for col in dt.columns]
+        dt['row'] = list(range(len(dt)))
+        dt = dt.to_dict(orient='records')
+        tooltip_data = [
+                           {
+                               column: {'value': str(value), 'type': 'markdown'}
+                               for column, value in row.items()
+                           } for row in dt
+                       ]
+    else:
+        dt = []
+        dt_cols = init_columns
+        tooltip_data = []
+    return f'Checkpoint: {datetime.datetime.now().strftime("%H:%M:%S  %Y/%m/%d")}', dt_cols, dt, tooltip_data
 
 
 @server.route('/autocompleter', methods=['GET'])
@@ -113,5 +137,3 @@ def autocompleter():
     prefix = request.args.get('prefix')
     results = complete(prefix)
     return flask.jsonify(results)
-
-

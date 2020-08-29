@@ -1,67 +1,42 @@
-from norm.grammar.literals import ConstantType
+from norm.config import USE_DASK
+from norm.executable import NormExecutable
 import datetime
-from typing import Union, List
+from typing import Union, List, TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from norm.compiler import NormCompiler
+    from norm.models.norm import Lambda, Variable
 
 
-class Constant(object):
+class Constant(NormExecutable):
+    """
+    Constant
+    """
+    def __init__(self, context: "NormCompiler", type_: "Lambda", value: object):
+        super().__init__(context, dependents=[], type_=type_)
+        self.var: Variable = type_.random_var()
+        self.var.data = {type_.VAR_OID: [value]}
 
-    def __init__(self, type_, value=None):
-        """
-        The constant
-        :param type_: the name of the constant type, e.g.,
-                      [none, bool, integer, float, string, unicode, pattern, uuid, url, datetime]
-        :type type_: ConstantType
-        :param value: the value of the constant
-        :type value: Union[str, int, float, bool, datetime.datetime, None]
-        """
-        self.type_: ConstantType = type_
-        self.value: Union[str, int, float, bool, datetime.datetime] = value
+    def execute(self) -> Optional["Variable"]:
+        return self.var
 
-    def __str__(self):
-        if self.type_ in [ConstantType.STR, ConstantType.PTN, ConstantType.UID, ConstantType.URL]:
-            return '"{}"'.format(self.value)
-        elif self.type_ in [ConstantType.FLT, ConstantType.INT, ConstantType.BOOL]:
-            return '{}'.format(self.value)
-        elif self.type_ == ConstantType.DTM:
-            return self.value.strftime('"%Y-%m-%d %H:%M:%S"')
-        else:
-            return '{}'.format(self.value)
 
-    def __repr__(self):
-        return str(self)
+class MeasurementConstant(Constant):
+    """
+    Measurement based constant
+    """
+    def __init__(self, context: "NormCompiler", type_: "Lambda", value: object, unit: str):
+        super(MeasurementConstant, self).__init__(context, type_, value)
+        self.unit = unit
 
-    def execute(self, context):
-        return self.value
+
+class MapToConstant(Constant):
+    pass
 
 
 class TupleConstant(Constant):
-
-    def __init__(self, types, values):
-        """
-        A tuple of constants
-        :param types: the list of the types
-        :type types: Tuple
-        :param values: the list of the values
-        :type values: Tuple
-        """
-        assert(isinstance(values, tuple))
-        assert(isinstance(types, tuple))
-        super().__init__(types, values)
-
-    def __str__(self):
-        return '{}'.format(self.value)
+    pass
 
 
 class ListConstant(Constant):
-
-    def __init__(self, type_, values):
-        """
-        A list of constant of the same constant type
-        :param type_: the name of the constant type
-        :type type_: ConstantType
-        :param values: the value of the constant
-        :type values: List[Union[str, int, float, bool, datetime.datetime]]
-        """
-        assert(isinstance(values, list))
-        super().__init__(type_, values)
-
+    pass

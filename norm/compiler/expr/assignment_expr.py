@@ -2,7 +2,6 @@ from typing import List
 
 from norm.compiler import NormCompiler, error_on
 from norm.compiler.expr import Var
-from norm.compiler.expr.compound_expr import compile_compound_expr
 from norm.compiler.expr.simple_expr import compile_simple_expr
 from norm.executable import NormExecutable, Project, Pivot, Join
 from norm.grammar.normParser import normParser
@@ -16,6 +15,7 @@ def compile_assignment_expr(compiler, expr, variables):
     :type variables: Var or List[Var]
     :rtype: NormExecutable
     """
+    from norm.compiler.expr.compound_expr import compile_compound_expr
     exe: NormExecutable or None = None
     if isinstance(expr, normParser.CompoundExprContext):
         exe = compile_compound_expr(compiler, expr)

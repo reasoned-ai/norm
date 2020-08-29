@@ -51,7 +51,7 @@ def upgrade():
     sa.Column('module_id', sa.Integer(), nullable=False),
     sa.Column('definition', sa.Text(), nullable=True),
     sa.Column('dtype', sa.String(length=8), nullable=True),
-    sa.Column('adapted', sa.Boolean(), nullable=True),
+    sa.Column('trainable', sa.Boolean(), nullable=True),
     sa.Column('atomic', sa.Boolean(), nullable=True),
     sa.Column('level', sa.Integer(), nullable=True),
     sa.Column('python_version', sa.String(length=8), nullable=True),

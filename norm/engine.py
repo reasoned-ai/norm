@@ -7,13 +7,7 @@ from norm.compiler import build_compiler, ParseError, CompileError
 from norm.executable import EngineError
 from norm.models import ModelError
 from norm.utils import random_name
-from norm.config import USE_DASK
-
-if USE_DASK:
-    from dask.dataframe import DataFrame
-else:
-    from pandas import DataFrame
-
+from norm.config import USE_DASK, DataFrame
 
 logger = logging.getLogger('norm.engine')
 
@@ -26,7 +20,8 @@ def execute(script: str, module_name: str = None, python_context: Dict = None) -
     :param python_context: the python context
     :return: a DataFrame
     """
-    if script is None or not isinstance(script, str):
+    logger.debug(script)
+    if script is None or not isinstance(script, str) or script.strip('') == '':
         return None
 
     session = db.session

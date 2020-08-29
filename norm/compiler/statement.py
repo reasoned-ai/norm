@@ -1,4 +1,4 @@
-from typing import List
+from typing import Callable, Optional, Any
 
 from antlr4 import ParserRuleContext
 
@@ -9,24 +9,19 @@ from norm.compiler.type_declaration import compile_type_declaration
 from norm.compiler.type_definition import compile_type_definition, _parse_code_block_type
 from norm.compiler.type_export import compile_type_export
 from norm.compiler.type_import import compile_type_import
-from norm.executable import NormExecutable, DefineType, CodeExecution
+from norm.executable import NormExecutable, TypeDefinition, CodeExecution
 from norm.grammar.normParser import normParser
 from norm.utils import random_name
 
 
-def _unroll_array(compiler, ctx_s, ctx_t, t, comments, atomic):
+def _unroll_array(compiler: NormCompiler, ctx_s: ParserRuleContext, ctx_t: type,
+                  t: Callable[[NormCompiler, bool, Any, str], Optional[NormExecutable]],
+                  comments: str, atomic: bool) -> Optional[NormExecutable]:
     """
     Unroll the array of contexts
-    :type compiler: NormCompiler
-    :type ctx_s: ParserRuleContext
-    :type ctx_t: type
-    :type t: Callable[[NormCompiler, bool, ParserRuleContext, str], NormExecutable]
-    :type comments: str
-    :type atomic: bool
-    :rtype: NormExecutable
     """
-    if not ctx_s:
-        return []
+    if ctx_s is None:
+        return None
 
     exes = []
     for a in ctx_s.getTypedRuleContexts(ctx_t):
@@ -36,12 +31,10 @@ def _unroll_array(compiler, ctx_s, ctx_t, t, comments, atomic):
     return NormExecutable(compiler, dependents=exes)
 
 
-def compile_statement(compiler, comments, statement):
+def compile_statement(compiler: NormCompiler, comments: str,
+                      statement: normParser.StatementContext) -> Optional[NormExecutable]:
     """
-    :type compiler: norm.compiler.NormCompiler
-    :type comments: str
-    :type statement: normParser.StatementContext
-    :rtype: NormExecutable
+    Compile a single statement
     """
     atomic = statement.ATOMIC() is not None
     if statement.typeImports():
@@ -70,16 +63,16 @@ def compile_statement(compiler, comments, statement):
     else:
         expr: normParser.CodeExprContext = statement.compoundExpr().codeExpr()
         code_type: CodeType = _parse_code_block_type(expr)
-        random_type_variable = compiler.get_lambda(TEMP_VAR_STUB + random_name(),
-                                                   module=compiler.current_module,
-                                                   code_type=code_type)
+        random_type_variable = compiler.create_lambda(name=TEMP_VAR_STUB + random_name(),
+                                                      atomic=atomic,
+                                                      code_type=code_type)
         if code_type != CodeType.NORM:
             return CodeExecution(compiler,
                                  type_=random_type_variable,
                                  code=expr.children[1].getText())
         else:
-            return DefineType(compiler,
-                              dependents=[compile_compound_expr(compiler, statement.compoundExpr())],
-                              type_=random_type_variable)
+            return TypeDefinition(compiler,
+                                  dependents=[compile_compound_expr(compiler, statement.compoundExpr())],
+                                  type_=random_type_variable)
 
 

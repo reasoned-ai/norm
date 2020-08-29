@@ -13,13 +13,13 @@ init_fig.update_layout(margin={'b': 0, 'l': 0, 'r': 0, 't': 0, 'pad': 0})
 panel = html.Div([
     html.Div([], id=id_display_state, hidden=True),
     dbc.Card([
-        dbc.CardHeader('Graph', id=id_display_title),
+        dbc.CardHeader(html.H5('Graph'), id=id_display_title),
         dbc.CardBody(
             dcc.Graph(
                 figure=init_fig,
                 config=dict(responsive=True),
                 style={
-                    'height': '70vh',
+                    'height': '52vh',
                     'width': '100%'
                 },
                 id=id_display_panel
