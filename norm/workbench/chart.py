@@ -24,5 +24,7 @@ panel = html.Div([
                 },
                 id=id_display_panel
             )
-        )], className='m-0')
+        )],
+        className='m-0'
+    )
 ])

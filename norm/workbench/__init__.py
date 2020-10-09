@@ -5,7 +5,7 @@ import pandas as pd
 from typing import List
 from dash.dependencies import Output, Input, State
 from dash.exceptions import PreventUpdate
-from norm.workbench import (display, console, editor, table)
+from norm.workbench import (chart, console, editor, table)
 from norm.root import app
 import numpy as np
 
@@ -20,7 +20,7 @@ id_ctrl_table = 'ctrl-table'
 id_ctrl_buttons = 'ctrl-buttons'
 
 id_panel_editor_collapse = 'panel-editor-collapse'
-id_panel_display_collapse = 'panel-display-collapse'
+id_panel_chart_collapse = 'panel-display-collapse'
 id_panel_table_collapse = 'panel-table-collapse'
 id_panel_editor_col = 'panel-editor-col'
 id_panel_right_col = 'panel-right-col'
@@ -29,83 +29,83 @@ id_filter_keyword = 'keyword'
 id_filter_keyword_type = 'keyword-type'
 id_filter_keyword_submit = 'keyword-submit'
 
+id_tab_table = 'tab-table'
+id_tab_list = 'tab-list'
+id_tab_chart = 'tab-chart'
+id_tab_graph = 'tab-graph'
+id_tab_geo = 'tab-geo'
+id_tab_views = 'tab-views'
 
 init_editor_active = True
-init_display_active = True
+init_chart_active = True
 init_table_active = True
 
 controls = dbc.Row([
-        dbc.Col(
-            dbc.ButtonGroup([
-                dbc.Button("Editor",
-                           color="info",
-                           outline=True,
-                           active=init_editor_active,
-                           id=id_ctrl_editor),
-                dbc.Button("Display",
-                           color="info",
-                           active=init_display_active,
-                           outline=True,
-                           id=id_ctrl_display),
-                dbc.Button("Table",
-                           color="info",
-                           outline=True,
-                           active=init_table_active,
-                           id=id_ctrl_table),
-            ], id=id_ctrl_buttons),
-            width=dict(size=2),
-        ),
-        dbc.Col(
-            dbc.InputGroup([
-                dbc.InputGroupAddon(dbc.Select(
-                    id=id_filter_keyword_type,
-                    value='search',
-                    options=[{'label': 'Search', 'value': 'search'},
-                             {'label': 'Predict', 'value': 'predict'}]
-                ), addon_type='prepend'),
-                dbc.Input(id=id_filter_keyword, type='search', placeholder='Type in keywords...',
-                          debounce=True),
-                dbc.InputGroupAddon(
-                    dbc.Button("Go", color='info', id=id_filter_keyword_submit), addon_type="append",
-                ),
-            ]),
-            width=dict(size=5)
-        ),
-        dbc.Col(
-            html.Div(''),
-            width=dict(size=1)
-        )
-    ], justify='between')
-
-
-def get_layout(pathname: str) -> html.Div:
-    # Build layout
-    layout = html.Div([
-        html.Br(),
-        dbc.Row([
-            dbc.Col([dbc.Collapse(editor.get_panel(pathname),
-                                  id=id_panel_editor_collapse,
-                                  is_open=init_editor_active)],
-                    id=id_panel_editor_col,
-                    width=dict(size=0)),
-            dbc.Col([
-                controls,
-                html.Hr(),
-                dbc.Collapse(table.panel,
-                             id=id_panel_table_collapse,
-                             is_open=init_table_active),
-                html.Br(),
-                dbc.Collapse(display.panel,
-                             id=id_panel_display_collapse,
-                             is_open=init_display_active),
-            ], id=id_panel_right_col, width=dict(size=12))
+    dbc.Col(
+        dbc.ButtonGroup([
+            dbc.Button("Editor",
+                       color="info",
+                       outline=True,
+                       active=init_editor_active,
+                       id=id_ctrl_editor),
+            dbc.Button("Display",
+                       color="info",
+                       active=init_chart_active,
+                       outline=True,
+                       id=id_ctrl_display),
+            dbc.Button("Table",
+                       color="info",
+                       outline=True,
+                       active=init_table_active,
+                       id=id_ctrl_table),
+        ], id=id_ctrl_buttons),
+        width=dict(size=2),
+    ),
+    dbc.Col(
+        dbc.InputGroup([
+            dbc.InputGroupAddon(dbc.Select(
+                id=id_filter_keyword_type,
+                value='search',
+                options=[{'label': 'Search', 'value': 'search'},
+                         {'label': 'Predict', 'value': 'predict'}]
+            ), addon_type='prepend'),
+            dbc.Input(id=id_filter_keyword, type='search', placeholder='Type in keywords...',
+                      debounce=True),
+            dbc.InputGroupAddon(
+                dbc.Button("Go", color='info', id=id_filter_keyword_submit), addon_type="append",
+            ),
         ]),
-        html.Hr(),
-        dbc.Row([console.panel])
-    ], className='mr-2')
-    return layout
+        width=dict(size=5)
+    ),
+    dbc.Col(
+        html.Div(''),
+        width=dict(size=1)
+    )
+], justify='between')
 
+layout = html.Div([
+    html.Br(),
+    dbc.Row([
+        dbc.Col(editor.panel,
+                id=id_panel_editor_col,
+                width=dict(size=3)),
+        dbc.Col(dbc.Tabs([
+            dbc.Tab(table.panel, label='Table', tab_id=id_tab_table),
+            dbc.Tab('', label='List', tab_id=id_tab_list),
+            dbc.Tab(chart.panel, label='Chart', tab_id=id_tab_chart),
+            dbc.Tab('', label='Graph', tab_id=id_tab_graph),
+            dbc.Tab('', label='Geo', tab_id=id_tab_geo),
+        ],
+            active_tab=id_tab_table,
+            style={'height': '30hv', 'width': '100%'},
+            id=id_tab_views
+        ), id=id_panel_right_col, width=dict(size=9))
+    ]),
+    html.Hr(),
+    dbc.Row([console.panel])
+], className='mr-2')
 
+"""
 @app.callback([Output(id_panel_editor_collapse, 'is_open'),
                Output(id_ctrl_editor, 'active'),
                Output(id_panel_editor_col, 'width'),
@@ -113,6 +113,7 @@ def get_layout(pathname: str) -> html.Div:
               [Input(id_ctrl_editor, 'n_clicks')],
               [State(id_panel_editor_collapse, 'is_open')])
 def toggle_editor(n, is_open):
+    print('test')
     if n:
         is_open = not is_open
     else:
@@ -123,16 +124,16 @@ def toggle_editor(n, is_open):
     return is_open, is_open, editor_panel_width, right_panel_width
 
 
-@app.callback([Output(id_panel_display_collapse, 'is_open'),
+@app.callback([Output(id_panel_chart_collapse, 'is_open'),
                Output(id_ctrl_display, 'active')],
               [Input(id_ctrl_display, 'n_clicks')],
-              [State(id_panel_display_collapse, 'is_open')])
+              [State(id_panel_chart_collapse, 'is_open')])
 def toggle_display(n, is_open):
     if n:
         is_open = not is_open
         return is_open, is_open
     else:
-        return init_display_active, init_display_active
+        return init_chart_active, init_chart_active
 
 
 @app.callback([Output(id_panel_table_collapse, 'is_open'),
@@ -147,7 +148,7 @@ def toggle_table(n, is_open):
         return init_table_active, init_table_active
 
 
-"""
+
 @app.callback(
     [
         Output(match_id(id_filter_keyword_submit), 'n_clicks'),
@@ -412,4 +413,3 @@ def generate_graph(ent_text, ent_clr, ent_y, ent_size, ent_prob,
     return fig, dt, p, int(p[0] / 10) if len(p) > 0 else 0, style_data_conditional, f'Data: {len(dt)} ({tn})', \
            graph_state, labels_fig, progress_fig, precision_fig, recall_fig, conflict_fig
 """
-

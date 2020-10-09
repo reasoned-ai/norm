@@ -208,6 +208,23 @@ class Store(object):
         return module
 
     @staticmethod
+    def search_module(prefix: str) -> List["Module"]:
+        """
+        Search modules by the prefix
+        :param prefix: the prefix of the module name
+        :return: a list of modules
+        """
+        if not prefix:
+            return []
+
+        from norm.models.norm import Module
+        import norm.models.native
+        import norm.models.core
+        q = db.session.query(with_polymorphic(Module, '*'))
+        q = q.filter(Module.name.ilike(f'{prefix}%')).all()
+        return q
+
+    @staticmethod
     def _get_module(name: str) -> Optional["Module"]:
         """
         Get module by the name
@@ -285,7 +302,7 @@ class Store(object):
                              bindings: List["Variable"] = None) -> Optional["PythonLambda"]:
         from norm.models.norm import PythonLambda
         lam = PythonLambda(name=name, description=description, module=module, version=version,
-                           python_version=python_version, atomic=atomic, bindings=bindings)
+                           python_version=python_version, bindings=bindings)
         db.session.add(lam)
         return lam
 
