@@ -4,13 +4,15 @@ from typing import List, Dict, Optional
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 import dash_table
-from dash.dependencies import Input, State, Output
+from dash.dependencies import Input, State, Output, MATCH
 from dash.exceptions import PreventUpdate
 
 from norm.root import app
 import logging
 
 logger = logging.getLogger('workbench.table')
+
+MAX_HIDEABLE_COLUMNS = 100
 
 id_table_panel = 'table-panel'
 id_table_tools = 'table-tools'
@@ -36,7 +38,7 @@ init_dropdown = {}
 
 
 class TableState(IntEnum):
-    ALL = 0
+    ALL = MAX_HIDEABLE_COLUMNS
 
 
 tbl = dash_table.DataTable(
@@ -100,7 +102,7 @@ tools = dbc.Row([
 ], justify='between')
 
 panel = html.Div([
-    html.Div([], id=id_table_state, hidden=True),
+    html.Div([0] * TableState.ALL, id=id_table_state, hidden=True),
     dbc.Card([
         dbc.CardHeader(tools, id=id_table_tools),
         dbc.CardBody(tbl)],
@@ -113,15 +115,38 @@ panel = html.Div([
 
 
 @app.callback(
-    [Output(id_table_tools_show, 'children')],
+    Output(id_table_tools_show, 'children'),
     Input(id_table_panel, 'hidden_columns'),
-    [State(id_table_state, 'children')]
+    [State(id_table_panel, 'columns')]
 )
-def update_columns(cols: Optional[List[Dict]], states: List[int]):
-    if cols is None:
+def hide_columns(hcols: Optional[List[str]], cols: Optional[List[Dict]]):
+    if hcols is None:
         raise PreventUpdate
 
     items = [
-        dbc.DropdownMenuItem(col) for col in cols
+        dbc.DropdownMenuItem(col['name'],
+                             id=f"show-column-{i}",
+                             style={'display': 'flex' if col['name'] in hcols else 'none'})
+        for i, col in enumerate(cols)
     ]
-    return items,
+    items.extend([dbc.DropdownMenuItem('', id=f"show-column-{i}", style={'display': 'none'})
+                  for i in range(len(cols), MAX_HIDEABLE_COLUMNS)])
+    return items
+
+
+@app.callback(
+    Output(id_table_panel, 'hidden_columns'),
+    [Input(f'show-column-{i}', 'n_clicks') for i in range(MAX_HIDEABLE_COLUMNS)],
+    [State(id_table_state, 'children'),
+     State(id_table_panel, 'columns'),
+     State(id_table_panel, 'hidden_columns')],
+)
+def show_columns(*args):
+    hcols = args[-1]
+    cols = args[-2]
+    states = args[-3]
+    for i in range(len(args) - 3):
+        if args[i] is not None and args[i] > states[i]:
+            col = cols[i]['name']
+            return [c for c in hcols if c != col]
+    raise PreventUpdate
