@@ -23,6 +23,10 @@ id_table_title = 'table-title'
 id_table_tools_items = 'table-tools-items'
 id_table_tools_show = 'table-tools-show'
 id_table_tools_save = 'table-tools-save'
+id_table_tools_reset = 'table-tools-reset'
+id_table_tools_undo = 'table-tools-undo'
+id_table_tools_redo = 'table-tools-redo'
+id_table_tools_upload = 'table-tools-upload'
 
 init_columns = [
     {'name': 'row', 'id': 'row', 'hideable': True, 'selectable': True},
@@ -81,8 +85,8 @@ tbl = dash_table.DataTable(
 )
 
 tools = dbc.Row([
-    dbc.Col(
-        dbc.InputGroup([
+    dbc.Col([
+        dbc.ButtonGroup([
             dbc.DropdownMenu(
                 label='',
                 color="info",
@@ -90,9 +94,34 @@ tools = dbc.Row([
                 id=id_table_tools_show),
             dbc.Button('',
                        color='info',
+                       className='fa fa-home',
+                       id=id_table_tools_reset),
+            dbc.Button('',
+                       color='info',
+                       className='fa fa-undo',
+                       id=id_table_tools_undo),
+            dbc.Button('',
+                       color='info',
+                       className='fa fa-repeat',
+                       id=id_table_tools_redo),
+            dbc.Button('',
+                       color='info',
+                       className='fa fa-upload',
+                       id=id_table_tools_upload),
+            dbc.Button('',
+                       color='info',
                        className='fa fa-save',
                        id=id_table_tools_save)
-        ], id=id_table_tools_items),
+        ],
+            id=id_table_tools_items
+        ),
+        dbc.Tooltip("Show hidden columns", target=id_table_tools_show, placement='top'),
+        dbc.Tooltip("Reset table", target=id_table_tools_reset, placement='top'),
+        dbc.Tooltip("Undo last modification", target=id_table_tools_undo, placement='top'),
+        dbc.Tooltip("Redo last undo modification", target=id_table_tools_redo, placement='top'),
+        dbc.Tooltip("Upload new records", target=id_table_tools_upload, placement='top'),
+        dbc.Tooltip("Save current modification", target=id_table_tools_save, placement='top'),
+    ],
         width=dict(size=12),
     ),
     dbc.Col(

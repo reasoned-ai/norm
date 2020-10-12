@@ -13,14 +13,14 @@ from norm.models import norma
 from norm import engine
 from norm.config import MAX_ROWS
 from norm.workbench.autocompleter import complete
-from norm.workbench.table import id_table_panel, init_columns
+from norm.workbench.view.table import id_table_panel, init_columns
 
 from enum import IntEnum
 import flask
 import datetime
 import logging
 
-logger = logging.getLogger('workbench.editor')
+logger = logging.getLogger('workbench.script')
 
 syntaxKeywords = {
     "variable.language": "this|that|super|self|sub|",
@@ -34,13 +34,18 @@ syntaxKeywords = {
 
 syntaxFolds = '\\:='
 
-id_editor = 'editor'
-id_editor_panel = 'editor-panel'
-id_editor_state = 'editor-state'
-id_editor_title_search = 'editor-title-text'
-id_editor_title_bar = 'editor-title-bar'
-id_editor_title_status = 'editor-title-status'
-id_editor_module = 'editor-module'
+id_script = 'script'
+id_script_panel = 'script-panel'
+id_script_state = 'script-state'
+id_script_tools = 'script-tools'
+id_script_status = 'script-status'
+id_script_module = 'script-module'
+id_module_search = 'module-search'
+id_module_load = 'module-load'
+
+id_script_tools_items = 'script-tools-items'
+id_script_tools_bigger = 'script-tools-bigger'
+id_script_tools_smaller = 'script-tools-smaller'
 
 
 class EditorState(IntEnum):
@@ -48,30 +53,40 @@ class EditorState(IntEnum):
     TOTAL = 1
 
 
+tools = dbc.Row(
+    [
+        dbc.Col([
+            dbc.ButtonGroup([
+                dbc.Button('',
+                           color='info',
+                           className='fa fa-minus',
+                           id=id_script_tools_smaller),
+                dbc.Button('',
+                           color="info",
+                           className="fa fa-plus",
+                           id=id_script_tools_bigger),
+            ],
+                id=id_script_tools_items
+            ),
+            dbc.Tooltip("Increase font size", target=id_script_tools_bigger, placement='top'),
+            dbc.Tooltip("Decrease font size", target=id_script_tools_smaller, placement='top'),
+        ],
+            width=dict(size=12),
+        ),
+        dbc.Col(
+            html.Div(''),
+            width=dict(size=1)
+        )
+    ]
+)
+
 panel = html.Div([
-    html.Div([0] * EditorState.TOTAL, id=id_editor_state, hidden=True),
+    html.Div([0] * EditorState.TOTAL, id=id_script_state, hidden=True),
     dbc.Card([
-        dbc.CardHeader([
-            dbc.Row(
-                [
-                    dbc.Col(
-                        dcc.Dropdown(id=id_editor_title_search,
-                                     searchable=True,
-                                     search_value='',
-                                     value='',
-                                     placeholder='Type module name'),
-                        width={'size': 9}
-                    ),
-                    dbc.Col(
-                        dbc.Button('Load', id=id_editor_module, color='info'),
-                        width={'size': 2}
-                    )
-                ]
-            )
-        ], id=id_editor_title_bar),
+        dbc.CardHeader(tools, id=id_script_tools),
         dbc.CardBody(
             dash_ace.DashAceEditor(
-                id=id_editor,
+                id=id_script,
                 value='',
                 theme='tomorrow',
                 mode='norm',
@@ -85,25 +100,25 @@ panel = html.Div([
                 autocompleter='/autocompleter?prefix=',
                 prefixLine=True,
                 placeholder='Norm code ...',
-                height='86vh',
+                height='84vh',
                 width='23vw'
             ),
             className='m-0'
         ),
         dbc.CardFooter(
-            html.H6('.', id=id_editor_title_status)
+            html.H6('.', id=id_script_status)
         )
     ], className='ml-0')
-], id=id_editor_panel)
+], id=id_script_panel)
 
 
 @app.callback(
-    [Output(id_editor, 'value'),
-     Output(id_editor_title_search, 'value')],
-    Input(id_editor_module, 'n_clicks'),
-    [State(id_editor_title_search, 'value'),
-     State(id_editor_module, 'children'),
-     State(id_editor_state, 'children')]
+    [Output(id_script, 'value'),
+     Output(id_module_search, 'value')],
+    Input(id_module_load, 'n_clicks'),
+    [State(id_module_search, 'value'),
+     State(id_module_load, 'children'),
+     State(id_script_state, 'children')]
 )
 def load_module(bt: int, value: str, action: str, states: List[int]):
     if bt and bt > states[EditorState.MODULE_LOAD_NEW]:
@@ -123,9 +138,9 @@ def load_module(bt: int, value: str, action: str, states: List[int]):
 
 
 @app.callback(
-    [Output(id_editor_title_search, "options"),
-     Output(id_editor_module, 'children')],
-    [Input(id_editor_title_search, "search_value")],
+    [Output(id_module_search, "options"),
+     Output(id_module_load, 'children')],
+    [Input(id_module_search, "search_value")],
 )
 def update_options(search_value: str):
     if not search_value:
@@ -139,13 +154,13 @@ def update_options(search_value: str):
 
 
 @app.callback(
-    [Output(id_editor_title_status, 'children'),
+    [Output(id_script_status, 'children'),
      Output(id_table_panel, "columns"),
      Output(id_table_panel, "data"),
      Output(id_table_panel, "tooltip_data")
      ],
-    [Input(id_editor, 'value')],
-    [State(id_editor_title_search, 'value'),
+    [Input(id_script, 'value')],
+    [State(id_module_search, 'value'),
      State(id_table_panel, 'data')]
 )
 def execute(code: str, module_name: str, odt: List):
