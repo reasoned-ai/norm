@@ -4,6 +4,8 @@ import dash
 import flask
 from norm.config import DB_PATH, SQLALCHEMY_TRACK_MODIFICATIONS, SQLALCHEMY_ECHO
 from flask_sqlalchemy import SQLAlchemy
+import dash_cytoscape as cyto
+
 import logging
 logger = logging.getLogger('norm.root')
 
@@ -23,6 +25,7 @@ db = SQLAlchemy(server)
 
 
 app_path = '/norma/'
+cyto.load_extra_layouts()
 app = dash.Dash(__name__,
                 server=server,
                 routes_pathname_prefix=app_path,

@@ -7,13 +7,15 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, State, Output
 from dash.exceptions import PreventUpdate
 from flask import request
-
+import pandas as pd
 from norm.root import server, app
 from norm.models import norma
 from norm import engine
 from norm.config import MAX_ROWS
+from norm.utils import infodf
 from norm.workbench.autocompleter import complete
 from norm.workbench.view.table import id_table_panel, init_columns
+from norm.workbench.view.graph import id_graph_panel, id_graph_tools_search, id_graph_tools_time_range, get_layout
 
 from enum import IntEnum
 import flask
@@ -157,32 +159,83 @@ def update_options(search_value: str):
     [Output(id_script_status, 'children'),
      Output(id_table_panel, "columns"),
      Output(id_table_panel, "data"),
-     Output(id_table_panel, "tooltip_data")
+     Output(id_table_panel, "tooltip_data"),
+     Output(id_graph_panel, "elements"),
      ],
-    [Input(id_script, 'value')],
+    [Input(id_script, 'value'),
+     Input(id_graph_tools_time_range, 'value'),
+     Input(id_graph_tools_search, 'value')],
     [State(id_module_search, 'value'),
      State(id_table_panel, 'data')]
 )
-def execute(code: str, module_name: str, odt: List):
+def execute(code: str, time_range: List[int], keyword: str, module_name: str, odt: List):
     results = engine.execute(code, module_name.lower())
-    if results is not None:
-        dt = results.head(MAX_ROWS)
-        dt_cols = [{'name': 'row', 'id': 'row'}] + \
-                  [{'name': col, 'id': col, 'hideable': True, 'renamable': True, 'selectable': True}
-                   for col in dt.columns]
-        dt['row'] = list(range(len(dt)))
-        dt = dt.to_dict(orient='records')
-        tooltip_data = [
-            {
-                column: {'value': str(value), 'type': 'markdown'}
-                for column, value in row.items()
-            } for row in dt
-        ]
-    else:
-        dt = []
-        dt_cols = init_columns
-        tooltip_data = []
-    return f'Checkpoint: {datetime.datetime.now().strftime("%H:%M:%S  %Y/%m/%d")}', dt_cols, dt, tooltip_data
+    if results is None:
+        raise PreventUpdate
+
+    dt = results.head(MAX_ROWS)
+    times = list(dt['src_t'].drop_duplicates().sort_values().values)
+    t = len(times) - 1
+    tb = times[int(time_range[0] * t / 100)]
+    te = times[int(time_range[1] * t / 100)]
+
+    selected_dt = dt[(dt['src_t'] <= te) & (dt['src_t'] >= tb)]
+    if keyword is not None:
+        selected_dt = selected_dt[selected_dt['src_entity'].str.contains(keyword, case=False)]
+    sl_nodes, sl_edges = nodes_edges(selected_dt, 'sl')
+    background_dt = dt.loc[~dt.index.isin(selected_dt.index.values)]
+    bg_nodes, bg_edges = nodes_edges(background_dt, 'bg')
+    selected_nd_ids = set(nd['data']['id'] for nd in sl_nodes)
+    bg_nodes = [nd for nd in bg_nodes if nd['data']['id'] not in selected_nd_ids]
+    selected_prt_nd = set(nd['data'].get('parent') for nd in sl_nodes)
+    bg_edges = [eg for eg in bg_edges if eg['data']['source'] not in selected_prt_nd
+                and eg['data']['target'] not in selected_prt_nd]
+
+    elements = bg_nodes + bg_edges + sl_nodes + sl_edges
+    dt_cols = [{'name': 'row', 'id': 'row'}] + \
+              [{'name': col, 'id': col, 'hideable': True, 'renamable': True, 'selectable': True}
+               for col in dt.columns]
+    dt['row'] = list(range(len(dt)))
+    dt = dt.to_dict(orient='records')
+    tooltip_data = [
+        {
+            column: {'value': str(value), 'type': 'markdown'}
+            for column, value in row.items()
+        } for row in dt
+    ]
+    return f'Checkpoint: {datetime.datetime.now().strftime("%H:%M:%S  %Y/%m/%d")}', \
+           dt_cols, dt, tooltip_data, \
+           elements
+
+
+def nodes_edges(data, classes):
+    # src_nodes = data[['src_entity', 'src_e']].rename(columns={'src_entity': 'parent', 'src_e': 'name'})
+    # src_nodes['id'] = src_nodes['parent'].str.cat(src_nodes['name'], sep='.')
+    # des_nodes = data[['des_entity', 'des_e']].rename(columns={'des_entity': 'parent', 'des_e': 'name'})
+    # des_nodes['id'] = des_nodes['parent'].str.cat(des_nodes['name'], sep='.')
+    src_nodes = data[['src_entity']].rename(columns={'src_entity': 'id'})
+    des_nodes = data[['des_entity']].rename(columns={'des_entity': 'id'})
+    nodes = pd.concat([src_nodes, des_nodes], ignore_index=True)\
+              .drop_duplicates()\
+              .to_dict(orient='records')
+    # prt_nodes = [{'id': nd_id} for nd_id in set(nd['parent'] for nd in nodes)]
+
+    # edges = data[['src_entity', 'src_e', 'des_entity', 'des_e', 'situation', 'value']].copy()
+    edges = data[['src_entity', 'src_e', 'des_entity', 'des_e', 'situation', 'value']].rename(
+        columns={'src_entity': 'source',
+                 'des_entity': 'target'}
+    )
+    # edges['source'] = edges['src_entity']  # .str.cat(edges['src_e'], sep='.')
+    # edges['target'] = edges['des_entity']  # .str.cat(edges['des_e'], sep='.')
+    # edges['id'] = edges['des_e'].str.cat(edges['src_e'], sep='->')
+    edges = edges[['source', 'target', 'src_e', 'des_e', 'situation', 'value']].to_dict(orient='records')
+    layout = get_layout().to_dict(orient='index')
+    zero = dict(x=0, y=0)
+    nodes = [dict(data=nd, position=layout.get(nd['id'], zero), classes=classes+'_nd') for nd in nodes]
+    # nodes.extend([dict(data=nd, classes='prt_nd') for nd in prt_nodes])
+    edges = [dict(data=eg, classes=classes+'_eg') for eg in edges
+             if eg['source'] != eg['target']]
+    return nodes, edges
 
 
 @server.route('/autocompleter', methods=['GET'])
