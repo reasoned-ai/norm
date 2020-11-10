@@ -1,4 +1,4 @@
-# Generated from /home/ax/Workspace/norm/norm/grammar/norm.g4 by ANTLR 4.8
+# Generated from /home/ax/Workspace/norm/norm.parser/norm.g4 by ANTLR 4.8
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .normParser import normParser

@@ -2,8 +2,11 @@ from pandas import DataFrame
 from uuid import uuid4, uuid5, NAMESPACE_OID
 from zlib import adler32
 from typing import Optional, Callable, TypeVar, Any
-from norm.config import hasher
+from hashids import Hashids
+from norm.config import HASH_SALT, HASH_MIN_LENGTH
 import logging
+
+hasher = Hashids(salt=HASH_SALT, min_length=HASH_MIN_LENGTH)
 
 
 def hash_df(df: DataFrame) -> str:

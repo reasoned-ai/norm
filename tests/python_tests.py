@@ -14,7 +14,7 @@ class PythonTestCase(NormTestCase):
         :: Datetime
         := {
             from datetime import datetime
-            return datetime.utcnow()
+            return datetime.now()
         }
         """
         result = self.execute(script)
@@ -27,7 +27,7 @@ class PythonTestCase(NormTestCase):
         :: Datetime
         := {
             from datetime import datetime
-            return datetime.utcnow()
+            return datetime.now()
         }
         
         test()
@@ -79,7 +79,7 @@ class PythonTestCase(NormTestCase):
         :: Datetime
         := {
             from datetime import datetime
-            return datetime.utcnow()
+            return datetime.now()
         }
 
         a

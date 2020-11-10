@@ -1,4 +1,4 @@
-from norm.grammar.literals import COP
+from norm.parser.literals import COP
 from norm.executable import Projection
 from norm.executable.expression.constant import Constant
 from norm.executable.expression import NormExpression

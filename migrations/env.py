@@ -20,6 +20,7 @@ config = context.config
 from norm.models import Model
 target_metadata = Model.metadata
 from norm.models import norm, variable, core, native, storage
+import flask_appbuilder.security.sqla.models
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

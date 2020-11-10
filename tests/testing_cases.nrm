@@ -71,7 +71,7 @@ Python Code
 utcnow
 := {{
     from datetime import datetime
-    datetime.utcnow
+    datetime.now
 }}
 
 

@@ -4,7 +4,7 @@ from norm.compiler import NormCompiler, error_on
 from norm.compiler.expr import Var
 from norm.compiler.expr.simple_expr import compile_simple_expr
 from norm.executable import NormExecutable, Project, Pivot, Join
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 
 
 def compile_assignment_expr(compiler, expr, variables):

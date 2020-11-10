@@ -1,6 +1,6 @@
 import uuid
 
-from norm.grammar.literals import AOP
+from norm.parser.literals import AOP
 from norm.executable import NormError
 from norm.executable.expression import NormExpression
 from norm.executable.expression.evaluation import EvaluationExpr

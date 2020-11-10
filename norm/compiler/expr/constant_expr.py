@@ -1,7 +1,7 @@
 from norm.compiler import NormCompiler
 from norm.executable import NormExecutable
 from norm.executable.expression.constant import Constant, MeasurementConstant
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 from norm.models import norma
 from typing import Optional
 

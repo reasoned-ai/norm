@@ -11,8 +11,8 @@ from sqlalchemy.orm.scoping import scoped_session
 
 from norm.config import MAX_MODULE_CACHE_SIZE, DataFrame, EMPTY_DATA
 from norm.executable import NormExecutable, Statements
-from norm.grammar.normLexer import normLexer
-from norm.grammar.normParser import normParser
+from norm.parser.normLexer import normLexer
+from norm.parser.normParser import normParser
 from norm.models import norma
 from norm.models.norm import Module, Lambda, Script
 from norm.models.storage import Storage

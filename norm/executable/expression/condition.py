@@ -4,7 +4,7 @@ from pandas.core.groupby import DataFrameGroupBy
 
 from norm.executable import NormError
 from norm.executable.expression.constant import Constant
-from norm.grammar.literals import COP, ConstantType
+from norm.parser.literals import COP, ConstantType
 
 from norm.executable.expression import NormExpression
 from norm.executable.schema.variable import VariableName

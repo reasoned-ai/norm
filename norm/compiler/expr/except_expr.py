@@ -1,7 +1,7 @@
 from norm.compiler import NormCompiler
 from norm.executable import Difference
 from norm.executable import NormExecutable
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 
 
 def compile_except(compiler, left_expr, right_expr):

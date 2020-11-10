@@ -1,5 +1,5 @@
 from norm.compiler import NormCompiler
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 from norm.executable import NormExecutable
 
 

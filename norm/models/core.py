@@ -18,6 +18,7 @@ __version__ = '1'
 
 @Register()
 class CoreModule(Module):
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'module_core'
     }
@@ -30,6 +31,7 @@ class CoreLambda(Lambda):
     """
     Core functions are at the computable level and predefined in the code base
     """
+    __table_args__ = None
 
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_core'
@@ -49,6 +51,8 @@ class SummaryLambda(CoreLambda):
     """
     Summary of the data
     """
+    __table_args__ = None
+
     __mapper_args__ = {
         'polymorphic_identity': 'core_summary'
     }
@@ -72,6 +76,8 @@ class ReadLambda(CoreLambda):
     """
     Read data
     """
+    __table_args__ = None
+
     __mapper_args__ = {
         'polymorphic_identity': 'core_read'
     }
@@ -111,6 +117,8 @@ class DescribeLambda(CoreLambda):
     """
     Describe a given lambda
     """
+    __table_args__ = None
+
     __mapper_args__ = {
         'polymorphic_identity': 'core_describe'
     }
@@ -156,6 +164,8 @@ class RenameLambda(CoreLambda):
     """
     Rename variables for a given lambda
     """
+    __table_args__ = None
+
     __mapper_args__ = {
         'polymorphic_identity': 'core_rename'
     }
@@ -191,6 +201,8 @@ class RetypeLambda(CoreLambda):
     """
     Retype variables for a given lambda
     """
+    __table_args__ = None
+
     __mapper_args__ = {
         'polymorphic_identity': 'core_retype'
     }

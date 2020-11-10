@@ -3,7 +3,7 @@ from norm.compiler.expr import random_output_variable, Var
 from norm.compiler.expr.assignment_expr import compile_assignment_expr
 from norm.executable import NormExecutable
 from norm.executable import Return
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 
 
 def compile_return(compiler, return_expr):

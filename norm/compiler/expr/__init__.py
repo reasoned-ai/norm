@@ -2,7 +2,7 @@ import re
 from typing import List
 
 from norm.utils import random_name
-from norm.grammar import *
+from norm.parser import *
 
 
 class Var(object):

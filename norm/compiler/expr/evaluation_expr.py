@@ -3,7 +3,7 @@ from norm.compiler.expr.query_expr import compile_query_expr
 from norm.compiler.expr.constant_expr import compile_constant_expr
 from norm.executable import NormExecutable
 from norm.executable.expression.constant import Constant, MeasurementConstant
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 from typing import Optional
 
 

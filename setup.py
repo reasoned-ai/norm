@@ -29,7 +29,7 @@ PACKAGES = [
     'norm',
     'norm.db',
     'norm.executable',
-    'norm.grammar',
+    'norm.parser',
     'norm.models'
 ]
 

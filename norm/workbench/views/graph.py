@@ -22,8 +22,10 @@ id_graph_tools_reset_bt = 'graph-tools-reset-bt'
 id_graph_tools_undo_bt = 'graph-tools-undo-bt'
 id_graph_tools_redo_bt = 'graph-tools-redo-bt'
 id_graph_tools_search_bt = 'graph-tools-search-bt'
+id_graph_tools_search_popover = 'graph-tools-search-popover'
 id_graph_tools_save_bt = 'graph-tools-save-bt'
 id_graph_tools_time_bt = 'graph-tools-time-bt'
+id_graph_tools_time_popover = 'graph-tools-time-popover'
 id_graph_tools_delete_bt = 'graph-tools-delete-bt'
 id_graph_tools_group_bt = 'graph-tools-group-bt'
 id_graph_tools_time_range = 'graph-tools-time-range'
@@ -43,51 +45,45 @@ class GraphState(IntEnum):
 
 
 init_stylesheet = [
-        {
-            'selector': 'edge',
-            'style': {
-                'curve-style': 'bezier'
-            }
-        },
-        {
-            'selector': '.bg_eg',
-            'style': {
-                'source-arrow-color': '#ffffff',
-                'source-arrow-shape': 'triangle',
-                'line-color': '#ffffff',
-                'width': 0
-            }
-        },
-        {
-            'selector': '.sl_nd',
-            'style': {
-                'background-color': '#1aa1c9',
-                'content': 'data(id)',
-                'text-valign': 'center',
-                'text-outline-width': 2,
-                'text-outline-color': '#1aa1c9',
-                'font-size': 16,
-                'color': '#fff'
-            }
-        },
-        {
-            'selector': '.sl_eg',
-            'style': {
-                'opacity': 0.7,
-                'source-arrow-color': '#f92411',
-                'source-arrow-shape': 'triangle',
-                'target-arrow-color': '#f92411',
-                'target-arrow-shape': 'circle',
-                'arrow-scale': 1,
-                'line-color': '#f92411',
-                'content': 'data(situation)',
-                # 'source-label': 'data(des_e)',
-                # 'target-label': 'data(src_e)',
-                'width': 'data(value) * 100'
-            }
+    {
+        'selector': 'edge',
+        'style': {
+            'curve-style': 'bezier'
         }
-    ]
-
+    },
+    {
+        'selector': 'node',
+        'style': {
+            'background-color': '#1aa1c9',
+            'content': 'data(id)',
+            'text-valign': 'center',
+            'text-outline-width': 2,
+            'text-outline-color': '#1aa1c9',
+            'font-size': 16,
+            'color': '#fff'
+        }
+    },
+    {
+        'selector': '[highlighted < 1]',
+        'style': {
+            'width': 0
+        }
+    },
+    {
+        'selector': '[highlighted > 0]',
+        'style': {
+            'opacity': 0.7,
+            'source-arrow-color': '#f92411',
+            'source-arrow-shape': 'triangle',
+            'target-arrow-color': '#f92411',
+            'target-arrow-shape': 'circle',
+            'arrow-scale': 1,
+            'line-color': '#f92411',
+            'content': 'data(situation)',
+            'width': 'data(value) * 100'
+        }
+    }
+]
 
 init_layout = {'name': 'preset'}
 
@@ -159,33 +155,45 @@ tools = dbc.Row([
                     placement='top'),
         dbc.Tooltip("Delete selected objects",
                     target=id_graph_tools_delete_bt,
-                    placement='top')
-    ],
-        width=dict(size=5),
-    ),
-    dbc.Col([
-        html.Div(
+                    placement='top'),
+        dbc.Popover(
             [
-                dcc.RangeSlider(
-                    min=0,
-                    max=100,
-                    value=[0, 40],
-                    included=False,
-                    id=id_graph_tools_time_range
+                dbc.PopoverHeader("Select the time range"),
+                dbc.PopoverBody(
+                    dcc.RangeSlider(
+                        min=0,
+                        max=100,
+                        value=[0, 40],
+                        included=False,
+                        updatemode='drag',
+                        id=id_graph_tools_time_range
+                    )
                 )
             ],
-            hidden=True
+            style={'width': '20em'},
+            id=id_graph_tools_time_popover,
+            is_open=False,
+            target=id_graph_tools_time_bt
         ),
-        html.Div(
+        dbc.Popover(
             [
-                dbc.Input(placeholder='Type keywords...',
-                          debounce=True,
-                          id=id_graph_tools_search),
+                dbc.PopoverBody(
+                    dbc.Input(placeholder='Type keywords...',
+                              debounce=True,
+                              id=id_graph_tools_search),
+                )
             ],
-            hidden=True
+            style={'width': '20em'},
+            id=id_graph_tools_search_popover,
+            is_open=False,
+            target=id_graph_tools_search_bt
         )
     ],
         width=dict(size=6),
+    ),
+    dbc.Col([
+    ],
+        width=dict(size=5),
     ),
 ], justify='between')
 
@@ -214,7 +222,7 @@ def get_layout():
         return layout
 
     try:
-        layout = pd.read_parquet('/tmp/layout.parquet')
+        return pd.read_parquet('/tmp/layout.parquet')
     except:
         return pd.DataFrame({})
 
@@ -255,3 +263,22 @@ def displayTapNodeData(node, edge, bt_save, elements, states):
         raise PreventUpdate
 
 
+@app.callback(
+    Output(id_graph_tools_time_popover, "is_open"),
+    [Input(id_graph_tools_time_bt, "n_clicks")],
+    [State(id_graph_tools_time_popover, "is_open")],
+)
+def toggle_time_popover(n, is_open):
+    if n:
+        return not is_open
+    return is_open
+
+@app.callback(
+    Output(id_graph_tools_search_popover, "is_open"),
+    [Input(id_graph_tools_search_bt, "n_clicks")],
+    [State(id_graph_tools_search_popover, "is_open")],
+)
+def toggle_search_popover(n, is_open):
+    if n:
+        return not is_open
+    return is_open

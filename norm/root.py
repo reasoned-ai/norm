@@ -2,9 +2,10 @@ from flask_cors import CORS
 import dash_bootstrap_components as dbc
 import dash
 import flask
-from norm.config import DB_PATH, SQLALCHEMY_TRACK_MODIFICATIONS, SQLALCHEMY_ECHO
-from flask_sqlalchemy import SQLAlchemy
+from flask_appbuilder import AppBuilder, SQLA
 import dash_cytoscape as cyto
+from sqlalchemy.engine import Engine
+from sqlalchemy import event
 
 import logging
 logger = logging.getLogger('norm.root')
@@ -18,10 +19,19 @@ external_scripts = ["https://cdn.plot.ly/plotly-latest.js"]
 
 server = flask.Flask(__name__)
 CORS(server)
-server.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
-server.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
-server.config["SQLALCHEMY_ECHO"] = SQLALCHEMY_ECHO
-db = SQLAlchemy(server)
+
+server.config.from_object("norm.config")
+db = SQLA(server)
+norma_builder = AppBuilder(server, db.session)
+
+
+# Only include this for SQLLite constraints
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    # Will force sqllite contraint foreign keys
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 
 app_path = '/norma/'

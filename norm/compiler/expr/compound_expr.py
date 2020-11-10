@@ -13,7 +13,7 @@ from norm.compiler.expr.simple_expr import compile_simple_expr
 from norm.compiler.expr.switch_block import compile_switch_block
 from norm.compiler.expr.quantified_expr import compile_quantifier_expr
 from norm.executable import NormExecutable
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 from typing import Optional
 
 

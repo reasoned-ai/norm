@@ -146,8 +146,8 @@ class Export(NormExecutable):
         lam.version = new_version()
         lam.status = Status.READY
         lam.owner = context.user
-        lam.created_on = datetime.utcnow()
-        lam.changed_on = datetime.utcnow()
+        lam.created_on = datetime.now()
+        lam.changed_on = datetime.now()
         lam.save()
 
         # clone this one back to the current context for further modification

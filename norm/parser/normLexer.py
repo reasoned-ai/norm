@@ -1,4 +1,4 @@
-# Generated from /home/ax/Workspace/norm/norm/grammar/norm.g4 by ANTLR 4.8
+# Generated from /home/ax/Workspace/norm/norm.parser/norm.g4 by ANTLR 4.8
 from antlr4 import *
 from io import StringIO
 from typing.io import TextIO

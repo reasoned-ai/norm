@@ -10,7 +10,7 @@ from norm.compiler.type_definition import compile_type_definition, _parse_code_b
 from norm.compiler.type_export import compile_type_export
 from norm.compiler.type_import import compile_type_import
 from norm.executable import NormExecutable, TypeDefinition, CodeExecution
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 from norm.utils import random_name
 
 

@@ -1,20 +1,20 @@
 import errno
 import logging
 import os
-from datetime import datetime
-from typing import Tuple
+from typing import Tuple, List
 
 from pandas import DataFrame
-from sqlalchemy import Column, Integer, DateTime
+from sqlalchemy import Column, Integer
 from sqlalchemy import String
 
 from norm.models import Model, Registrable, Register, SEPARATOR
+from norm.models.mixins import AuditMixinNullable
 from norm.utils import uuid_int32
 
 logger = logging.getLogger(__name__)
 
 
-class Storage(Model, Registrable):
+class Storage(Model, AuditMixinNullable, Registrable):
     """
     Persistent layer to data and model
     """
@@ -33,9 +33,8 @@ class Storage(Model, Registrable):
     name = Column(String(32), nullable=False, unique=True)
     protocol = Column(String(16), default='file')
     root = Column(String(256), default='')
-    created_on = Column(DateTime, default=datetime.utcnow)
 
-    def exists(self):
+    def exists(self) -> List:
         return [Storage.name == self.name,
                 Storage.root == self.root]
 
@@ -50,6 +49,9 @@ class Storage(Model, Registrable):
         :rtype: str
         """
         raise NotImplementedError
+
+    def __repr__(self):
+        return self.name
 
     def load(self, lam):
         """
@@ -77,7 +79,7 @@ class Storage(Model, Registrable):
 
 @Register(name='unix_user_default', root='~/.norm')
 class UnixFile(Storage):
-
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'storage_unix_file',
     }

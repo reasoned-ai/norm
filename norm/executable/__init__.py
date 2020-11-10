@@ -1,7 +1,7 @@
 from typing import List, TYPE_CHECKING, Optional, cast
 
 from norm import random_name
-from norm.grammar import TEMP_VAR_STUB, SEPARATOR
+from norm.parser import TEMP_VAR_STUB, SEPARATOR
 from norm.config import USE_DASK, DataFrame
 
 if TYPE_CHECKING:

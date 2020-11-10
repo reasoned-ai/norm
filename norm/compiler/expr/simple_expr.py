@@ -1,7 +1,7 @@
 from norm.compiler import NormCompiler
 from norm.compiler.expr.arithmetic_expr import compile_arithmetic_expr
 from norm.executable import NormExecutable
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 from typing import Optional
 
 

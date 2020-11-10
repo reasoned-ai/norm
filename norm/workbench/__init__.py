@@ -1,7 +1,7 @@
 import dash_bootstrap_components as dbc
 import dash_html_components as html
-from norm.workbench.editor import codes, id_tab_script
-from norm.workbench.view import views, id_tab_table
+from norm.workbench.editors import codes, id_tab_script
+from norm.workbench.views import views, id_tab_table
 
 editor_height = 100
 graph_height = 80
@@ -18,23 +18,33 @@ init_editor_active = True
 init_chart_active = True
 init_table_active = True
 
-layout = html.Div([
-    html.Br(),
-    dbc.Row([
-        dbc.Col(dbc.Tabs(codes,
-                         active_tab=id_tab_script,
-                         style={'width': '100%'},
-                         id=id_tab_codes),
-                id=id_panel_left_col,
-                width=dict(size=3)),
-        dbc.Col(dbc.Tabs(views,
-                         active_tab=id_tab_table,
-                         style={'width': '100%'},
-                         id=id_tab_views),
-                id=id_panel_right_col,
-                width=dict(size=9))
-    ]),
-], className='ml-2 mr-2')
+double_columns = False
+if double_columns:
+    layout = html.Div([
+        html.Br(),
+        dbc.Row([
+            dbc.Col(dbc.Tabs(codes,
+                             active_tab=id_tab_script,
+                             style={'width': '100%'},
+                             id=id_tab_codes),
+                    id=id_panel_left_col,
+                    width=dict(size=3)),
+            dbc.Col(dbc.Tabs(views,
+                             active_tab=id_tab_table,
+                             style={'width': '100%'},
+                             id=id_tab_views),
+                    id=id_panel_right_col,
+                    width=dict(size=9))
+        ]),
+    ], className='ml-2 mr-2')
+else:
+    layout = html.Div([
+        html.Br(),
+        dbc.Tabs(codes + views,
+                 active_tab=id_tab_table,
+                 style={'width': '100%'},
+                 id=id_tab_views)
+    ], className='ml-2 mr-2')
 
 """
 @app.callback([Output(id_panel_editor_collapse, 'is_open'),

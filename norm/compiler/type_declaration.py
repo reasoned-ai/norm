@@ -5,8 +5,8 @@ from norm.compiler import error_on, same
 from norm.compiler.parsing import parse_type, parse_constant, parse_type_name_version_module, \
     parse_comments
 from norm.compiler.type_definition import CodeType
-from norm.grammar import *
-from norm.grammar.normParser import normParser
+from norm.parser import *
+from norm.parser.normParser import normParser
 from norm.models.variable import Parameter, Input, Output, Parent, Variable
 from norm.utils import new_version, random_name
 

@@ -7,7 +7,7 @@ from norm.executable.expression.constant import ListConstant, Constant
 from norm.executable.expression import NormExpression
 from norm.executable.expression.condition import ConditionExpr, CombinedConditionExpr
 from norm.executable.expression.evaluation import AddDataEvaluationExpr
-from norm.grammar.literals import LOP
+from norm.parser.literals import LOP
 
 import logging
 logger = logging.getLogger(__name__)

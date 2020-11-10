@@ -9,7 +9,7 @@ from sqlalchemy.orm import relationship
 from norm.models import Model
 from norm.utils import uuid_int32, random_name
 from norm.config import USE_DASK, DataFrame
-from norm.grammar import OUTPUT_VAR_STUB, TEMP_VAR_STUB
+from norm.parser import OUTPUT_VAR_STUB, TEMP_VAR_STUB
 
 from typing import Dict, Any, List, Optional, TYPE_CHECKING, Union, TypeVar
 
@@ -216,6 +216,7 @@ class Variable(Model):
 
 
 class Input(Variable):
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'variable_input'
     }
@@ -242,6 +243,7 @@ class Input(Variable):
 
 
 class Output(Variable):
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'variable_output'
     }
@@ -262,6 +264,7 @@ class Output(Variable):
 
 
 class Internal(Variable):
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'variable_internal'
     }
@@ -282,6 +285,7 @@ class Internal(Variable):
 
 
 class External(Variable):
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'variable_external'
     }
@@ -296,6 +300,7 @@ class External(Variable):
 
 
 class Parameter(Variable):
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'variable_parameter'
     }
@@ -317,6 +322,7 @@ class Parameter(Variable):
 
 
 class Parent(Variable):
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'variable_parent'
     }
@@ -332,6 +338,7 @@ class Parent(Variable):
 
 
 class Past(Variable):
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'variable_past'
     }
@@ -345,6 +352,7 @@ class Past(Variable):
 
 
 class Intern(Variable):
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'variable_intern'
     }
@@ -360,7 +368,7 @@ class Intern(Variable):
 
 
 class Const(Variable):
-
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'variable_const'
     }

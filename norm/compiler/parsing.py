@@ -2,7 +2,7 @@ import re
 from typing import Tuple, Optional
 
 from norm.compiler import error_on, NormCompiler, CodeType
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 from norm.models.norm import Lambda
 
 

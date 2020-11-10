@@ -2,7 +2,7 @@ from norm.compiler import NormCompiler
 from norm.compiler.expr.arguement_expr import compile_arguments
 from norm.compiler.parsing import parse_type
 from norm.executable import NormExecutable, Query, Argument, AtomicEvaluation, Construction
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 from typing import Optional
 
 

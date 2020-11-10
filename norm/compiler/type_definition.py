@@ -2,7 +2,7 @@ from norm.compiler import NormCompiler, error_on, CodeType
 from norm.compiler.expr.compound_expr import compile_compound_expr
 from norm.compiler.parsing import parse_type, parse_comments
 from norm.executable import TypeDefinition, CodeExecution, NormExecutable
-from norm.grammar.normParser import normParser
+from norm.parser.normParser import normParser
 
 
 def _parse_code_block_type(expr: normParser.CodeExprContext) -> CodeType:

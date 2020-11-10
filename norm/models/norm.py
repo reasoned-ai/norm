@@ -4,15 +4,17 @@ from datetime import datetime
 from textwrap import dedent, indent
 from typing import Dict, List, Any, Union, Optional
 
-from sqlalchemy import Column, Integer, ForeignKey, Text, DateTime
+from sqlalchemy import Column, Integer, ForeignKey, Text, DateTime, UniqueConstraint
 from sqlalchemy import String, Boolean, orm
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import relationship
+
 import numpy as np
 import pandas as pd
 
-from norm.grammar import TEMP_VAR_STUB, OUTPUT_VAR_STUB
+from norm.parser import TEMP_VAR_STUB, OUTPUT_VAR_STUB
 from norm.models import Model, Registrable, ModelError, norma
+from norm.models.mixins import AuditMixinNullable
 from norm.models.storage import Storage
 from norm.models.variable import Variable, Output, Input, Parameter, Parent, Internal, External, Intern, Past
 from norm.utils import uuid_int32, new_version, lazy_property, uuid_int, random_name
@@ -23,7 +25,7 @@ logger = logging.getLogger(__name__)
 metadata = Model.metadata
 
 
-class Script(Model):
+class Script(Model, AuditMixinNullable):
     """Script is a Norm script"""
     __tablename__ = 'scripts'
 
@@ -31,10 +33,9 @@ class Script(Model):
     position = Column(Integer)
     content = Column(Text, nullable=False)
     module_id = Column(Integer, ForeignKey("modules.id"))
-    created_on = Column(DateTime, default=datetime.utcnow)
 
 
-class Module(Model, Registrable):
+class Module(Model, AuditMixinNullable, Registrable):
     """Module is a Norm namespace"""
     __tablename__ = 'modules'
 
@@ -56,10 +57,7 @@ class Module(Model, Registrable):
     scripts = relationship(Script, order_by=Script.position, collection_class=ordering_list('position'),
                            backref='module', foreign_keys=[Script.module_id])
 
-    created_on = Column(DateTime, default=datetime.utcnow)
-    changed_on = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    def __init__(self, name, description=None, storage=None):
+    def __init__(self, name: str, description: str = None, storage: Storage = None):
         super(Module, self).__init__()
         self.id: int = uuid_int32()
         self.name: str = name
@@ -89,7 +87,7 @@ class Module(Model, Registrable):
         pass
 
 
-class Lambda(Model, Registrable):
+class Lambda(Model, AuditMixinNullable, Registrable):
     """Lambda models a relation in Norm"""
 
     __tablename__ = 'lambdas'
@@ -110,16 +108,13 @@ class Lambda(Model, Registrable):
     VAR_PROB_T = 'float'
     VAR_TIME = '_time'
     VAR_TIME_T = 'datetime64[ns]'
-    VAR_TOMBSTONE = '_tombstone'
-    VAR_TOMBSTONE_T = 'bool'
+    VAR_DEAD = '_dead'
+    VAR_DEAD_T = 'bool'
 
     id = Column(Integer, primary_key=True, default=uuid_int32)
     name = Column(String(256), nullable=False)
     version = Column(String(32), default=new_version, nullable=False)
     description = Column(Text, default='')
-
-    created_on = Column(DateTime, default=datetime.utcnow)
-    changed_on = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     module_id = Column(Integer, ForeignKey(Module.id), nullable=False)
     module = relationship(Module, back_populates='lambdas')
@@ -131,10 +126,18 @@ class Lambda(Model, Registrable):
     dtype = Column(String(8), default='object')
     trainable = Column(Boolean, default=False)
     atomic = Column(Boolean, default=False)
+    UniqueConstraint(name, version, module_id)
 
     # noinspection PyMissingConstructor
-    def __init__(self, module: Module = None, name: str = '', description: str = '', version: str = '',
-                 atomic: bool = False, bindings: List[Variable] = None):
+    def __init__(
+        self,
+        module: Module = None,
+        name: str = '',
+        description: str = '',
+        version: str = '',
+        atomic: bool = False,
+        bindings: List[Variable] = None
+    ):
         """
         :param module: the module that holds the type
         :param name: the name of the type
@@ -144,6 +147,8 @@ class Lambda(Model, Registrable):
         :param bindings: a ordered list of variables that refers to other types
         """
         self.module: Module = module
+        if module.id:
+            self.module_id: int = module.id
         self.id: int = uuid_int32()
         self.name: str = name
         self.description: str = description
@@ -202,7 +207,7 @@ class Lambda(Model, Registrable):
         if self.trainable:
             self._load_model()
 
-    def exists(self):
+    def exists(self) -> List:
         module_id = self.module_id if self.module is None else self.module.id
         return [Lambda.module_id == module_id,
                 Lambda.name == self.name,
@@ -452,9 +457,9 @@ class Lambda(Model, Registrable):
             df[self.VAR_TIME] = df[self.time_var.name].astype('datetime64[ns]')
         else:
             if self.VAR_TIME in df.columns:
-                df[self.VAR_TIME] = df[self.VAR_TIME].fillna(pd.to_datetime(datetime.utcnow()))
+                df[self.VAR_TIME] = df[self.VAR_TIME].fillna(pd.to_datetime(datetime.now()))
             else:
-                df[self.VAR_TIME] = pd.to_datetime(datetime.utcnow())
+                df[self.VAR_TIME] = pd.to_datetime(datetime.now())
         return df
 
     def save(self):
@@ -513,6 +518,7 @@ class Lambda(Model, Registrable):
 
 
 class UnionLambda(Lambda):
+    __table_args__ = None
     __mapper_args__ = {
         'polymorphic_identity': 'lambda_union'
     }
@@ -541,6 +547,8 @@ class UnionLambda(Lambda):
 
 
 class HigherOrderLambda(Lambda):
+    __table_args__ = None
+
     level = Column(Integer, default=1)
 
     __mapper_args__ = {
@@ -569,6 +577,7 @@ class HigherOrderLambda(Lambda):
 
 
 class PythonLambda(Lambda):
+    __table_args__ = None
 
     python_version = Column(String(8), default='3.7')
     python_packages = Column(Text, default='')
@@ -637,6 +646,7 @@ class PythonLambda(Lambda):
 
 
 class SQLLambda(Lambda):
+    __table_args__ = None
 
     sql_url = Column(String(128), default='')
 

@@ -2,23 +2,18 @@ from typing import List
 
 import dash_ace
 import dash_html_components as html
-import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, State, Output
 from dash.exceptions import PreventUpdate
-from flask import request
 import pandas as pd
-from norm.root import server, app
+from norm.root import app
 from norm.models import norma
 from norm import engine
 from norm.config import MAX_ROWS
-from norm.utils import infodf
-from norm.workbench.autocompleter import complete
-from norm.workbench.view.table import id_table_panel, init_columns
-from norm.workbench.view.graph import id_graph_panel, id_graph_tools_search, id_graph_tools_time_range, get_layout
+from norm.workbench.views.table import id_table_panel
+from norm.workbench.views.graph import id_graph_panel, id_graph_tools_search, id_graph_tools_time_range, get_layout
 
 from enum import IntEnum
-import flask
 import datetime
 import logging
 
@@ -182,16 +177,11 @@ def execute(code: str, time_range: List[int], keyword: str, module_name: str, od
     selected_dt = dt[(dt['src_t'] <= te) & (dt['src_t'] >= tb)]
     if keyword is not None:
         selected_dt = selected_dt[selected_dt['src_entity'].str.contains(keyword, case=False)]
-    sl_nodes, sl_edges = nodes_edges(selected_dt, 'sl')
-    background_dt = dt.loc[~dt.index.isin(selected_dt.index.values)]
-    bg_nodes, bg_edges = nodes_edges(background_dt, 'bg')
-    selected_nd_ids = set(nd['data']['id'] for nd in sl_nodes)
-    bg_nodes = [nd for nd in bg_nodes if nd['data']['id'] not in selected_nd_ids]
-    selected_prt_nd = set(nd['data'].get('parent') for nd in sl_nodes)
-    bg_edges = [eg for eg in bg_edges if eg['data']['source'] not in selected_prt_nd
-                and eg['data']['target'] not in selected_prt_nd]
+    dt['highlighted'] = 0
+    dt.loc[selected_dt.index, 'highlighted'] = 1
+    nodes, edges = nodes_edges(dt)
+    elements = nodes + edges
 
-    elements = bg_nodes + bg_edges + sl_nodes + sl_edges
     dt_cols = [{'name': 'row', 'id': 'row'}] + \
               [{'name': col, 'id': col, 'hideable': True, 'renamable': True, 'selectable': True}
                for col in dt.columns]
@@ -208,38 +198,18 @@ def execute(code: str, time_range: List[int], keyword: str, module_name: str, od
            elements
 
 
-def nodes_edges(data, classes):
-    # src_nodes = data[['src_entity', 'src_e']].rename(columns={'src_entity': 'parent', 'src_e': 'name'})
-    # src_nodes['id'] = src_nodes['parent'].str.cat(src_nodes['name'], sep='.')
-    # des_nodes = data[['des_entity', 'des_e']].rename(columns={'des_entity': 'parent', 'des_e': 'name'})
-    # des_nodes['id'] = des_nodes['parent'].str.cat(des_nodes['name'], sep='.')
+def nodes_edges(data):
     src_nodes = data[['src_entity']].rename(columns={'src_entity': 'id'})
     des_nodes = data[['des_entity']].rename(columns={'des_entity': 'id'})
     nodes = pd.concat([src_nodes, des_nodes], ignore_index=True)\
               .drop_duplicates()\
               .to_dict(orient='records')
-    # prt_nodes = [{'id': nd_id} for nd_id in set(nd['parent'] for nd in nodes)]
-
-    # edges = data[['src_entity', 'src_e', 'des_entity', 'des_e', 'situation', 'value']].copy()
-    edges = data[['src_entity', 'src_e', 'des_entity', 'des_e', 'situation', 'value']].rename(
-        columns={'src_entity': 'source',
-                 'des_entity': 'target'}
-    )
-    # edges['source'] = edges['src_entity']  # .str.cat(edges['src_e'], sep='.')
-    # edges['target'] = edges['des_entity']  # .str.cat(edges['des_e'], sep='.')
-    # edges['id'] = edges['des_e'].str.cat(edges['src_e'], sep='->')
-    edges = edges[['source', 'target', 'src_e', 'des_e', 'situation', 'value']].to_dict(orient='records')
+    edges = data[['src_entity', 'src_e', 'des_entity', 'des_e', 'situation', 'value', 'highlighted']].rename(
+        columns={'src_entity': 'source', 'des_entity': 'target'}
+    ).to_dict(orient='records')
     layout = get_layout().to_dict(orient='index')
     zero = dict(x=0, y=0)
-    nodes = [dict(data=nd, position=layout.get(nd['id'], zero), classes=classes+'_nd') for nd in nodes]
-    # nodes.extend([dict(data=nd, classes='prt_nd') for nd in prt_nodes])
-    edges = [dict(data=eg, classes=classes+'_eg') for eg in edges
-             if eg['source'] != eg['target']]
+    nodes = [dict(data=nd, position=layout.get(nd['id'], zero)) for nd in nodes]
+    edges = [dict(data=eg) for eg in edges if eg['source'] != eg['target']]
     return nodes, edges
 
-
-@server.route('/autocompleter', methods=['GET'])
-def autocompleter():
-    prefix = request.args.get('prefix')
-    results = complete(prefix)
-    return flask.jsonify(results)

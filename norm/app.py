@@ -2,8 +2,8 @@ import dash_html_components as html
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 from dash.dependencies import Output, Input
-from norm import workbench
 from norm.root import app
+from norm import views, workbench
 
 id_module_search = 'module-search'
 id_module_load = 'module-load'

@@ -1,7 +1,7 @@
 from norm.utils import hash_df
 from pandas import DataFrame, Series, Index
 
-from norm.grammar.literals import COP
+from norm.parser.literals import COP
 from norm.executable import NormError, Projection
 from norm.executable.expression.argument import ArgumentExpr
 from norm.executable.schema.variable import VariableName, ColumnVariable, JoinVariable, UnquoteVariable

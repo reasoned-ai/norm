@@ -2,7 +2,7 @@ from os import listdir
 from os.path import isfile, isdir, join
 from typing import Dict, List
 import logging
-logger = logging.getLogger('auto-completer')
+logger = logging.getLogger('norm.completer')
 
 
 def hint_directory(prefix: str) -> List[Dict]:
