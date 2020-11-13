@@ -1,0 +1,35 @@
+{% extends 'appbuilder/init.html' %}
+{% import 'appbuilder/baselib.html' as baselib %}
+
+{% block head_css %}
+    {{ super() }}
+    <link rel="icon" type="image/png" href="/static/images/favicon.ico">
+    <link rel="stylesheet" type="text/css" href="/static/styles/norma.css">
+    {{ '{' }}dash_css{{ '}' }}
+{% endblock %}
+
+{% block body %}
+        {% include 'appbuilder/general/confirm.html' %}
+        {% include 'appbuilder/general/alert.html' %}
+
+    {% block navbar %}
+        <header class="top" role="header">
+        {% include 'appbuilder/navbar.html' %}
+        </header>
+    {% endblock %}
+
+    {{ '{' }}dash_app_entry{{ '}' }}
+
+    {% block footer %}
+        <footer>
+        <div class="img-rounded nav-fixed-bottom">
+            <div class="container">
+                {% include 'appbuilder/footer.html' %}
+            </div>
+        </div>
+        {{ '{' }}dash_config{{ '}' }}
+        {{ '{' }}dash_scripts{{ '}' }}
+        {{ '{' }}dash_renderer{{ '}' }}
+        </footer>
+    {% endblock %}
+{% endblock %}

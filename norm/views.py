@@ -1,6 +1,6 @@
 from typing import List, Union
 
-from flask import redirect, url_for
+from flask import redirect, url_for, render_template
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder import ModelView
 from flask_appbuilder.actions import action
@@ -10,6 +10,7 @@ from norm.models.norm import Module
 from norm.models.core import CoreModule
 from norm.models.native import NativeModule
 import logging
+
 logger = logging.getLogger('norm.views')
 
 

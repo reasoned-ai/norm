@@ -37,8 +37,6 @@ id_script_state = 'script-state'
 id_script_tools = 'script-tools'
 id_script_status = 'script-status'
 id_script_module = 'script-module'
-id_module_search = 'module-search'
-id_module_load = 'module-load'
 
 id_script_tools_items = 'script-tools-items'
 id_script_tools_bigger = 'script-tools-bigger'
@@ -110,47 +108,6 @@ panel = html.Div([
 
 
 @dapp.callback(
-    [Output(id_script, 'value'),
-     Output(id_module_search, 'value')],
-    Input(id_module_load, 'n_clicks'),
-    [State(id_module_search, 'value'),
-     State(id_module_load, 'children'),
-     State(id_script_state, 'children')]
-)
-def load_module(bt: int, value: str, action: str, states: List[int]):
-    if bt and bt > states[EditorState.MODULE_LOAD_NEW]:
-        states[EditorState.MODULE_LOAD_NEW] = bt
-        module_name = value.title()
-        script = ''
-        logger.debug(f'{value}, {action}')
-        if action == 'Load':
-            module = norma._get_module(module_name)
-            if module.scripts and len(module.scripts) > 0:
-                script = module.scripts[-1].content
-        else:
-            norma.create_module(module_name, '')
-        return script, value
-    else:
-        raise PreventUpdate
-
-
-@dapp.callback(
-    [Output(id_module_search, "options"),
-     Output(id_module_load, 'children')],
-    [Input(id_module_search, "search_value")],
-)
-def update_options(search_value: str):
-    if not search_value:
-        raise PreventUpdate
-
-    modules = norma.search_module(search_value)
-    if len(modules) > 0:
-        return [{'label': m.name, 'value': m.name} for m in modules], 'Load'
-    else:
-        return [{'label': f'New [{search_value}]', 'value': search_value}], 'New'
-
-
-@dapp.callback(
     [Output(id_script_status, 'children'),
      Output(id_table_panel, "columns"),
      Output(id_table_panel, "data"),
@@ -160,11 +117,10 @@ def update_options(search_value: str):
     [Input(id_script, 'value'),
      Input(id_graph_tools_time_range, 'value'),
      Input(id_graph_tools_search, 'value')],
-    [State(id_module_search, 'value'),
-     State(id_table_panel, 'data')]
+    [State(id_table_panel, 'data')]
 )
-def execute(code: str, time_range: List[int], keyword: str, module_name: str, odt: List):
-    results = engine.execute(code, module_name.lower())
+def execute(code: str, time_range: List[int], keyword: str, odt: List):
+    results = engine.execute(code, "") # TODO module_name.lower())
     if results is None:
         raise PreventUpdate
 

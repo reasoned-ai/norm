@@ -10,7 +10,10 @@ from flask_talisman import Talisman
 from dash import Dash
 import os
 import logging
-logger = logging.getLogger('norm.app')
+
+from norm.secured_dash import SecuredDash
+
+logger = logging.getLogger('norm.root')
 
 
 # Only include this for SQLLite constraints
@@ -29,9 +32,9 @@ def create_app() -> Tuple[Flask, Dash]:
         config_module = os.environ.get("NORM_CONFIG", "norm.config")
         app.config.from_object(config_module)
         return NormaInitializer(app).init_app()
-    except Exception as ex:
+    except Exception as e:
         logger.exception("Failed to create app")
-        raise ex
+        raise e
 
 
 class NormaInitializer:
@@ -67,27 +70,30 @@ class NormaInitializer:
 
     def init_dash(self):
         import dash_cytoscape as cyto
-        import dash_bootstrap_components as dbc
 
         cyto.load_extra_layouts()
         external_stylesheets = [
-            "https://fonts.googleapis.com/css?family=Kanit&display=swap",
-            "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css",
-            getattr(dbc.themes, self.config['APP_THEME'].split('.')[0].upper()),
-            "/static/norma.css"
+            "/static/styles/norma.css"
         ]
-        external_scripts = ["https://cdn.plot.ly/plotly-latest.js"]
+        external_scripts = [
+            "https://cdn.plot.ly/plotly-latest.js"
+        ]
 
-        self.dapp = Dash(name='Norma',
-                         server=self.flask_app,
-                         routes_pathname_prefix='/norma/',
-                         meta_tags=[
-                             {"name": "viewport", "content": "width=device-width, initial-scale=1"}
-                         ],
-                         external_scripts=external_scripts,
-                         external_stylesheets=external_stylesheets)
+        self.dapp = SecuredDash(
+            name='Norma',
+            title='Norma',
+            server=self.flask_app,
+            routes_pathname_prefix='/norma/',
+            meta_tags=[
+                {
+                    "name": "viewport",
+                    "content": "width=device-width, initial-scale=1"
+                }
+            ],
+            external_scripts=external_scripts,
+            external_stylesheets=external_stylesheets
+        )
         self.dapp.config.suppress_callback_exceptions = True
-        self.dapp.title = 'Norma'
 
     def init_app_in_ctx(self) -> None:
         """
@@ -109,6 +115,7 @@ class NormaInitializer:
 
         with self.flask_app.app_context():  # type: ignore
             self.init_app_in_ctx()
+
         return self.flask_app, self.dapp
 
     def configure_fab(self) -> None:
