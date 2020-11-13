@@ -39,6 +39,23 @@ try:
 except Exception as e:
     pass
 
+# Enables SWAGGER UI for superset openapi spec
+# ex: http://localhost:8080/swagger/v1
+FAB_API_SWAGGER_UI = True
+
+ENABLE_CORS = True
+CORS_OPTIONS = {}
+
+TALISMAN_ENABLED = False
+TALISMAN_CONFIG = {}
+
+DEBUG = os.environ.get("FLASK_ENV") == "development"
+FLASK_USE_RELOAD = True
+
+SILENCE_FAB = False
+
+BLUEPRINTS = []
+
 # Unicode encoding
 UNICODE = 'utf-8'
 
@@ -47,9 +64,6 @@ NORM_HOME = os.environ.get('NORM_HOME', os.path.expanduser('~/.norm'))
 DATA_STORAGE_ROOT = os.environ.get('NORM_DATA_STORAGE_ROOT', os.path.join(NORM_HOME, 'data'))
 DB_PATH = os.environ.get('NORM_DB_PATH', os.path.join(NORM_HOME, 'db/norm.db'))
 
-# Minimal length of a hash string
-HASH_MIN_LENGTH = 10
-HASH_SALT = 'be normal'
 
 # Caching size:
 MAX_MODULE_CACHE_SIZE = 1000
@@ -70,7 +84,7 @@ else:
 MAX_ROWS = 1000
 
 # App configuration:
-basedir = os.path.abspath(os.path.dirname(__file__))
+basedir = os.path.dirname(__file__)
 
 # Your App secret key
 SECRET_KEY = "\2\1thisisnormal\1\2\e\y\y\h"
@@ -82,9 +96,6 @@ SQLALCHEMY_DATABASE_URI = f'sqlite:///{DB_PATH}'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_ECHO = False
 
-# Flask-WTF flag for CSRF
-CSRF_ENABLED = True
-
 # ------------------------------
 # GLOBALS FOR APP Builder
 # ------------------------------
@@ -92,7 +103,7 @@ CSRF_ENABLED = True
 APP_NAME = "Norma"
 
 # Uncomment to setup Setup an App icon
-APP_ICON = basedir + "/assets/favicon.ico"
+APP_ICON = "/static/images/favicon.ico"
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -147,13 +158,13 @@ LANGUAGES = {
 # Image and file configuration
 # ---------------------------------------------------
 # The file upload folder, when using models with files
-UPLOAD_FOLDER = basedir + "/assets/uploads/"
+UPLOAD_FOLDER = basedir + "/static/uploads/"
 
 # The image upload folder, when using models with images
-IMG_UPLOAD_FOLDER = basedir + "/assets/uploads/"
+IMG_UPLOAD_FOLDER = basedir + "/static/uploads/"
 
 # The image upload url, when using models with images
-IMG_UPLOAD_URL = basedir + "/assets/uploads/"
+IMG_UPLOAD_URL = basedir + "/static/uploads/"
 # Setup image size default is (300, 200, True)
 IMG_SIZE = (300, 200, True)
 
@@ -162,12 +173,10 @@ IMG_SIZE = (300, 200, True)
 # you can create your own and easily use them placing them on the same dir structure to override
 # APP_THEME = "bootstrap-theme.css"  # default bootstrap
 # APP_THEME = "cerulean.css"
-# APP_THEME = "amelia.css"
 # APP_THEME = "cosmo.css"
-# APP_THEME = "cyborg.css"
-APP_THEME = "flatly.css"
+APP_THEME = "cyborg.css"
+# APP_THEME = "flatly.css"
 # APP_THEME = "journal.css"
-# APP_THEME = "readable.css"
 # APP_THEME = "simplex.css"
 # APP_THEME = "slate.css"
 # APP_THEME = "spacelab.css"

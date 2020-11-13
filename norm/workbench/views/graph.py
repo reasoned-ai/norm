@@ -8,7 +8,7 @@ import dash_cytoscape as cyto
 from dash.dependencies import Input, State, Output, MATCH
 from dash.exceptions import PreventUpdate
 
-from norm.root import app
+from norm.root import dapp
 import logging
 
 logger = logging.getLogger('workbench.graph')
@@ -238,7 +238,7 @@ def save_layout(l):
     layout.to_parquet('/tmp/layout.parquet')
 
 
-@app.callback([Output(id_graph_response, 'children'),
+@dapp.callback([Output(id_graph_response, 'children'),
                Output(id_graph_state, 'children')],
               [Input(id_graph_panel, 'tapNode'),
                Input(id_graph_panel, 'tapEdgeData'),
@@ -263,7 +263,7 @@ def displayTapNodeData(node, edge, bt_save, elements, states):
         raise PreventUpdate
 
 
-@app.callback(
+@dapp.callback(
     Output(id_graph_tools_time_popover, "is_open"),
     [Input(id_graph_tools_time_bt, "n_clicks")],
     [State(id_graph_tools_time_popover, "is_open")],
@@ -273,7 +273,7 @@ def toggle_time_popover(n, is_open):
         return not is_open
     return is_open
 
-@app.callback(
+@dapp.callback(
     Output(id_graph_tools_search_popover, "is_open"),
     [Input(id_graph_tools_search_bt, "n_clicks")],
     [State(id_graph_tools_search_popover, "is_open")],

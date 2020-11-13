@@ -1,5 +1,7 @@
 import dash_bootstrap_components as dbc
 import dash_html_components as html
+import dash_core_components as dcc
+
 from norm.workbench.editors import codes, id_tab_script
 from norm.workbench.views import views, id_tab_table
 
@@ -14,13 +16,16 @@ id_panel_right_col = 'panel-right-col'
 id_tab_views = 'tab-views'
 id_tab_codes = 'tab-codes'
 
+id_module_search = 'module-search'
+id_module_load = 'module-load'
+
 init_editor_active = True
 init_chart_active = True
 init_table_active = True
 
 double_columns = False
 if double_columns:
-    layout = html.Div([
+    content_layout = html.Div([
         html.Br(),
         dbc.Row([
             dbc.Col(dbc.Tabs(codes,
@@ -38,13 +43,67 @@ if double_columns:
         ]),
     ], className='ml-2 mr-2')
 else:
-    layout = html.Div([
+    content_layout = html.Div([
         html.Br(),
         dbc.Tabs(codes + views,
                  active_tab=id_tab_table,
                  style={'width': '100%'},
                  id=id_tab_views)
     ], className='ml-2 mr-2')
+
+
+navbar = dbc.Navbar(
+    [
+        dbc.Row(
+            [
+                dbc.Col(dbc.NavbarBrand(" Norma ",
+                                        className="ml-2 mr-2",
+                                        style={'fontSize': '2em', 'fontStyle': 'bolder'}),
+                        width=dict(size=2, offset=1)),
+                dbc.Col(
+                    dcc.Dropdown(id=id_module_search,
+                                 searchable=True,
+                                 search_value='',
+                                 value='',
+                                 placeholder='Type module name'),
+                    width=dict(size=5)
+                ),
+                dbc.Col(
+                    dbc.Button('Load',
+                               id=id_module_load,
+                               style={'fontSize': '1.5em'},
+                               color='info'),
+                    width=dict(size=1)
+                ),
+                dbc.Col(
+                    html.I('', className='fa fa-user text-light', style={'fontSize': '2em'}),
+                    width=dict(size=2, offset=1)
+                )
+            ],
+            align="center",
+            justify="between",
+            no_gutters=True,
+            style={
+                'width': '100%'
+            }
+        ),
+    ],
+    color="info",
+    dark=True,
+)
+
+
+layout = html.Div([
+    html.Div([
+        html.Div([html.H1('')],
+                 style={'width': '0%'}),
+        html.Div([navbar, content_layout],
+                 id='page-content',
+                 style={'width': '99.6%',
+                        'marginLeft': '0.4em',
+                        'display': 'block'})
+    ])
+])
 
 """
 @app.callback([Output(id_panel_editor_collapse, 'is_open'),

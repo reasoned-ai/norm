@@ -7,7 +7,7 @@ import dash_table
 from dash.dependencies import Input, State, Output, MATCH
 from dash.exceptions import PreventUpdate
 
-from norm.root import app
+from norm.root import dapp
 import logging
 
 logger = logging.getLogger('workbench.table')
@@ -143,7 +143,7 @@ panel = html.Div([
 ])
 
 
-@app.callback(
+@dapp.callback(
     Output(id_table_tools_show, 'children'),
     Input(id_table_panel, 'hidden_columns'),
     [State(id_table_panel, 'columns')]
@@ -163,7 +163,7 @@ def hide_columns(hcols: Optional[List[str]], cols: Optional[List[Dict]]):
     return items
 
 
-@app.callback(
+@dapp.callback(
     Output(id_table_panel, 'hidden_columns'),
     [Input(f'show-column-{i}', 'n_clicks') for i in range(MAX_HIDEABLE_COLUMNS)],
     [State(id_table_state, 'children'),

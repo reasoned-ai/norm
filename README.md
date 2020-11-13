@@ -1,6 +1,13 @@
 # Norm = {Neural Object Relational Models}
 
-
+```
+alembic revision --autogenerate -m 'init'
+alembic upgrade head
+export FLASK_APP=root:server
+export FLASK_ENV=development
+flask fab create-admin
+python app.py
+```
 ![alt text](docs/_static/norm-logo.png "Norm Logo")
 
 

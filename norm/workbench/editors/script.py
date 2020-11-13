@@ -6,7 +6,7 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, State, Output
 from dash.exceptions import PreventUpdate
 import pandas as pd
-from norm.root import app
+from norm.root import dapp
 from norm.models import norma
 from norm import engine
 from norm.config import MAX_ROWS
@@ -94,7 +94,7 @@ panel = html.Div([
                 enableBasicAutocompletion=True,
                 enableLiveAutocompletion=True,
                 enableSnippets=True,
-                autocompleter='/autocompleter?prefix=',
+                autocompleter='/api/v1/completer/suggest?prefix=',
                 prefixLine=True,
                 placeholder='Norm code ...',
                 height='84vh',
@@ -109,7 +109,7 @@ panel = html.Div([
 ], id=id_script_panel)
 
 
-@app.callback(
+@dapp.callback(
     [Output(id_script, 'value'),
      Output(id_module_search, 'value')],
     Input(id_module_load, 'n_clicks'),
@@ -134,7 +134,7 @@ def load_module(bt: int, value: str, action: str, states: List[int]):
         raise PreventUpdate
 
 
-@app.callback(
+@dapp.callback(
     [Output(id_module_search, "options"),
      Output(id_module_load, 'children')],
     [Input(id_module_search, "search_value")],
@@ -150,7 +150,7 @@ def update_options(search_value: str):
         return [{'label': f'New [{search_value}]', 'value': search_value}], 'New'
 
 
-@app.callback(
+@dapp.callback(
     [Output(id_script_status, 'children'),
      Output(id_table_panel, "columns"),
      Output(id_table_panel, "data"),

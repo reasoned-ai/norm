@@ -5,6 +5,39 @@
     bottom: 0;
     left: 0;
 }
+.container {
+    padding: 0 !important;
+}
+
+@media screen and (min-width: 768px){
+    .container {
+        width: 750px;
+    }
+}
+
+@media screen and (min-width: 992px) {
+    .container {
+        width: 970px;
+    }
+}
+
+@media screen and (min-width: 1200px){
+    .container {
+        width: 1170px;
+    }
+}
+
+@media screen and (min-width: 1600px){
+    .container {
+        width: 1570px;
+    }
+}
+
+@media screen and (min-width: 2800px){
+    .container {
+        width: 2770px;
+    }
+}
 
 .dash-spreadsheet-menu {
     margin-top: 1em;

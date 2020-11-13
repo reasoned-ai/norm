@@ -3,9 +3,11 @@ from uuid import uuid4, uuid5, NAMESPACE_OID
 from zlib import adler32
 from typing import Optional, Callable, TypeVar, Any
 from hashids import Hashids
-from norm.config import HASH_SALT, HASH_MIN_LENGTH
 import logging
 
+# Minimal length of a hash string
+HASH_MIN_LENGTH = 10
+HASH_SALT = 'be normal'
 hasher = Hashids(salt=HASH_SALT, min_length=HASH_MIN_LENGTH)
 
 
