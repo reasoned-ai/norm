@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import Dict, Union
 from dash.dependencies import MATCH
+from norm.config import ENABLE_PATTERN_MATCH
 
 
 def panel_style(vw: int):
@@ -17,22 +18,31 @@ label_style = {
 def mid(
     module_name: str,
     name: str
-) -> Dict[str, str]:
-    return dict(
-        index=module_name,
-        type=name
-    )
+) -> Union[str, Dict[str, str]]:
+    if ENABLE_PATTERN_MATCH:
+        return dict(
+            index=module_name,
+            type=name
+        )
+    else:
+        return name
 
 
-def match_id(name: str) -> Dict:
-    return dict(
-        type=name,
-        index=MATCH
-    )
+def match_id(name: str) -> Union[str, Dict]:
+    if ENABLE_PATTERN_MATCH:
+        return dict(
+            type=name,
+            index=MATCH
+        )
+    else:
+        return name
 
 
 def tid(
     module_name: str,
     name: str
 ) -> str:
-    return r'\{\"index\"\:\"' + module_name + r'\"\,\"type\"\:\"' + name + r'\"\}'
+    if ENABLE_PATTERN_MATCH:
+        return r'\{\"index\"\:\"' + module_name + r'\"\,\"type\"\:\"' + name + r'\"\}'
+    else:
+        return name

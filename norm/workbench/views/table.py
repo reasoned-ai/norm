@@ -157,26 +157,28 @@ def panel(module_name: str, vw: int):
 @dapp.callback(
     Output(match_id(id_table_tools_show), 'children'),
     Input(match_id(id_table_panel), 'hidden_columns'),
-    [State(match_id(id_table_panel), 'columns')]
+    [State(match_id(id_table_panel), 'columns'),
+     State('module-url', 'pathname')]
 )
-def hide_columns(hcols: Optional[List[str]], cols: Optional[List[Dict]]):
+def hide_columns(hcols: Optional[List[str]], cols: Optional[List[Dict]], module_name: str):
     if hcols is None:
         raise PreventUpdate
 
+    _mid = partial(mid, module_name)
     items = [
         dbc.DropdownMenuItem(col['name'],
-                             id=f"show-column-{i}",
+                             id=_mid(f"show-column-{i}"),
                              style={'display': 'flex' if col['name'] in hcols else 'none'})
         for i, col in enumerate(cols)
     ]
-    items.extend([dbc.DropdownMenuItem('', id=f"show-column-{i}", style={'display': 'none'})
+    items.extend([dbc.DropdownMenuItem('', id=_mid(f"show-column-{i}"), style={'display': 'none'})
                   for i in range(len(cols), MAX_HIDEABLE_COLUMNS)])
     return items
 
 
 @dapp.callback(
     Output(match_id(id_table_panel), 'hidden_columns'),
-    [Input(f'show-column-{i}', 'n_clicks') for i in range(MAX_HIDEABLE_COLUMNS)],
+    [Input(match_id(f'show-column-{i}'), 'n_clicks') for i in range(MAX_HIDEABLE_COLUMNS)],
     [State(match_id(id_table_state), 'children'),
      State(match_id(id_table_panel), 'columns'),
      State(match_id(id_table_panel), 'hidden_columns')],

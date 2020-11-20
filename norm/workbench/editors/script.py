@@ -146,27 +146,29 @@ def panel(module_name: str, vw: int):
      Input(match_id(id_graph_tools_time_range), 'value'),
      Input(match_id(id_graph_tools_search), 'value')],
     [State(match_id(id_table_panel), 'data'),
-     State(match_id(id_script), 'id')]
+     State('module-url', 'pathname')]
 )
-def execute(code: str, time_range: List[int], keyword: str, odt: List, script_id: Dict):
-    module_name = script_id['index'].replace('-', '.')
+def execute(code: str, time_range: List[int], keyword: str, odt: List, module_name: str):
     results = norm_execute(code, module_name)
     if results is None:
         raise PreventUpdate
 
     dt = results.head(MAX_ROWS)
-    times = list(dt['src_t'].drop_duplicates().sort_values().values)
-    t = len(times) - 1
-    tb = times[int(time_range[0] * t / 100)]
-    te = times[int(time_range[1] * t / 100)]
+    if 'src_t' in dt.columns:
+        times = list(dt['src_t'].drop_duplicates().sort_values().values)
+        t = len(times) - 1
+        tb = times[int(time_range[0] * t / 100)]
+        te = times[int(time_range[1] * t / 100)]
 
-    selected_dt = dt[(dt['src_t'] <= te) & (dt['src_t'] >= tb)]
-    if keyword is not None:
-        selected_dt = selected_dt[selected_dt['src_entity'].str.contains(keyword, case=False)]
-    dt['highlighted'] = 0
-    dt.loc[selected_dt.index, 'highlighted'] = 1
-    nodes, edges = nodes_edges(dt)
-    elements = nodes + edges
+        selected_dt = dt[(dt['src_t'] <= te) & (dt['src_t'] >= tb)]
+        if keyword is not None:
+            selected_dt = selected_dt[selected_dt['src_entity'].str.contains(keyword, case=False)]
+        dt['highlighted'] = 0
+        dt.loc[selected_dt.index, 'highlighted'] = 1
+        nodes, edges = nodes_edges(dt)
+        elements = nodes + edges
+    else:
+        elements = []
 
     dt_cols = [{'name': 'row', 'id': 'row'}] + \
               [{'name': col, 'id': col, 'hideable': True, 'renamable': True, 'selectable': True}

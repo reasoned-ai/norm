@@ -83,6 +83,8 @@ else:
 
 MAX_ROWS = 1000
 
+ENABLE_PATTERN_MATCH = False
+
 # App configuration:
 basedir = os.path.dirname(__file__)
 
