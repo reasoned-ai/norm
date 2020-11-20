@@ -1,57 +1,73 @@
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 import dash_core_components as dcc
+from dash.dependencies import Input, Output, State
+from norm import dapp
 
-from norm.workbench.editors import codes, id_tab_script
-from norm.workbench.views import views, id_tab_table
+from norm.workbench.editors import layout as editor_layout
+from norm.workbench.views import layout as view_layout
 
 editor_height = 100
 graph_height = 80
 console_height = 20
 nsample = 2500
 
+id_screen_size = 'workbench-screen-size'
+id_url = 'module-url'
+id_workbench = 'workbench'
+
 id_panel_left_col = 'panel-left-col'
 id_panel_right_col = 'panel-right-col'
 
-id_tab_views = 'tab-views'
-id_tab_codes = 'tab-codes'
+layout = html.Div([
+    html.Div(id=id_screen_size, hidden=True),
+    dcc.Location(id=id_url),
+    html.Br(),
+    html.Div(id=id_workbench)
+])
 
-id_module_search = 'module-search'
-id_module_load = 'module-load'
+dapp.clientside_callback(
+    """
+    function() {
+        return [window.innerWidth, window.innerHeight];
+    }
+    """,
+    Output(id_screen_size, 'children'),
+    [Input(id_url, 'href')]
+)
 
-init_editor_active = True
-init_chart_active = True
-init_table_active = True
 
-double_columns = True
-if double_columns:
-    layout = html.Div([
-        html.Br(),
-        dbc.Row([
-            dbc.Col(dbc.Tabs(codes,
-                             active_tab=id_tab_script,
-                             style={'width': '100%'},
-                             id=id_tab_codes),
-                    id=id_panel_left_col,
-                    md=dict(size=3, offset=1),
-                    xl=dict(size=3, offset=1)),
-            dbc.Col(dbc.Tabs(views,
-                             active_tab=id_tab_table,
-                             style={'width': '100%'},
-                             id=id_tab_views),
-                    id=id_panel_right_col,
-                    md=dict(size=8, offset=1),
-                    xl=dict(size=8, offset=1))
-        ]),
-    ], className='ml-2 mr-2')
-else:
-    layout = html.Div([
-        html.Br(),
-        dbc.Tabs(codes + views,
-                 active_tab=id_tab_table,
-                 style={'width': '100%'},
-                 id=id_tab_views)
-    ], className='ml-2 mr-2')
+@dapp.callback(
+    Output(id_workbench, 'children'),
+    [Input(id_screen_size, 'children')],
+    [State(id_url, 'pathname')]
+)
+def init_workbench(screen_size, module_name):
+    vw = screen_size[0]
+    vh = screen_size[1]
+    module_name = module_name.replace('/', '-')[1:]
+    if vw > 2000:
+        return dbc.Row([
+            dbc.Col(editor_layout(module_name, vw),
+                    id=dict(
+                        type=id_panel_left_col,
+                        index=module_name
+                    ),
+                    md=dict(size=3),
+                    xl=dict(size=3)),
+            dbc.Col(view_layout(module_name, vw),
+                    id=dict(
+                        type=id_panel_right_col,
+                        index=module_name
+                    ),
+                    md=dict(size=9),
+                    xl=dict(size=9))
+        ])
+    else:
+        return dbc.Tabs(
+            editor_layout(module_name, vw).children + view_layout(module_name, vw).children,
+            style={'width': '100%'}
+        )
 
 
 """

@@ -1,5 +1,5 @@
 from norm.models import Register
-from norm.root import db, server
+from norm import db, app
 
 import logging
 logger = logging.getLogger('update norm')

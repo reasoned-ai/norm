@@ -4,7 +4,7 @@ from sqlalchemy import func, desc
 from sqlalchemy.orm import with_polymorphic
 from sqlalchemy.orm.exc import MultipleResultsFound
 
-from norm.root import db
+from norm import db
 from norm.parser import SEPARATOR, VERSION_SIGN
 from sqlalchemy.exc import SQLAlchemyError
 

@@ -174,12 +174,12 @@ IMG_SIZE = (300, 200, True)
 # APP_THEME = "bootstrap-theme.css"  # default bootstrap
 # APP_THEME = "cerulean.css"
 # APP_THEME = "cosmo.css"
-APP_THEME = "cyborg.css"
+# APP_THEME = "cyborg.css"
 # APP_THEME = "flatly.css"
 # APP_THEME = "journal.css"
 # APP_THEME = "simplex.css"
 # APP_THEME = "slate.css"
 # APP_THEME = "spacelab.css"
-# APP_THEME = "united.css"
+APP_THEME = "united.css"
 # APP_THEME = "yeti.css"
 

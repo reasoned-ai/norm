@@ -1,6 +1,4 @@
-from flask import render_template
-
-from norm.root import app, dapp, appbuilder
+from norm import app, dapp
 from norm.workbench import layout
 import logging
 logger = logging.getLogger('norm.app')

@@ -2,7 +2,7 @@ import logging
 import traceback
 from typing import Dict, Optional
 from sqlalchemy.exc import SQLAlchemyError
-from norm.root import db
+from norm import db
 from norm.compiler import build_compiler, ParseError, CompileError
 from norm.executable import EngineError
 from norm.models import ModelError

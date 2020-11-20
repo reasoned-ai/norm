@@ -1,6 +1,6 @@
 from typing import List, TYPE_CHECKING, Optional, cast
 
-from norm import random_name
+from norm.utils import random_name
 from norm.parser import TEMP_VAR_STUB, SEPARATOR
 from norm.config import USE_DASK, DataFrame
 

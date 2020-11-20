@@ -27,7 +27,7 @@ class ModuleView(ModelView):
         'name', 'description', 'storage', 'created_on', 'changed_on', 'created_by', 'changed_by'
     ]
 
-    @action("explore", "Explore", icon="fa-flask")
+    @action("study", "Study", icon="fa-flask")
     def explore(self, item: Union[Module, List[Module]]):
         if isinstance(item, list):
             item = item[0]

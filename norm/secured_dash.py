@@ -32,7 +32,6 @@ def has_authenticated(f):
 class SecuredDash(Dash):
 
     def interpolate_index(self, **kwargs):
-        from norm.root import appbuilder
         index_string = render_template(
             "dash.html",
             base_template=current_app.appbuilder.base_template,

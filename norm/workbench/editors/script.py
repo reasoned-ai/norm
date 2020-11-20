@@ -1,14 +1,17 @@
-from typing import List
+import json
+from typing import List, Dict
 
 import dash_ace
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-from dash.dependencies import Input, State, Output
+from dash.dependencies import Input, State, Output, MATCH
 from dash.exceptions import PreventUpdate
+from functools import partial
 import pandas as pd
-from norm.root import dapp
+from norm import dapp
+from norm.workbench.utils import mid, tid, match_id
 from norm.models import norma
-from norm import engine
+from norm.engine import execute as norm_execute
 from norm.config import MAX_ROWS
 from norm.workbench.views.table import id_table_panel
 from norm.workbench.views.graph import id_graph_panel, id_graph_tools_search, id_graph_tools_time_range, get_layout
@@ -48,79 +51,106 @@ class EditorState(IntEnum):
     TOTAL = 1
 
 
-tools = dbc.Row(
-    [
-        dbc.Col([
-            dbc.ButtonGroup([
-                dbc.Button('',
-                           color='info',
-                           className='fa fa-minus',
-                           id=id_script_tools_smaller),
-                dbc.Button('',
-                           color="info",
-                           className="fa fa-plus",
-                           id=id_script_tools_bigger),
-            ],
-                id=id_script_tools_items
+def tools(module_name: str):
+    _mid = partial(mid, module_name)
+    _tid = partial(tid, module_name)
+    return dbc.Row(
+        [
+            dbc.Col(
+                [
+                    dbc.ButtonGroup(
+                        [
+                            dbc.Button('',
+                                       color='info',
+                                       className='fa fa-minus',
+                                       id=id_script_tools_smaller),
+                            dbc.Button('',
+                                       color="info",
+                                       className="fa fa-plus",
+                                       id=_mid(id_script_tools_bigger)),
+                        ],
+                        id=_mid(id_script_tools_items)
+                    )
+                ],
+                lg=dict(size=6),
             ),
-            dbc.Tooltip("Increase font size", target=id_script_tools_bigger, placement='top'),
-            dbc.Tooltip("Decrease font size", target=id_script_tools_smaller, placement='top'),
+            dbc.Col(
+                [
+                    dbc.Tooltip("Increase font size",
+                                target=_tid(id_script_tools_bigger),
+                                placement='right'),
+                    dbc.Tooltip("Decrease font size",
+                                target=id_script_tools_smaller,
+                                placement='right')
+                ],
+                lg=dict(size=2)
+            )
         ],
-            width=dict(size=12),
-        ),
-        dbc.Col(
-            html.Div(''),
-            width=dict(size=1)
-        )
-    ]
-)
+        className='ml-lg-1',
+        justify='between'
+    )
 
-panel = html.Div([
-    html.Div([0] * EditorState.TOTAL, id=id_script_state, hidden=True),
-    dbc.Card([
-        dbc.CardHeader(tools, id=id_script_tools),
-        dbc.CardBody(
-            dash_ace.DashAceEditor(
-                id=id_script,
-                value='',
-                theme='tomorrow',
-                mode='norm',
-                syntaxKeywords=syntaxKeywords,
-                syntaxFolds=syntaxFolds,
-                tabSize=2,
-                fontSize=20,
-                enableBasicAutocompletion=True,
-                enableLiveAutocompletion=True,
-                enableSnippets=True,
-                autocompleter='/api/v1/completer/suggest?prefix=',
-                prefixLine=True,
-                placeholder='Norm code ...',
-                height='84vh',
-                width='23vw'
+
+def panel(module_name: str, vw: int):
+    _mid = partial(mid, module_name)
+    return html.Div([
+        html.Div([0] * EditorState.TOTAL, id=_mid(id_script_state), hidden=True),
+        dbc.Card([
+            dbc.CardHeader(
+                tools(module_name),
+                id=_mid(id_script_tools)
             ),
-            className='m-0'
-        ),
-        dbc.CardFooter(
-            html.H6('.', id=id_script_status)
-        )
-    ], className='ml-0')
-], id=id_script_panel)
+            dbc.CardBody(
+                dash_ace.DashAceEditor(
+                    id=_mid(id_script),
+                    value='',
+                    theme='tomorrow',
+                    mode='norm',
+                    syntaxKeywords=syntaxKeywords,
+                    syntaxFolds=syntaxFolds,
+                    tabSize=2,
+                    fontSize=20,
+                    enableBasicAutocompletion=True,
+                    enableLiveAutocompletion=True,
+                    enableSnippets=True,
+                    autocompleter='/api/v1/completer/suggest?prefix=',
+                    prefixLine=True,
+                    placeholder='Norm code ...',
+                    height='84vh' if vw > 2000 else '69vh',
+                    width='23vw' if vw > 2000 else '95vw'
+                ),
+                style={
+                    'margin': '1em'
+                }
+            ),
+            dbc.CardFooter(
+                html.H6(
+                    '.',
+                    id=_mid(id_script_status)
+                )
+            )
+        ], className='m-1')
+    ],
+        id=_mid(id_script_panel)
+    )
 
 
 @dapp.callback(
-    [Output(id_script_status, 'children'),
-     Output(id_table_panel, "columns"),
-     Output(id_table_panel, "data"),
-     Output(id_table_panel, "tooltip_data"),
-     Output(id_graph_panel, "elements"),
+    [Output(match_id(id_script_status), 'children'),
+     Output(match_id(id_table_panel), "columns"),
+     Output(match_id(id_table_panel), "data"),
+     Output(match_id(id_table_panel), "tooltip_data"),
+     Output(match_id(id_graph_panel), "elements"),
      ],
-    [Input(id_script, 'value'),
-     Input(id_graph_tools_time_range, 'value'),
-     Input(id_graph_tools_search, 'value')],
-    [State(id_table_panel, 'data')]
+    [Input(match_id(id_script), 'value'),
+     Input(match_id(id_graph_tools_time_range), 'value'),
+     Input(match_id(id_graph_tools_search), 'value')],
+    [State(match_id(id_table_panel), 'data'),
+     State(match_id(id_script), 'id')]
 )
-def execute(code: str, time_range: List[int], keyword: str, odt: List):
-    results = engine.execute(code, "") # TODO module_name.lower())
+def execute(code: str, time_range: List[int], keyword: str, odt: List, script_id: Dict):
+    module_name = script_id['index'].replace('-', '.')
+    results = norm_execute(code, module_name)
     if results is None:
         raise PreventUpdate
 

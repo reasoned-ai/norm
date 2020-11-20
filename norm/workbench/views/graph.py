@@ -1,4 +1,5 @@
 from enum import IntEnum
+from functools import partial
 from typing import List, Dict, Optional
 import pandas as pd
 import dash_bootstrap_components as dbc
@@ -8,7 +9,9 @@ import dash_cytoscape as cyto
 from dash.dependencies import Input, State, Output, MATCH
 from dash.exceptions import PreventUpdate
 
-from norm.root import dapp
+from norm import dapp
+from norm.workbench.utils import panel_style, mid, tid, match_id
+
 import logging
 
 logger = logging.getLogger('workbench.graph')
@@ -80,138 +83,151 @@ init_stylesheet = [
             'arrow-scale': 1,
             'line-color': '#f92411',
             'content': 'data(situation)',
-            'width': 'data(value) * 100'
         }
     }
 ]
 
 init_layout = {'name': 'preset'}
 
-g = cyto.Cytoscape(
-    id=id_graph_panel,
-    layout=init_layout,
-    style={'width': '100%', 'height': '85vh'},
-    stylesheet=init_stylesheet,
-    boxSelectionEnabled=True,
-    elements=[]
-)
 
-tools = dbc.Row([
-    dbc.Col([
-        dbc.ButtonGroup(
-            [
-                dbc.Button('',
-                           color='info',
-                           className='fa fa-home',
-                           id=id_graph_tools_reset_bt),
-                dbc.Button('',
-                           color='info',
-                           className='fa fa-search',
-                           id=id_graph_tools_search_bt),
-                dbc.Button('',
-                           color='info',
-                           className='fa fa-clock-o',
-                           id=id_graph_tools_time_bt),
-                dbc.Button('',
-                           color='info',
-                           className='fa fa-undo',
-                           id=id_graph_tools_undo_bt),
-                dbc.Button('',
-                           color='info',
-                           className='fa fa-repeat',
-                           id=id_graph_tools_redo_bt),
-                dbc.Button('',
-                           color='info',
-                           className='fa fa-object-group',
-                           id=id_graph_tools_group_bt),
-                dbc.Button('',
-                           color='info',
-                           className='fa fa-trash',
-                           id=id_graph_tools_delete_bt),
-                dbc.Button('',
-                           color='info',
-                           className='fa fa-save',
-                           id=id_graph_tools_save_bt),
-            ],
-            id=id_graph_tools_items
-        ),
-        dbc.Tooltip("Keyword search on the graph",
-                    target=id_graph_tools_search_bt,
-                    placement='top'),
-        dbc.Tooltip("Save current graph",
-                    target=id_graph_tools_save_bt,
-                    placement='top'),
-        dbc.Tooltip("Time range filtering",
-                    target=id_graph_tools_time_bt,
-                    placement='top'),
-        dbc.Tooltip("Redo the latest action",
-                    target=id_graph_tools_redo_bt,
-                    placement='top'),
-        dbc.Tooltip("Undo the latest action",
-                    target=id_graph_tools_undo_bt,
-                    placement='top'),
-        dbc.Tooltip("Group selected objects",
-                    target=id_graph_tools_group_bt,
-                    placement='top'),
-        dbc.Tooltip("Delete selected objects",
-                    target=id_graph_tools_delete_bt,
-                    placement='top'),
-        dbc.Popover(
-            [
-                dbc.PopoverHeader("Select the time range"),
-                dbc.PopoverBody(
-                    dcc.RangeSlider(
-                        min=0,
-                        max=100,
-                        value=[0, 40],
-                        included=False,
-                        updatemode='drag',
-                        id=id_graph_tools_time_range
+def tools(module_name: str):
+    _mid = partial(mid, module_name)
+    _tid = partial(tid, module_name)
+    return dbc.Row(
+        [
+            dbc.Col(
+                [
+                    dbc.ButtonGroup(
+                        [
+                            dbc.Button('',
+                                       color='info',
+                                       className='fa fa-home',
+                                       id=_mid(id_graph_tools_reset_bt)),
+                            dbc.Button('',
+                                       color='info',
+                                       className='fa fa-search',
+                                       id=_mid(id_graph_tools_search_bt)),
+                            dbc.Button('',
+                                       color='info',
+                                       className='fa fa-clock-o',
+                                       id=_mid(id_graph_tools_time_bt)),
+                            dbc.Button('',
+                                       color='info',
+                                       className='fa fa-undo',
+                                       id=_mid(id_graph_tools_undo_bt)),
+                            dbc.Button('',
+                                       color='info',
+                                       className='fa fa-repeat',
+                                       id=_mid(id_graph_tools_redo_bt)),
+                            dbc.Button('',
+                                       color='info',
+                                       className='fa fa-object-group',
+                                       id=_mid(id_graph_tools_group_bt)),
+                            dbc.Button('',
+                                       color='info',
+                                       className='fa fa-trash',
+                                       id=_mid(id_graph_tools_delete_bt)),
+                            dbc.Button('',
+                                       color='info',
+                                       className='fa fa-save',
+                                       id=_mid(id_graph_tools_save_bt)),
+                        ],
+                        id=_mid(id_graph_tools_items)
+                    ),
+                    dbc.Tooltip("Keyword search on the graph",
+                                target=_tid(id_graph_tools_search_bt),
+                                placement='top'),
+                    dbc.Tooltip("Save current graph",
+                                target=_tid(id_graph_tools_save_bt),
+                                placement='top'),
+                    dbc.Tooltip("Time range filtering",
+                                target=_tid(id_graph_tools_time_bt),
+                                placement='top'),
+                    dbc.Tooltip("Redo the latest action",
+                                target=_tid(id_graph_tools_redo_bt),
+                                placement='top'),
+                    dbc.Tooltip("Undo the latest action",
+                                target=_tid(id_graph_tools_undo_bt),
+                                placement='top'),
+                    dbc.Tooltip("Group selected objects",
+                                target=_tid(id_graph_tools_group_bt),
+                                placement='top'),
+                    dbc.Tooltip("Delete selected objects",
+                                target=_tid(id_graph_tools_delete_bt),
+                                placement='top'),
+                ],
+                width=dict(size=6),
+            ),
+            dbc.Col(
+                [
+                    dbc.Popover(
+                        [
+                            dbc.PopoverHeader("Select the time range"),
+                            dbc.PopoverBody(
+                                dcc.RangeSlider(
+                                    min=0,
+                                    max=100,
+                                    value=[0, 40],
+                                    included=False,
+                                    updatemode='drag',
+                                    id=_mid(id_graph_tools_time_range)
+                                )
+                            )
+                        ],
+                        style={'width': '20em'},
+                        id=_mid(id_graph_tools_time_popover),
+                        is_open=False,
+                        target=_tid(id_graph_tools_time_bt)
+                    ),
+                    dbc.Popover(
+                        [
+                            dbc.PopoverBody(
+                                dbc.Input(placeholder='Type keywords...',
+                                          debounce=True,
+                                          id=_mid(id_graph_tools_search)),
+                            )
+                        ],
+                        style={'width': '20em'},
+                        id=_mid(id_graph_tools_search_popover),
+                        is_open=False,
+                        target=_tid(id_graph_tools_search_bt)
                     )
-                )
-            ],
-            style={'width': '20em'},
-            id=id_graph_tools_time_popover,
-            is_open=False,
-            target=id_graph_tools_time_bt
-        ),
-        dbc.Popover(
-            [
-                dbc.PopoverBody(
-                    dbc.Input(placeholder='Type keywords...',
-                              debounce=True,
-                              id=id_graph_tools_search),
-                )
-            ],
-            style={'width': '20em'},
-            id=id_graph_tools_search_popover,
-            is_open=False,
-            target=id_graph_tools_search_bt
-        )
-    ],
-        width=dict(size=6),
-    ),
-    dbc.Col([
-    ],
-        width=dict(size=5),
-    ),
-], justify='between')
 
-panel = html.Div([
-    html.Div([0] * GraphState.ALL, id=id_graph_state, hidden=True),
-    dbc.Card([
-        dbc.CardHeader(tools, id=id_graph_tools),
-        dbc.CardBody(g),
-        dbc.CardFooter(
-            html.H6('.', id=id_graph_response)
-        )
-    ],
-        className='m-0',
-        style={
-            'height': '91.4vh'
-        },
+                ],
+                width=dict(size=5),
+            ),
+        ],
+        justify='between')
+
+
+def panel(module_name: str, vw: int):
+    _mid = partial(mid, module_name)
+    g = cyto.Cytoscape(
+        id=_mid(id_graph_panel),
+        layout=init_layout,
+        style=dict(
+            width='100%',
+            height='85vh' if vw > 2000 else '72vh'
+        ),
+        stylesheet=init_stylesheet,
+        boxSelectionEnabled=True,
+        elements=[]
     )
-])
+
+    return html.Div([
+        html.Div([0] * GraphState.ALL, id=_mid(id_graph_state), hidden=True),
+        dbc.Card([
+            dbc.CardHeader(tools(module_name), id=_mid(id_graph_tools)),
+            dbc.CardBody(g),
+            dbc.CardFooter(
+                html.H6('.', id=_mid(id_graph_response))
+            )
+        ],
+            className='m-0',
+            style=panel_style(vw)
+        )
+    ])
+
 
 layout = None
 
@@ -238,14 +254,14 @@ def save_layout(l):
     layout.to_parquet('/tmp/layout.parquet')
 
 
-@dapp.callback([Output(id_graph_response, 'children'),
-               Output(id_graph_state, 'children')],
-              [Input(id_graph_panel, 'tapNode'),
-               Input(id_graph_panel, 'tapEdgeData'),
-               Input(id_graph_tools_save_bt, 'n_clicks')],
-              [State(id_graph_panel, 'elements'),
-               State(id_graph_state, 'children')])
-def displayTapNodeData(node, edge, bt_save, elements, states):
+@dapp.callback([Output(match_id(id_graph_response), 'children'),
+                Output(match_id(id_graph_state), 'children')],
+               [Input(match_id(id_graph_panel), 'tapNode'),
+                Input(match_id(id_graph_panel), 'tapEdgeData'),
+                Input(match_id(id_graph_tools_save_bt), 'n_clicks')],
+               [State(match_id(id_graph_panel), 'elements'),
+                State(match_id(id_graph_state), 'children')])
+def display_tap_node_data(node, edge, bt_save, elements, states):
     if node is not None:
         return f"Clicked: {node['position']}", states
     elif edge is not None:
@@ -264,19 +280,20 @@ def displayTapNodeData(node, edge, bt_save, elements, states):
 
 
 @dapp.callback(
-    Output(id_graph_tools_time_popover, "is_open"),
-    [Input(id_graph_tools_time_bt, "n_clicks")],
-    [State(id_graph_tools_time_popover, "is_open")],
+    Output(match_id(id_graph_tools_time_popover), "is_open"),
+    [Input(match_id(id_graph_tools_time_bt), "n_clicks")],
+    [State(match_id(id_graph_tools_time_popover), "is_open")],
 )
 def toggle_time_popover(n, is_open):
     if n:
         return not is_open
     return is_open
 
+
 @dapp.callback(
-    Output(id_graph_tools_search_popover, "is_open"),
-    [Input(id_graph_tools_search_bt, "n_clicks")],
-    [State(id_graph_tools_search_popover, "is_open")],
+    Output(match_id(id_graph_tools_search_popover), "is_open"),
+    [Input(match_id(id_graph_tools_search_bt), "n_clicks")],
+    [State(match_id(id_graph_tools_search_popover), "is_open")],
 )
 def toggle_search_popover(n, is_open):
     if n:
