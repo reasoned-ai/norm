@@ -1,0 +1,4 @@
+for each lambda, the following are the fundamental functionalities:
+1. incremental saving with version
+2. deduplication by version, merging by max, latest and etc.
+3. indexed searching, organizing files by values

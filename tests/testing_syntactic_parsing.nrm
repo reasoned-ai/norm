@@ -1,19 +1,43 @@
-Article:: String := 'the' | 'a'
+Article:: [String]
+= 'the' | 'a'
 
-Verb:: String := 'see' | 'go to'
+Verb:: [String]
+= 'see' | 'go', 'to'
 
-Noun:: String := 'New York' | 'I'
+Noun:: [String]
+= 'New', 'York' | 'I'
 
-Adj:: String := 'beautiful'
+Adj:: [String]
+= 'beautiful'
 
-Parsable(partial: String, left: String, right: String) := left, right = Split(partial)
+Split::
+partial: [String],
+for i in range(len(partial)) (
+ | -> (partial[:][:i], partial[:][i+1:])
+)
 
-VP:: Parsable -> (Verb, NP) := return Verb(left)?, NP(right)?
+VP::
+partial: [String],
+for left, right in Split(partial) (
+  | -> Verb(left), NP(right)
+)
 
-NNP:: Parsable -> (Adj, Noun) := return Adj(left)?, Noun(right)?
+NNP::
+partial: [String],
+for left, right in Split(partial) (
+  | -> Adj(left), Noun(right)
+)
 
-NP:: Parsable -> (Article, NNP) := return Article(left)?, NNP(right)?
+NP::
+partial: [String],
+for left, right in Split(partial) (
+  | -> Article(left), NNP(right)
+)
 
-Sentence:: Parsable -> (NP, VP) := return NP(left)?, VP(right)?
+Parse::
+sentence: [String],
+for left, right in Split(sentence) (
+  | -> NP(left), VP(right)
+)
 
-Sentence('I see the beautiful New York')
+Parse('I see the beautiful New York')

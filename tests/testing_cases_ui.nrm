@@ -1,11 +1,13 @@
-Template(model: Model, user: User)
- |= model.isa(DetectObject)
- &  stream = Choose(Stream(org==user.org))
- &  locations = Choose(Stream.location.unique)
- &  frames = stream(location in locations, frame?)
- &  objects = model(frames)
- &  for each frame in frames:
-      mean_confidence = objects.mean
- &  bottom(5, mean_confidence)
- &  Tabular(frames)
+Template::
+model: Model,
+user: User,
+| model.IsA(ObjectDetection) -> (
+   locations: [String] = ChooseMultiple(Stream.location.Unique),
+   frames = for location in locations (
+     frames_with_objects = for frame in location.Stream(org==user.org).frames (
+       mean_confidence = model(frame)._prob.Mean
+     )
+     -> frame: Frame = frames_with_objects.Bottom(5, mean_confidence).frame
+   )
+   -> Tabulate(frames)
 

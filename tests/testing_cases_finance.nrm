@@ -1,0 +1,18 @@
+Stock::
+ticker: String,
+name: String,
+summary: Text,
+start_date: Datetime,
+active: Boolean,
+exchange: String
+
+Split::
+stock: Stock,
+-> Float
+
+Dividend::
+stock: Stock,
+-> Float
+
+
+

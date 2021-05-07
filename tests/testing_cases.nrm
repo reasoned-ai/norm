@@ -1,187 +1,170 @@
+TestCase1::
 
-"""
-Type Declaration
-"""
-
-# Declare relation
-test:: (a:String, b:Integer)
-
-# Atomic Declaration
-atomic test:: a: String
+# Declare a relation
+Test::
+a: String
 
 # Declare function
-test:: a: String -> Integer
+Test::
+a: String,
+-> Integer
 
-test:: a: String -> b: Integer
+Test::
+a: String,
+-> b: Integer
 
-test:: a: Person -> (b: Page, c: Topic)
+Test::
+a: Person,
+-> (
+  b: Page,
+  c: Topic
+)
 
-# Declare a higher order relation
-summary:: a: [String] -> String
+# List
+Summarize::
+a: [String],
+-> String
 
-# Subtype declaration
-programmer:: Person fast_on (languages: [Language])
+# Subtype
+Programmer::
+Person
 
-# Atomic definition
-atomic
-fast_on:: (time_per_line: Time)
- := time_per_line < 1s
+# Supertype
+Language::
+| Javascript
+| Python
+| Java
 
-Language:: String
- := "Javascript" | "Python" | "Java"
+FluentOn::
+write_lines_per_second: Integer > 10
+
+# Combinator
+Programmer::
+Person,
+FluentOn,
+language: Language
 
 
 """
-Import Export
+data
 """
 
-# Export type
-export test$AWeq23 as tt to norm.test
+# new data
+Test
+= 'sfs' , 4, -> 6
+| 'fff' , 1 ,-> 7
 
-atomic export test to norm.test
+# increment by overwrite
+Test
+&= 'sfs', 4, -> 9
 
-# Import type
-import norm.test.test$AWeq23 as tt
+# increment by append
+Test
+|= 'sfs', 4 ,-> 7,  # should be no effect
 
-from norm.test import test$AWeq23
-
-atomic import norm.test as tt
-
-"""
-Add/Update data
-"""
-
-# constant construction
-test := 'sfs', 4 -> 6
-      | 'fff', 1 -> 7
-
-# evaluation construction
-test('aa', 6) == 9
-
-# overwrite data
-test &= 'sfs', 4 -> 9
 
 # delete data
-test &= !('sfs', 4)
+Test
+&= !('sfs', 4, -> 9), # mark as negative
+
 
 """
 Python Code
 """
-
-utcnow
-:= {{
+UTCNow::
+-> Datetime,
+{{
     from datetime import datetime
-    datetime.now
+    return datetime.now()
 }}
 
-
-test &= u2 = utcnow()
-
-test
-:: (a: Integer)
-:= {{ pandas.read_csv("sfsfsf.csv") }}
-
-
-test
-|= {{ pandas.read_csv("sfsfsf.csv") }}
-
+u2 = UTCNow.Sample(100)
 
 """
 Evaluation
 """
 
-# create a default object
-test()
+# query all data
+Test
 
-# create an object
-test('aa', 6)
+# query one default object
+Test()
+
+# query an object
+Test('aa', 6)
 
 # same as the above
-test('aa', b=6)
+Test('aa', b=6)
 
 # query the data where b=6
-test(b=6)?
+Test(b=6)
 
 # same as the above
-test(b==6)?
-
-# query all data
-test?
-
-# retrieve the default object
-test()?
+Test(b==6)
 
 # query for a in all data
-test(a?)
-
-# query for a and b in all data
-test(a?, b?)
+Test.a
 
 # query for b in case a='sfs'
-test(a='sfs', b?)
+Test(a='sfs').b
 
-test(a like 's'?, b > 3)
-
-"""
-Access
-"""
-
-# namespace
-academic.spider.actor.name
-
-# subtypes
-measurement.distance
-
-# evaluation
-"sfsfs".test.b == test("sfsfs", b?)
-
-test.mean == mean(test?)
-
+# query on complicated logic
+Test(
+    a like 's',
+    b > 3,
+    a + b < 4
+),
 
 """
 Assignment
 """
 
 # right to left language
-test_a, test_b = test(a like 's'?, b > 3)
+atest = Test(a like 's', b > 3)
 
 # left to right language
-test(a like 's'?, b > 3) as test_a, test_b
+test_a, test_b = test(a like 's', b > 3)
 
 # dynamic variables (pivoting)
-p = ['s', 'sf', 'aa'] & test.a.extract(p) as f'pattern_{p}'
-
-"""
-Draw Distribution
-"""
-test := a ~ gaussian(mu=2, gamma=0.1)
+for p in 's' | 'sf' | 'aa' (
+  pattern_{p} = Test.a.Match(p)
+)
 
 """
 Sorting
 """
-test? & a.desc & b.asc
+Test.Desc(a).Asc(b)
 
 """
 Quantified Logic
 """
-for a, b in test:
-     a.mean as a_mean
-   & a.max  as a_max
-   & b.mean as b_mean
+for a, b in Test(
+     a_mean = a.Mean,
+     a_max = a.Max,
+     b_mean = b.Mean
+)
 
-for each b in test:
-  exist a in test:
-    a.sum > 3
+Test(
+  for any b(
+    exist a(
+      c.Sum > 3
+    )
+  )
+)
 
 # Mixed aggregation and regular conditions
-test.a.mean as a_mean and
-for b in test:
-  exist a in test:
+a_mean = Test.a.Mean,
+for any b in test(
+  exist a in test(
     a > a_mean
+  )
+)
 
-test.a.mean as a_mean and test.a.std as a_std and
-for a in test:
+a_mean = test.a.Mean,
+a_std = test.a.Std,
+for a in test(
     abs(a - a_mean) < 2 * a_std
+)
 
 """
 Slicing
@@ -200,85 +183,113 @@ test[:-2]
 """
 Time Windowing
 """
-moving_average = test.rolling(10m).mean
+moving_average = Test.rolling(10m).mean
 
 
 """
 Anti-join
 """
 
-    star_in(star_name?, movie_title?)
-and movie_title.movie(movie_year>=2000, studio_name?)
-and not star_name.star(birth_date==1960)
-and return movie_title, studio_name
+21stCenturyMoviesWithStarsBornNotIn1960::
+a = Star(birth_date!=1960),
+m = Movie(
+  title=a.name.StarIn.movie_title,
+  year>=2000
+),
+-> (
+  movie_title: String = m.movie_title,
+  studio_name: String = m.studio_name
+)
 
 
 """
 Higher order logic
 """
-atomic Pattern:: e: Event -> String
+Pattern:: events: [Event], -> String
 
-EmergingPattern
-:: (event    : Event,
-    pattern  : [Pattern],
-    interval : Time Parameter = 10m,
-    threshold: Integer Parameter = 10)
-:= event.rolling(interval).pattern.unique.count > threshold
+UnreachableWindowsIP::
+Pattern,
+exist e in events(
+  e.name == "ping is not reachable" &
+  e.managed_entity.os == "windows"
+) -> e.managed_entity.ip
 
-unreachable_windows_ip:: Pattern
-:= e.name == "ping is not reachable" and
-   e.managed_entity.os == "windows" and
-   return e.managed_entity.ip
+PortException::
+Pattern,
+exist e in events(
+  e.name == "port exception"
+) -> e.managed_entity.port
 
-EmergingPattern(event=event,
-                pattern=windows_ip,
-                interval=10m,
-                threshold=20)
+EmergingPattern::
+event    : Event,
+pattern  : Pattern,
+period : TimeInterval,
+threshold: Integer,
+.Parameter(period, 1 min),
+.Parameter(threshold, 20),
+event.Past(period).pattern.Unique.Count > threshold
 
-port_exception:: Pattern
-:= e.name == "port exception" and
-   return e.managed_entity.port
-
-EmergingPattern(event=event,
-                pattern=port_exception,
-                interval=30m,
-                threshold=100)
+EmergingPattern(
+  event=event,
+  pattern=UnreachableWindowsIP | PortException,
+  period=10 min
+)
 
 """
 Switch block
 """
+a: Integer, -> String,
+| a > 3 -> 'larger than 3'
+| a > 1 -> 'between 1 and 3'
+| -> 'smaller than or equal to 1',
 
-    a > 3 => return 'larger than 3'
-and a > 1 => return 'larger than 1'
-otherwise    return 'smaller than or equal to 1'
+
+"""
+Tail recursion
+"""
+factorial::
+n: Integer, -> Integer,
+| n == 1 -> 1
+| n > 1 -> n * factorial(n - 1),
 
 
 """
 Transformer
 """
 
-transformer:: (s: [english_word]) -> [english_word]
-:=
-for i2, w2 in enumerate(s):
-  (for i1, w1 in enumerate(s):
-     (w1 => w2) as a and a ~ gaussian(abs(i2 - i1))
-   and return w2)
-
-bert:: (s: [english_word], n: integer) -> [english_word]
-:= generate(english_word, all(transformer(s)), n)
+Transformer::
+s: [Word], -> [Word],
+depth: Integer,
+head: Integer,
+.parameter(head, 4),
+.parameter(depth, 10),
+| depth == 0 -> s
+| depth > 0 -> (
+  for w in s(
+    Transformer(
+      s=s,
+      depth=depth - 1,
+      head=head
+    ) -> w,
+  )
+),
 
 
 """
-Default risk declaration and definition
+Default risk analysis
 """
-DefaultRisk
- :: (person: Person, item: Product) -> String
- := person.Account.mean > 200$
-and person.Account.duration > 15 month
-and person.Credit.mean < 3900$
-and person.employed
-and person.Residence.latest.duration > 2.5 year
-and item.typeof.Car
-and item.color == "red"
- => return "low"
+DefaultRisk::
+person: Person,
+item: Product,
+-> String,
+| exist account in person.Account(
+    account.mean > 200$,
+    account.duration > 15 month
+  )
+  & person.Credit.Mean < 3900$
+  & person.employed
+  & person.Residence.Latest.duration > 2.5 year
+  & item.IsA.Car
+  & item.color != "red" -> "low"
+| -> "high"
 
