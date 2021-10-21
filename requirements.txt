@@ -2,7 +2,7 @@ IPython~=5.5.0
 hashids==1.2.0
 alembic==0.9.10
 antlr4-python3-runtime==4.7.2
-babel==2.6.0
+babel==2.9.1
 bqplot==0.11.5
 cython==0.29.10
 dask==1.2.2
