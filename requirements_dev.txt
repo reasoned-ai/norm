@@ -1,4 +1,4 @@
-IPython==7.3.0
+IPython==7.16.3
 hashids==1.2.0
 alembic==0.9.10
 antlr4-python3-runtime==4.7.2
